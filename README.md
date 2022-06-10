@@ -7,8 +7,7 @@ Authors: Gengmo Zhou, Zhifeng Gao, Qiankun Ding, Hang Zheng, Hongteng Xu, Zhewei
 
 Uni-Mol is a universal 3D molecular pretraining framework that significantly enlarges the representation ability and application scope in drug design. 
 
-![](https://github.com/dptech-corp/Uni-Mol/blob/readme/figure/overview.png)
-
+<img src="figure/overview.png" width=100%> 
 <p align="center"><b>Schematic illustration of the Uni-Mol framework</b></p>
 
 Uni-Mol is composed of two models: a molecular pretraining model trained by 209M molecular 3D conformations; a pocket pretraining model trained by 3M candidate protein pocket data. The two models are used independently for separate tasks, and are combined when used in protein-ligand binding tasks. 
