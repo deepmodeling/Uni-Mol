@@ -66,8 +66,7 @@ We use pickle protocol 5, so Python >= 3.8 is recommended.
 
 Code & Model (WIP)
 ------------------
-Code & Model (WIP)
-------------------
+
 | Data                     | Code               |  Model Checkpoint  | 
 |--------------------------|--------------------|--------------------|
 | molecular pretrain       | :heavy_check_mark: |                    |
