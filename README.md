@@ -28,14 +28,14 @@ For the details of datasets, please refer to Appendix A and B in our [paper](htt
 There are total 6 datasets:
 
 
-| Data                     | File Size  |  Download Link                                                                    | 
-|--------------------------|------------|-----------------------------------------------------------------------------------|
-| molecular pretrain       | 114.76GB   | https://unimol.dp.tech/data/pretrain/ligands.tar.gz                               |
-| pocket pretrain          | 8.585GB    | https://unimol.dp.tech/data/pretrain/pockets.tar.gz                               |
-| molecular property       | 5.412GB    | https://unimol.dp.tech/data/finetune/molecular_property_prediction.tar.gz         |
-| molecular conformation   | 558.941MB  | TBA |
-| pocket property          | 455.236MB  | https://unimol.dp.tech/data/finetune/pocket_property_prediction.tar.gz            |
-| protein-ligand binding   | 201.492MB  | TBA |
+| Data                     | File Size  | Update Date | Download Link                                                                    | 
+|--------------------------|------------| ----------- |-----------------------------------------------------------------------------------|
+| molecular pretrain       | 114.76GB   | Jun 10 2022 |https://unimol.dp.tech/data/pretrain/ligands.tar.gz                               |
+| pocket pretrain          | 8.585GB    | Jun 10 2022 |https://unimol.dp.tech/data/pretrain/pockets.tar.gz                               |
+| molecular property       | 3.506GB    | Jul 10 2022 |https://unimol.dp.tech/data/finetune/molecular_property_prediction.tar.gz         |
+| molecular conformation   | 558.941MB  |             | TBA |
+| pocket property          | 455.236MB  | Jun 10 2022 |https://unimol.dp.tech/data/finetune/pocket_property_prediction.tar.gz            |
+| protein-ligand binding   | 201.492MB  |             | TBA |
 
 
 We use [LMDB](https://lmdb.readthedocs.io) to store data, you can use the following code snippets to read from the LMDB file.
@@ -82,7 +82,7 @@ Molecular Pretraining
 
 ```bash
 data_path=./example_data/molecule/ # replace to your data path
-save_dir=./save # replace to your save path
+save_dir=./save/ # replace to your save path
 n_gpu=8
 MASTER_PORT=10086
 lr=1e-4
@@ -126,7 +126,7 @@ Pocket Pretraining
 
 ```bash
 data_path=./example_data/pocket/ # replace to your data path
-save_dir=./save # replace to your save path
+save_dir=./save/ # replace to your save path
 n_gpu=8
 MASTER_PORT=10086
 dict_name='dict_coarse.txt'
