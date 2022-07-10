@@ -70,7 +70,6 @@ Dependencies
 ------------
  - [Uni-Core](https://github.com/dptech-corp/Uni-Core), install via `pip install git+git://github.com/dptech-crop/Uni-Core.git@stable#egg=Uni-Core`
  - rdkit==2021.09.5, install via `conda install -y -c conda-forge rdkit==2021.09.5`
- - PyTDC, install via `pip install PyTDC`
 
 As Uni-Core needs to compile CUDA kernels in installation, we also provide a docker image to save your efforts. To use the GPU within docker you need to install nvidia-docker2 first. Use the following command to pull the docker image:  
 
@@ -249,8 +248,6 @@ For QM7, QM8 and QM9, we set `loss_func=finetune_smooth_mae`.
 
 **NOTE**: You'd better align the `only_polar` parameter in pretraining and finetuning: `-1` for all hydrogen, `0` for no hydrogen, `1` for polar hydrogen.
 
-We also release the [checkpoint]() of Uni-Mol (with `only_polar=-1`, i.e., all hydrogen), for reproducibility.
-
 
 WIP
 ---
@@ -258,6 +255,7 @@ WIP
 - [ ] code & data for molecular conformation
 - [ ] code for pocket property 
 - [ ] code & data for protein-ligand binding
+- [ ] model checkpoints
 
 
 
