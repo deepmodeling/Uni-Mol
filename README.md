@@ -198,7 +198,7 @@ fi
 export NCCL_ASYNC_ERROR_HANDLING=1
 export OMP_NUM_THREADS=1
 update_freq=`expr $batch_size / $fixed_batch_size`
-python -m torch.distributed.launch --nproc_per_node=$n_gpu --master_port=$MASTER_PORT $(which unicore-train) $data_path --task-name $task_name --user-dir . --train-subset train --valid-subset valid,test \
+python -m torch.distributed.launch --nproc_per_node=$n_gpu --master_port=$MASTER_PORT $(which unicore-train) $data_path --task-name $task_name --user-dir ./unimol --train-subset train --valid-subset valid,test \
        --conf-size $conf_size \
        --num-workers 8 --ddp-backend=c10d \
        --dict-name $dict_name \
