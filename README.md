@@ -77,6 +77,50 @@ Code & Model (WIP)
 | protein-ligand binding   |                    |                    |
 
 
+Environment
+-----------
+
+We provide a docker image to run the code. To use the GPU within docker you need to install nvidia-docker first.
+Use the following command to pull the docker image:
+
+```bash
+docker pull dptechnology/unimol:pytorch1.11.0-cuda11.3
+```
+
+Pretraining
+-----------
+
+- `data_path`: Directory where the data used for pretraining is located.
+- `save_dir`: Directory to save the pretraining checkpoint.
+
+For molecular pretraining, you can start it with the following command:
+
+```bash
+bash ./train_scripts/mol_pretrain.sh $data_path $save_dir
+```
+
+For example
+
+```bash
+bash ./train_scripts/mol_pretrain.sh ./example_data/molecule ./pretrain_models
+```
+
+For pocket pretraining, you can start it with the following command:
+
+```bash
+bash ./train_scripts/pocket_pretrain.sh $data_path $save_dir
+```
+
+Pretraining runs by default on 8 GPUs with 32 GB of memory.
+If running on other number of GPUs, you need to change the parameter `n_gpu` in the script and add `CUDA_VISIABLE_DEVICES=''` before the command.
+For example
+
+```bash
+CUDA_VISIBLE_DEVICES='0,1,2,3' bash ./train_scripts/mol_pretrain.sh ./example_data/molecule ./pretrain_models
+```
+with `n_gpu=4`.
+
+
 Citation
 --------
 
