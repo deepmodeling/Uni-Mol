@@ -16,6 +16,8 @@ Uni-Mol is composed of two models: a molecular pretraining model trained by 209M
 News
 ----
 
+**Jul 10 2022**: Pretraining codes are released.
+
 **Jun 10 2022**: The 3D conformation data used in Uni-Mol is released.
 
 
@@ -27,14 +29,14 @@ For the details of datasets, please refer to Appendix A and B in our [paper](htt
 There are total 6 datasets:
 
 
-| Data                     | File Size  |  Download Link                                                                    | 
-|--------------------------|------------|-----------------------------------------------------------------------------------|
-| molecular pretrain       | 114.76GB   | https://unimol.dp.tech/data/pretrain/ligands.tar.gz                               |
-| pocket pretrain          | 8.585GB    | https://unimol.dp.tech/data/pretrain/pockets.tar.gz                               |
-| molecular property       | 5.412GB    | https://unimol.dp.tech/data/finetune/molecular_property_prediction.tar.gz         |
-| molecular conformation   | 558.941MB  | TBA |
-| pocket property          | 455.236MB  | https://unimol.dp.tech/data/finetune/pocket_property_prediction.tar.gz            |
-| protein-ligand binding   | 201.492MB  | TBA |
+| Data                     | File Size  | Update Date | Download Link                                                                    | 
+|--------------------------|------------| ----------- |-----------------------------------------------------------------------------------|
+| molecular pretrain       | 114.76GB   | Jun 10 2022 |https://unimol.dp.tech/data/pretrain/ligands.tar.gz                               |
+| pocket pretrain          | 8.585GB    | Jun 10 2022 |https://unimol.dp.tech/data/pretrain/pockets.tar.gz                               |
+| molecular property       | 3.506GB    | Jul 10 2022 |https://unimol.dp.tech/data/finetune/molecular_property_prediction.tar.gz         |
+| molecular conformation   | 558.941MB  |             | TBA |
+| pocket property          | 455.236MB  | Jun 10 2022 |https://unimol.dp.tech/data/finetune/pocket_property_prediction.tar.gz            |
+| protein-ligand binding   | 201.492MB  |             | TBA |
 
 
 We use [LMDB](https://lmdb.readthedocs.io) to store data, you can use the following code snippets to read from the LMDB file.
@@ -64,9 +66,197 @@ def read_lmdb(lmdb_path):
 We use pickle protocol 5, so Python >= 3.8 is recommended.
 
 
-Code & Model (WIP)
+Dependencies
+------------
+ - [Uni-Core](https://github.com/dptech-corp/Uni-Core), install via `pip install git+git://github.com/dptech-crop/Uni-Core.git@stable#egg=Uni-Core`
+ - rdkit==2021.09.5, install via `conda install -y -c conda-forge rdkit==2021.09.5`
+
+As Uni-Core needs to compile CUDA kernels in installation, we also provide a docker image to save your efforts. To use the GPU within docker you need to install nvidia-docker2 first. Use the following command to pull the docker image:  
+
+```bash
+docker pull dptechnology/unimol:pytorch1.11.0-cuda11.3
+```
+
+Molecular Pretraining
+---------------------
+
+```bash
+data_path=./example_data/molecule/ # replace to your data path
+save_dir=./save/ # replace to your save path
+n_gpu=8
+MASTER_PORT=10086
+lr=1e-4
+wd=1e-4
+batch_size=16
+update_freq=1
+masked_token_loss=1
+masked_coord_loss=5
+masked_dist_loss=10
+x_norm_loss=0.01
+delta_pair_repr_norm_loss=0.01
+mask_prob=0.15
+only_polar=-1
+noise_type='uniform'
+noise=1.0
+seed=1
+warmup_steps=10000
+max_steps=1000000
+
+export NCCL_ASYNC_ERROR_HANDLING=1
+export OMP_NUM_THREADS=1
+python -m torch.distributed.launch --nproc_per_node=$n_gpu --master_port=$MASTER_PORT $(which unicore-train) $data_path  --user-dir ./unimol --train-subset train --valid-subset valid \
+       --num-workers 8 --ddp-backend=c10d \
+       --task unimol --loss unimol --arch unimol_base  \
+       --optimizer adam --adam-betas '(0.9, 0.99)' --adam-eps 1e-6 --clip-norm 1.0 --weight-decay $wd \
+       --lr-scheduler polynomial_decay --lr $lr --warmup-updates $warmup_steps --total-num-update $max_steps \
+       --update-freq $update_freq --seed $seed \
+       --fp16 --fp16-init-scale 4 --fp16-scale-window 256 --tensorboard-logdir $save_dir/tsb \
+       --max-update $max_steps --log-interval 10 --log-format simple \
+       --save-interval-updates 10000 --validate-interval-updates 10000 --keep-interval-updates 10 --no-epoch-checkpoints  \
+       --masked-token-loss $masked_token_loss --masked-coord-loss $masked_coord_loss --masked-dist-loss $masked_dist_loss \
+       --x-norm-loss $x_norm_loss --delta-pair-repr-norm-loss $delta_pair_repr_norm_loss \
+       --mask-prob $mask_prob --noise-type $noise_type --noise $noise --batch-size $batch_size \
+       --save-dir $save_dir  --only-polar $only_polar
+
+```
+The above setting is for 8 V100 GPUs, and the batch size is 128 (`n_gpu * batch_size * update_freq`). You may need to change `batch_size` or `update_freq` according to your environment. 
+
+Pocket Pretraining
 ------------------
-We will release the source code and the pretrained models soon.
+
+```bash
+data_path=./example_data/pocket/ # replace to your data path
+save_dir=./save/ # replace to your save path
+n_gpu=8
+MASTER_PORT=10086
+dict_name='dict_coarse.txt'
+lr=1e-4
+wd=1e-4
+batch_size=16
+update_freq=1
+masked_token_loss=1
+masked_coord_loss=1
+masked_dist_loss=1
+mask_prob=0.15
+noise_type='uniform'
+noise=1.0
+seed=1
+warmup_steps=10000
+max_steps=1000000
+
+export NCCL_ASYNC_ERROR_HANDLING=1
+export OMP_NUM_THREADS=1
+python -m torch.distributed.launch --nproc_per_node=$n_gpu --master_port=$MASTER_PORT $(which unicore-train) $data_path  --user-dir ./unimol --train-subset train --valid-subset valid \
+       --num-workers 8 --ddp-backend=c10d \
+       --task unimol_pocket --loss unimol --arch unimol_base  \
+       --optimizer adam --adam-betas '(0.9, 0.99)' --adam-eps 1e-6 --clip-norm 1.0 --weight-decay $wd \
+       --lr-scheduler polynomial_decay --lr $lr --warmup-updates $warmup_steps --total-num-update $max_steps \
+       --update-freq $update_freq --seed $seed \
+       --dict-name $dict_name \
+       --fp16 --fp16-init-scale 4 --fp16-scale-window 256 --tensorboard-logdir $save_dir/tsb \
+       --max-update $max_steps --log-interval 10 --log-format simple \
+       --save-interval-updates 10000 --validate-interval-updates 10000 --keep-interval-updates 10 \
+       --masked-token-loss $masked_token_loss --masked-coord-loss $masked_coord_loss --masked-dist-loss $masked_dist_loss \
+       --mask-prob $mask_prob --noise-type $noise_type --noise $noise --batch-size $batch_size \
+       --save-dir $save_dir
+
+```
+The above setting is for 8 V100 GPUs, and the batch size is 128 (`n_gpu * batch_size * update_freq`). You may need to change `batch_size` or `update_freq` according to your environment. 
+
+
+Molecular Property Prediction
+------------------
+
+```bash
+data_path='./molecular_property_prediction'  # replace to your data path
+save_dir='./save_finetune'  # replace to your save path
+n_gpu=4
+MASTER_PORT=10086
+dict_name='dict.txt'
+weight_path='./weights/checkpoint.pt'  # replace to your ckpt path
+task_name='qm9dft'  # molecular property prediction task name 
+task_num=3
+loss_func='finetune_smooth_mae'
+lr=1e-4
+batch_size=32
+epoch=40
+dropout=0
+warmup=0.06
+local_batch_size=32
+only_polar=-1
+conf_size=11
+seed=0
+
+if [ "$task_name" == "qm7dft" ] || [ "$task_name" == "qm8dft" ] || [ "$task_name" == "qm9dft" ]; then
+	metric="valid_agg_mae"
+elif [ "$task_name" == "esol" ] || [ "$task_name" == "freesolv" ] || [ "$task_name" == "lipo" ]; then
+    metric="valid_agg_rmse"
+else 
+    metric="valid_agg_auc"
+fi
+
+export NCCL_ASYNC_ERROR_HANDLING=1
+export OMP_NUM_THREADS=1
+update_freq=`expr $batch_size / $local_batch_size`
+python -m torch.distributed.launch --nproc_per_node=$n_gpu --master_port=$MASTER_PORT $(which unicore-train) $data_path --task-name $task_name --user-dir ./unimol --train-subset train --valid-subset valid,test \
+       --conf-size $conf_size \
+       --num-workers 8 --ddp-backend=c10d \
+       --dict-name $dict_name \
+       --task mol_finetune --loss $loss_func --arch unimol_base  \
+       --classification-head-name $task_name --num-classes $task_num --reg \
+       --optimizer adam --adam-betas '(0.9, 0.99)' --adam-eps 1e-6 --clip-norm 1.0 \
+       --lr-scheduler polynomial_decay --lr $lr --warmup-ratio $warmup --max-epoch $epoch --batch-size $local_batch_size --pooler-dropout $dropout\
+       --update-freq $update_freq --seed $seed \
+       --fp16 --fp16-init-scale 4 --fp16-scale-window 256 \
+       --log-interval 100 --log-format simple \
+       --validate-interval 1 \
+       --finetune-from-model $weight_path \
+       --best-checkpoint-metric $metric --patience 20 \
+       --save-dir $save_dir --only-polar $only_polar \
+       --reg
+
+# --reg, for regression task
+# --maximize-best-checkpoint-metric, for classification task
+
+```
+
+To speed up finetune, we set `n_gpu=4` for QM9, MUV, PCBA and HIV, and `n_gpu=1` for others, and the batch size is `n_gpu * local_batch_size * update_freq`.
+For regression task, we set `--reg`. 
+For classification task, we set `--maximize-best-checkpoint-metric`.
+
+Each task will be run by 3 different seeds. We choose the checkpoint with the best metric on validation set and report the mean and standard deviation of the three results on the test set.
+
+For the selection of `task_num`, please refer to the following table:
+
+- Classification
+
+|Dataset      | BBBP | BACE | ClinTox | Tox21 | ToxCast | SIDER | HIV | PCBA | MUV |
+|--------|----|----|----|----|----|-----|-----|----|-----|       
+| task_num |  2 | 2 | 2 | 12 | 617 | 27 | 2 | 128 | 17 |
+
+For BBBP, BACE and HIV, we set `loss_func=finetune_cross_entropy`.
+For ClinTox, Tox21, ToxCast, SIDER, HIV, PCBA and MUV, we set `loss_func=multi_task_BCE`.
+
+- Regression
+
+| Dataset | ESOL | FreeSolv | Lipo | QM7 | QM8 | QM9 |
+|----- | ---- | ---- | ---- | ---- | --- | --- |
+| task_num | 1 | 1 |  1 | 1  | 12 | 3 |
+
+For ESOL, FreeSolv and Lipo, we set `loss_func=finetune_mse`.
+For QM7, QM8 and QM9, we set `loss_func=finetune_smooth_mae`.
+
+**NOTE**: You'd better align the `only_polar` parameter in pretraining and finetuning: `-1` for all hydrogen, `0` for no hydrogen, `1` for polar hydrogen.
+
+
+WIP
+---
+
+- [ ] code & data for molecular conformation
+- [ ] code for pocket property 
+- [ ] code & data for protein-ligand binding
+- [ ] model checkpoints
+
 
 
 Citation

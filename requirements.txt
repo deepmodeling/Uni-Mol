@@ -1,0 +1,1 @@
+git+git://github.com/dptech-crop/Uni-Core.git@stable#egg=Uni-Core
