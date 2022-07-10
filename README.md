@@ -32,9 +32,9 @@ There are total 6 datasets:
 | molecular pretrain       | 114.76GB   | https://unimol.dp.tech/data/pretrain/ligands.tar.gz                               |
 | pocket pretrain          | 8.585GB    | https://unimol.dp.tech/data/pretrain/pockets.tar.gz                               |
 | molecular property       | 5.412GB    | https://unimol.dp.tech/data/finetune/molecular_property_prediction.tar.gz         |
-| molecular conformation   | 558.941MB  | https://unimol.dp.tech/data/finetune/conformation_generation.tar.gz               |
+| molecular conformation   | 558.941MB  | TBA |
 | pocket property          | 455.236MB  | https://unimol.dp.tech/data/finetune/pocket_property_prediction.tar.gz            |
-| protein-ligand binding   | 201.492MB  | https://unimol.dp.tech/data/finetune/protein_ligand_binding_pose_prediction.tar.gz|
+| protein-ligand binding   | 201.492MB  | TBA |
 
 
 We use [LMDB](https://lmdb.readthedocs.io) to store data, you can use the following code snippets to read from the LMDB file.
