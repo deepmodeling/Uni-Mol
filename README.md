@@ -165,17 +165,13 @@ python -m torch.distributed.launch --nproc_per_node=$n_gpu --master_port=$MASTER
 The above setting is for 8 V100 GPUs, and the batch size is 128 (`n_gpu * batch_size * update_freq`). You may need to change `batch_size` or `update_freq` according to your environment. 
 
 
-Code & Model Release (WIP)
---------------------------
+WIP
+---
 
-| Data                     | Code               |  Model Checkpoint  | 
-|--------------------------|--------------------|--------------------|
-| molecular pretrain       | :heavy_check_mark: |                    |
-| pocket pretrain          | :heavy_check_mark: |                    |
-| molecular property       | :heavy_check_mark: |                    |
-| molecular conformation   |                    |                    |
-| pocket property          |                    |                    |
-| protein-ligand binding   |                    |                    |
+- [ ] code & data for molecular conformation
+- [ ] code for pocket property 
+- [ ] code & data for protein-ligand binding
+
 
 
 Citation
