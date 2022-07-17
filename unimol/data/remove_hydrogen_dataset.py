@@ -46,3 +46,43 @@ class RemoveHydrogenDataset(BaseWrapperDataset):
 
     def __getitem__(self, index: int):
         return self.__cached_item__(index, self.epoch)
+
+
+class RemoveHydrogenResiduePocketDataset(BaseWrapperDataset):
+    def __init__(self, dataset, atoms, residues, coordinates, remove_hydrogen=True):
+        self.dataset = dataset
+        self.atoms = atoms
+        self.residues = residues
+        self.coordinates = coordinates
+        self.remove_hydrogen = remove_hydrogen
+        self.set_epoch(None)
+
+    def set_epoch(self, epoch, **unused):
+        super().set_epoch(epoch)
+        self.epoch = epoch
+
+    @lru_cache(maxsize=16)
+    def __cached_item__(self, index: int, epoch: int):
+        dd = self.dataset[index].copy()
+        atoms = dd[self.atoms]
+        residues = dd[self.residues]
+        coordinates = dd[self.coordinates]
+        if len(atoms) != len(residues):
+            min_len = min(len(atoms), len(residues))
+            atoms = atoms[:min_len]
+            residues = residues[:min_len]
+            coordinates = coordinates[:min_len, :]
+
+        if self.remove_hydrogen:
+            mask_hydrogen = atoms != 'H'
+            atoms = atoms[mask_hydrogen]
+            residues = residues[mask_hydrogen]
+            coordinates = coordinates[mask_hydrogen]
+
+        dd[self.atoms] = atoms
+        dd[self.residues] = residues
+        dd[self.coordinates] = coordinates.astype(np.float32)
+        return dd
+
+    def __getitem__(self, index: int):
+        return self.__cached_item__(index, self.epoch)
