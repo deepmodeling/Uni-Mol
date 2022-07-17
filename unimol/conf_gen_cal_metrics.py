@@ -320,8 +320,8 @@ if __name__ == '__main__':
 
     ### run conf_gen_infer.sh ###
     
-    predict_path = '/mnt/vepfs/zhougengmo/zhougm-dev/testcode/unimol/infer_confgen/save_confgen_test.out.pkl'
-    data_path = '/mnt/vepfs/gaozhifeng/dpaie_unimol/dpaie/examples/ConfG/qm9_processed/test_data_200.pkl'
+    predict_path = './infer_confgen/save_confgen_test.out.pkl'
+    data_path = './qm9_processed/test_data_200.pkl'
     use_ff = False
     threshold=0.5
     nthreads=40
