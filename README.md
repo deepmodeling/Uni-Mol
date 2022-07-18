@@ -273,6 +273,7 @@ MASTER_PORT=10086
 dict_name='dict.txt'
 weight_path='./weights/checkpoint.pt'  # replace to your ckpt path
 task_name='qm9'  # or 'drugs', conformation generation task name, as a part of complete data path
+dist=8.0
 recycles=4
 coord_loss=1
 distance_loss=1
@@ -299,7 +300,7 @@ python -m torch.distributed.launch --nproc_per_node=$n_gpu --master_port=$MASTER
        --validate-interval 1 --keep-last-epochs 10 \
        --keep-interval-updates 10 --best-checkpoint-metric loss  --patience 50 --all-gather-list-size 102400 \
        --finetune-from-model $weight_path --save-dir $save_dir \
-       --coord-loss $coord_loss --distance-loss $distance_loss \
+       --coord-loss $coord_loss --distance-loss $distance_loss --dist-threshold $dist \
        --num-recycles $recycles --beta $beta --smooth $smooth --topN $topN \
        --find-unused-parameters
 
