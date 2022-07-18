@@ -101,7 +101,7 @@ class MolConfGLoss(UnicoreLoss):
         across workers prior to calling `reduce_metrics`. Setting this
         to True will improves distributed training speed.
         """
-        return False
+        return is_train
 
 
 def realign_coord(coord_predict, coord_target, token_mask):
@@ -224,4 +224,4 @@ class MolConfGInferLoss(UnicoreLoss):
         across workers prior to calling `reduce_metrics`. Setting this
         to True will improves distributed training speed.
         """
-        return False
+        return is_train
