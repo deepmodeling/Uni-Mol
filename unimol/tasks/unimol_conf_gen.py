@@ -56,11 +56,6 @@ class UniMolConfGTask(UnicoreTask):
             help='downstream task name'
         )
         parser.add_argument(
-            "--sample-size",
-            type=str,
-            help='down sample size from rdkit'
-        )
-        parser.add_argument(
             "--dict-name",
             default='dict.txt',
             help="dictionary file",
@@ -69,7 +64,7 @@ class UniMolConfGTask(UnicoreTask):
             "--dist-threshold",
             type=float,
             default=100.0,
-            help="threshold for the distance between the molecule and the pocket",
+            help="threshold for the distance",
         )
         parser.add_argument(
             "--beta",
@@ -112,7 +107,7 @@ class UniMolConfGTask(UnicoreTask):
         Args:
             split (str): name of the data scoure (e.g., bppp)
         """
-        split_path = os.path.join(self.args.data, self.args.task_name, f'{split}_{self.args.sample_size}.lmdb')
+        split_path = os.path.join(self.args.data, self.args.task_name, split + ".lmdb")
         dataset = LMDBDataset(split_path)
         smi_dataset = KeyDataset(dataset, 'smi')
         src_dataset = KeyDataset(dataset, 'atoms')
