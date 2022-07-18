@@ -198,7 +198,7 @@ fi
 export NCCL_ASYNC_ERROR_HANDLING=1
 export OMP_NUM_THREADS=1
 update_freq=`expr $batch_size / $local_batch_size`
-python -m torch.distributed.launch --nproc_per_node=$n_gpu --master_port=$MASTER_PORT $(which unicore-train) $data_path --task-name $task_name --user-dir ./unimol --train-subset train --valid-subset valid,test \
+python -m torch.distributed.launch --nproc_per_node=$n_gpu --master_port=$MASTER_PORT $(which unicore-train) $data_path --task-name $task_name --user-dir ./unimol --train-subset train --valid-subset valid \
        --conf-size $conf_size \
        --num-workers 8 --ddp-backend=c10d \
        --dict-name $dict_name \
@@ -266,15 +266,13 @@ Molecular conformation generation
 1. Finetune Uni-Mol pretrained model on the training set of the conformation generation task: 
 
 ```bash
-data_path='./conformation generation'  # replace to your data path
+data_path='./conformation_generation'  # replace to your data path
 save_dir='./save_confgen'  # replace to your save path
 n_gpu=1
 MASTER_PORT=10086
 dict_name='dict.txt'
 weight_path='./weights/checkpoint.pt'  # replace to your ckpt path
-task_name='qm9_processed'  # or 'drugs_processed', conformation generation task name, as a part of complete data path
-sample_size='1000_100'
-dist=8.0
+task_name='qm9'  # or 'drugs', conformation generation task name, as a part of complete data path
 recycles=4
 coord_loss=1
 distance_loss=1
@@ -290,7 +288,7 @@ update_freq=1
 
 export NCCL_ASYNC_ERROR_HANDLING=1
 export OMP_NUM_THREADS=1
-python -m torch.distributed.launch --nproc_per_node=$n_gpu --master_port=$MASTER_PORT $(which unicore-train) $data_path --task-name $task_name --user-dir ./unimol --train-subset train --valid-subset valid --sample-size $sample_size \
+python -m torch.distributed.launch --nproc_per_node=$n_gpu --master_port=$MASTER_PORT $(which unicore-train) $data_path --task-name $task_name --user-dir ./unimol --train-subset train --valid-subset valid \
        --num-workers 8 --ddp-backend=c10d \
        --task mol_confG --loss mol_confG --arch mol_confG  \
        --optimizer adam --adam-betas '(0.9, 0.99)' --adam-eps 1e-6 --clip-norm 1.0 \
@@ -300,11 +298,9 @@ python -m torch.distributed.launch --nproc_per_node=$n_gpu --master_port=$MASTER
        --log-interval 100 --log-format simple --tensorboard-logdir $save_dir/tsb \
        --validate-interval 1 --keep-last-epochs 10 \
        --keep-interval-updates 10 --best-checkpoint-metric loss  --patience 50 --all-gather-list-size 102400 \
-       --finetune-from-model $weight_path \
-       --save-dir $save_dir \
+       --finetune-from-model $weight_path --save-dir $save_dir \
        --coord-loss $coord_loss --distance-loss $distance_loss \
-       --dist-threshold $dist --num-recycles $recycles \
-       --beta $beta --smooth $smooth --topN $topN \
+       --num-recycles $recycles --beta $beta --smooth $smooth --topN $topN \
        --find-unused-parameters
 
 ```
@@ -315,9 +311,9 @@ python -m torch.distributed.launch --nproc_per_node=$n_gpu --master_port=$MASTER
 
 ```bash
     ## generate test data for QM9
-    output_dir ='qm9_processed'
+    output_dir ='qm9'
     name = 'test'
-    data = pd.read_pickle('qm9_processed/test_data_200.pkl')
+    data = pd.read_pickle('qm9/test_data_200.pkl')
     content_list = pd.DataFrame(data).groupby('smi')['mol'].apply(list).reset_index().values
     write_lmdb(content_list, output_dir, name, nthreads=70)
 ```
@@ -332,16 +328,16 @@ python ./unimol/conf_gen_cal_metrics.py
 3. Inference on the generated RDKit initial conformations:
 
 ```bash
-data_path='./ConfG'  # replace to your data path
+data_path='./conformation_generation'  # replace to your data path
 results_path='./infer_confgen'  # replace to your results path
 weight_path='./save_confgen/checkpoint_best.pt'  # replace to your ckpt path
 batch_size=128
-task_name='qm9_processed'  # or 'drugs_processed', conformation generation task name 
+task_name='qm9'  # or 'drugs', conformation generation task name 
 
 python ./unimol/conf_gen_infer.py --user-dir ./unimol $data_path --valid-subset test \
        --results-path $results_path \
        --num-workers 8 --ddp-backend=c10d --batch-size $batch_size --task mol_confG \
-       --model-overrides "{'sample_size': 'cluster_new_2', 'task_name': '${task_name}', 'loss': 'mol_confG_infer'}" \
+       --model-overrides "{'task_name': '${task_name}', 'loss': 'mol_confG_infer'}" \
        --path $weight_path \
        --fp16 --fp16-init-scale 4 --fp16-scale-window 256 \
        --log-interval 50 --log-format simple 
@@ -353,7 +349,7 @@ python ./unimol/conf_gen_infer.py --user-dir ./unimol $data_path --valid-subset 
 
 ```bash
     predict_path = './infer_confgen/save_confgen_test.out.pkl'  # replace to your inference results path
-    data_path = './qm9_processed/test_data_200.pkl'  # replace to your reference set path
+    data_path = './qm9/test_data_200.pkl'  # replace to your reference set path
     use_ff = False
     threshold = 0.5
     nthreads = 40
@@ -385,7 +381,7 @@ local_batch_size=32
 seed=1
 
 if [ "$task_name" == "drugabbility" ]; then
-       metric="dev_mse"
+       metric="valid_mse"
        loss_func='finetune_mse_pocket'
        task_num=1
 else
@@ -397,7 +393,7 @@ fi
 export NCCL_ASYNC_ERROR_HANDLING=1
 export OMP_NUM_THREADS=1
 update_freq=`expr $batch_size / $local_batch_size`
-python -m torch.distributed.launch --nproc_per_node=$n_gpu --master_port=$MASTER_PORT $(which unicore-train) $data_path --task-name $task_name --user-dir ./unimol --train-subset train --valid-subset dev,test \
+python -m torch.distributed.launch --nproc_per_node=$n_gpu --master_port=$MASTER_PORT $(which unicore-train) $data_path --task-name $task_name --user-dir ./unimol --train-subset train --valid-subset valid \
        --num-workers 8 --ddp-backend=c10d \
        --dict-name $dict_name \
        --task pocket_finetune --loss $loss_func --arch unimol_base  \
