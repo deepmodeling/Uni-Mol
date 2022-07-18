@@ -82,6 +82,8 @@ class ConformerSamplePocketFinetuneDataset(BaseWrapperDataset):
     def __cached_item__(self, index: int, epoch: int):
         atoms = np.array([a[0] for a in self.dataset[index][self.atoms]])  # only 'C H O N S'
         assert len(atoms) > 0
+        # This judgment is reserved for possible future expansion. 
+        # The number of pocket conformations is 1, and the 'sample' does not work.
         if isinstance(self.dataset[index][self.coordinates], list):
             size = len(self.dataset[index][self.coordinates])
             with data_utils.numpy_seed(self.seed, epoch, index):
