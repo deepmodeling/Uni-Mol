@@ -203,7 +203,7 @@ python -m torch.distributed.launch --nproc_per_node=$n_gpu --master_port=$MASTER
        --num-workers 8 --ddp-backend=c10d \
        --dict-name $dict_name \
        --task mol_finetune --loss $loss_func --arch unimol_base  \
-       --classification-head-name $task_name --num-classes $task_num --reg \
+       --classification-head-name $task_name --num-classes $task_num \
        --optimizer adam --adam-betas '(0.9, 0.99)' --adam-eps 1e-6 --clip-norm 1.0 \
        --lr-scheduler polynomial_decay --lr $lr --warmup-ratio $warmup --max-epoch $epoch --batch-size $local_batch_size --pooler-dropout $dropout\
        --update-freq $update_freq --seed $seed \
