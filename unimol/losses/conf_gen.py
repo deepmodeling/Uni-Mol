@@ -15,6 +15,9 @@ from scipy.spatial.transform import Rotation as R
 class MolConfGLoss(UnicoreLoss):
     def __init__(self, task):
         super().__init__(task)
+        self.padding_idx = task.dictionary.pad()
+        self.eos_idx = task.dictionary.eos()
+        self.bos_idx = task.dictionary.bos()
 
     def forward(self, model, sample, reduce=True):
         """Compute the loss for the given sample.
@@ -39,13 +42,17 @@ class MolConfGLoss(UnicoreLoss):
 
         return loss, 1, logging_output
 
+    # reaglin coord in coord loss
     def compute_loss(self, model, net_output, sample, reduce=True):
         distance_predict, coord_predict = net_output[0], net_output[-1]
-        distance_mask = sample["target"]["distance_target"].ne(0)  # 0 is padding
-        if self.args.dist_threshold > 0:
-            distance_mask &= sample["target"]["distance_target"] < self.args.dist_threshold
+        token_mask = sample["net_input"]["src_tokens"].ne(self.padding_idx)   # B,L
+        token_mask &= sample["net_input"]["src_tokens"].ne(self.eos_idx)
+        token_mask &= sample["net_input"]["src_tokens"].ne(self.bos_idx)
+        distance_mask, coord_mask = calc_mask(token_mask)
+        mean_coord = (coord_mask * coord_predict).sum(dim=1) / token_mask.sum(dim=1, keepdims=True)
+        coord_predict = coord_predict - mean_coord.unsqueeze(dim=1)
 
-        ### distance loss
+        # distance loss
         distance_predict = distance_predict[distance_mask]
         distance_target = sample["target"]["distance_target"][distance_mask]
         distance_loss = F.l1_loss(
@@ -53,19 +60,20 @@ class MolConfGLoss(UnicoreLoss):
             distance_target.float(),
             reduction="mean",
         )
-
-        ### coord loss
-        coord_mask = sample["target"]["coord_target"].ne(0)  # 0 is padding
+        
+        # coord loss
+        coord_target = sample["target"]["coord_target"]    # B, L, 3
+        new_coord_target = realign_coord(coord_predict, coord_target, token_mask)
         coord_predict = coord_predict[coord_mask]
-        coord_target = sample["target"]["coord_target"][coord_mask]
+        new_coord_target = new_coord_target[coord_mask]
         coord_loss = F.l1_loss(
             coord_predict.float(),
-            coord_target.float(),
-            reduce='mean',
+            new_coord_target.float(),
+            reduction='mean',
         )
 
         return distance_loss, coord_loss
-
+        
     @staticmethod
     def reduce_metrics(logging_outputs, split='valid') -> None:
         """Aggregate logging outputs from data parallel training."""
@@ -96,64 +104,6 @@ class MolConfGLoss(UnicoreLoss):
         return False
 
 
-def RMSD(coord_predict, coord_target):
-    mask = coord_target != 0
-    rmsd = np.sqrt(np.sum(((coord_predict - coord_target) ** 2) * mask) / (mask[:,0].sum()))
-    return rmsd
-
-
-def calc_mask(token_mask):
-    sz = token_mask.size()
-    distance_mask = torch.zeros(sz[0], sz[1], sz[1]).type_as(token_mask)
-    distance_mask = token_mask.unsqueeze(-1) & token_mask.unsqueeze(1)
-    coord_mask = torch.zeros(sz[0], sz[1], 3).type_as(token_mask)
-    coord_mask.masked_fill_(
-        token_mask.unsqueeze(-1),
-        True
-    )
-    return distance_mask, coord_mask
-
-@register_loss("mol_confG_realign")
-class MolConfGRealignLoss(MolConfGLoss):
-    def __init__(self, task):
-        super().__init__(task)
-        self.padding_idx = task.dictionary.pad()
-        self.eos_idx = task.dictionary.eos()
-        self.bos_idx = task.dictionary.bos()
-
-    # reaglin coord in coord loss
-    def compute_loss(self, model, net_output, sample, reduce=True):
-        distance_predict, coord_predict = net_output[0], net_output[-1]
-        token_mask = sample["net_input"]["src_tokens"].ne(self.padding_idx)   # B,L
-        token_mask &= sample["net_input"]["src_tokens"].ne(self.eos_idx)
-        token_mask &= sample["net_input"]["src_tokens"].ne(self.bos_idx)
-        distance_mask, coord_mask = calc_mask(token_mask)
-        mean_coord = (coord_mask * coord_predict).sum(dim=1) / token_mask.sum(dim=1, keepdims=True)
-        coord_predict = coord_predict - mean_coord.unsqueeze(dim=1)
-
-        # distance loss
-        distance_predict = distance_predict[distance_mask]
-        distance_target = sample["target"]["distance_target"][distance_mask]
-        distance_loss = F.l1_loss(
-            distance_predict.float(),
-            distance_target.float(),
-            reduction="mean",
-        )
-        
-        # coord loss
-        coord_target = sample["target"]["coord_target"]    # B, L, 3
-        new_coord_target = realign_coord(coord_predict, coord_target, token_mask)
-        coord_predict = coord_predict[coord_mask]
-        new_coord_target = new_coord_target[coord_mask]
-        coord_loss = F.l1_loss(
-            coord_predict.float(),
-            new_coord_target.float(),
-            reduce='mean',
-        )
-
-        return distance_loss, coord_loss
-
-
 def realign_coord(coord_predict, coord_target, token_mask):
     new_coord_target = torch.zeros_like(coord_target).type_as(coord_target)
     bs = token_mask.size(0)
@@ -174,6 +124,18 @@ def realign_coord(coord_predict, coord_target, token_mask):
         new_coord_target[i, _token_mask, :] = _new_coord_target
 
     return new_coord_target
+
+
+def calc_mask(token_mask):
+    sz = token_mask.size()
+    distance_mask = torch.zeros(sz[0], sz[1], sz[1]).type_as(token_mask)
+    distance_mask = token_mask.unsqueeze(-1) & token_mask.unsqueeze(1)
+    coord_mask = torch.zeros(sz[0], sz[1], 3).type_as(token_mask)
+    coord_mask.masked_fill_(
+        token_mask.unsqueeze(-1),
+        True
+    )
+    return distance_mask, coord_mask
 
 
 @register_loss("mol_confG_infer")
@@ -230,7 +192,7 @@ class MolConfGInferLoss(UnicoreLoss):
         coord_loss = F.mse_loss(
             coord_predict.float(),
             coord_target.float(),
-            reduce='mean',
+            reduction='mean',
         )
 
         return distance_loss, coord_loss
