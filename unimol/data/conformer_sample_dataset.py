@@ -65,6 +65,46 @@ class ConformerSamplePocketDataset(BaseWrapperDataset):
         return self.__cached_item__(index, self.epoch)
 
 
+class ConformerSamplePocketFinetuneDataset(BaseWrapperDataset):
+    def __init__(self, dataset, seed, atoms, residues, coordinates):
+        self.dataset = dataset
+        self.seed = seed
+        self.atoms = atoms
+        self.residues = residues
+        self.coordinates = coordinates
+        self.set_epoch(None)
+
+    def set_epoch(self, epoch, **unused):
+        super().set_epoch(epoch)
+        self.epoch = epoch
+
+    @lru_cache(maxsize=16)
+    def __cached_item__(self, index: int, epoch: int):
+        atoms = np.array([a[0] for a in self.dataset[index][self.atoms]])  # only 'C H O N S'
+        assert len(atoms) > 0
+        # This judgment is reserved for possible future expansion. 
+        # The number of pocket conformations is 1, and the 'sample' does not work.
+        if isinstance(self.dataset[index][self.coordinates], list):
+            size = len(self.dataset[index][self.coordinates])
+            with data_utils.numpy_seed(self.seed, epoch, index):
+                sample_idx = np.random.randint(size)
+            coordinates = self.dataset[index][self.coordinates][sample_idx]
+        else:
+            coordinates = self.dataset[index][self.coordinates]
+
+        if self.residues in self.dataset[index]:
+            residues = np.array(self.dataset[index][self.residues])
+        else:
+            residues = None
+        assert len(atoms) == len(coordinates)
+        return {self.atoms: atoms,
+                self.coordinates: coordinates.astype(np.float32),
+                self.residues: residues}
+
+    def __getitem__(self, index: int):
+        return self.__cached_item__(index, self.epoch)
+
+
 class ConformerSampleConfGDataset(BaseWrapperDataset):
     def __init__(self, dataset, seed, atoms, coordinates, tgt_coordinates):
         self.dataset = dataset

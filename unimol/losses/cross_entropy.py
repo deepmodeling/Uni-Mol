@@ -190,3 +190,64 @@ class MultiTaskBCELoss(CrossEntropyLoss):
         to True will improves distributed training speed.
         """
         return is_train
+
+
+@register_loss("finetune_cross_entropy_pocket")
+class FinetuneCrossEntropyPocketLoss(FinetuneCrossEntropyLoss):
+    def __init__(self, task):
+        super().__init__(task)
+
+    def forward(self, model, sample, reduce=True):
+        """Compute the loss for the given sample.
+
+        Returns a tuple with three elements:
+        1) the loss
+        2) the sample size, which is used as the denominator for the gradient
+        3) logging outputs to display while training
+        """
+        net_output = model(**sample["net_input"],
+                           features_only=True,
+                           classification_head_name=self.args.classification_head_name)
+        logit_output = net_output[0]
+        loss = self.compute_loss(model, logit_output, sample, reduce=reduce)
+        sample_size = sample["target"]["finetune_target"].size(0)
+        if not self.training:
+            probs = F.softmax(logit_output.float(), dim=-1).view(-1, logit_output.size(-1))
+            logging_output = {
+                "loss": loss.data,
+                "prob": probs.data,
+                "target": sample["target"]["finetune_target"].view(-1).data,
+                "sample_size": sample_size,
+                "bsz": sample["target"]["finetune_target"].size(0),
+            }
+        else:
+            logging_output = {
+                "loss": loss.data,
+                "sample_size": sample_size,
+                "bsz": sample["target"]["finetune_target"].size(0),
+            }
+        return loss, sample_size, logging_output
+
+    @staticmethod
+    def reduce_metrics(logging_outputs, split='valid') -> None:
+        """Aggregate logging outputs from data parallel training."""
+        loss_sum = sum(log.get("loss", 0) for log in logging_outputs)
+        sample_size = sum(log.get("sample_size", 0) for log in logging_outputs)
+        # we divide by log(2) to convert the loss from base e to base 2
+        metrics.log_scalar(
+            "loss", loss_sum / sample_size / math.log(2), sample_size, round=3
+        )
+        if 'valid' in split or 'test' in split:
+            acc_sum = sum(sum(log.get("prob").argmax(dim=-1) == log.get("target")) for log in logging_outputs)
+            probs = torch.cat([log.get("prob") for log in logging_outputs], dim=0)
+            metrics.log_scalar(
+                f"{split}_acc", acc_sum / sample_size, sample_size, round=3
+            )
+            if probs.size(-1) == 2:
+                # binary classification task, add auc score
+                targets = torch.cat([log.get("target", 0) for log in logging_outputs], dim=0)
+                df = pd.DataFrame({'probs': probs[:, 1].cpu(), "targets": targets.cpu()})
+                auc = roc_auc_score(df['targets'], df['probs'])
+                metrics.log_scalar(
+                    f'{split}_auc', auc, sample_size, round=3
+                )
