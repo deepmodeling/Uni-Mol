@@ -271,7 +271,7 @@ save_dir='./save_confgen'  # replace to your save path
 n_gpu=1
 MASTER_PORT=10086
 dict_name='dict.txt'
-weight_path='./weights/checkpoint_last.pt'  # replace to your ckpt path
+weight_path='./weights/checkpoint.pt'  # replace to your ckpt path
 task_name='qm9_processed'  # or 'drugs_processed', conformation generation task name, as a part of complete data path
 sample_size='1000_100'
 dist=8.0
@@ -292,7 +292,7 @@ export NCCL_ASYNC_ERROR_HANDLING=1
 export OMP_NUM_THREADS=1
 python -m torch.distributed.launch --nproc_per_node=$n_gpu --master_port=$MASTER_PORT $(which unicore-train) $data_path --task-name $task_name --user-dir ./unimol --train-subset train --valid-subset valid --sample-size $sample_size \
        --num-workers 8 --ddp-backend=c10d \
-       --task mol_confG --loss mol_confG_realign --arch mol_confG  \
+       --task mol_confG --loss mol_confG --arch mol_confG  \
        --optimizer adam --adam-betas '(0.9, 0.99)' --adam-eps 1e-6 --clip-norm 1.0 \
        --lr-scheduler polynomial_decay --lr $lr --warmup-ratio $warmup --max-epoch $epoch --batch-size $batch_size \
        --update-freq $update_freq --seed 1 \
@@ -424,8 +424,6 @@ We choose the checkpoint with the best metric on validation set or training set.
 WIP
 ---
 
-- [ ] code & data for molecular conformation
-- [ ] code for pocket property 
 - [ ] code & data for protein-ligand binding
 - [ ] model checkpoints
 
