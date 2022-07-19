@@ -34,9 +34,9 @@ There are total 6 datasets:
 | molecular pretrain       | 114.76GB   | Jun 10 2022 |https://unimol.dp.tech/data/pretrain/ligands.tar.gz                               |
 | pocket pretrain          | 8.585GB    | Jun 10 2022 |https://unimol.dp.tech/data/pretrain/pockets.tar.gz                               |
 | molecular property       | 3.506GB    | Jul 10 2022 |https://unimol.dp.tech/data/finetune/molecular_property_prediction.tar.gz         |
-| molecular conformation   | 8.331GB    | Jul 19 2022 |https://unimol.dp.tech/data/finetune/conformation_generation.tar.gz               |
-| pocket property          | 455.239MB  | Jul 19 2022 |https://unimol.dp.tech/data/finetune/pocket_property_prediction.tar.gz            |
-| protein-ligand binding   |            |             | TBA |
+| molecular conformation   | 558.941MB  |             | TBA |
+| pocket property          | 455.236MB  | Jun 10 2022 |https://unimol.dp.tech/data/finetune/pocket_property_prediction.tar.gz            |
+| protein-ligand binding   | 201.492MB  |             | TBA |
 
 
 We use [LMDB](https://lmdb.readthedocs.io) to store data, you can use the following code snippets to read from the LMDB file.
@@ -308,22 +308,10 @@ python -m torch.distributed.launch --nproc_per_node=$n_gpu --master_port=$MASTER
 
 2. Generate initial RDKit conformations for inference: 
 
-- You need lines 313-319 of `./unimol/conf_gen_cal_metrics.py` for QM9 and comment out the other lines in the `main` function, for example: 
+- Run this command, 
 
 ```bash
-    ## generate test data for QM9
-    output_dir ='qm9'
-    name = 'test'
-    data = pd.read_pickle('qm9/test_data_200.pkl')
-    content_list = pd.DataFrame(data).groupby('smi')['mol'].apply(list).reset_index().values
-    write_lmdb(content_list, output_dir, name, nthreads=70)
-```
-
-- and run this command
-
-
-```bash
-python ./unimol/conf_gen_cal_metrics.py
+python ./unimol/conf_gen_cal_metrics.py --mode gen_data --nthreads ${Num of threads} --reference-file ${Reference file dir} --output-dir ${Generated initial data dir}
 ```
 
 3. Inference on the generated RDKit initial conformations:
@@ -338,7 +326,7 @@ task_name='qm9'  # or 'drugs', conformation generation task name
 python ./unimol/conf_gen_infer.py --user-dir ./unimol $data_path --valid-subset test \
        --results-path $results_path \
        --num-workers 8 --ddp-backend=c10d --batch-size $batch_size --task mol_confG \
-       --model-overrides "{'task_name': '${task_name}', 'loss': 'mol_confG_infer'}" \
+       --model-overrides "{'task_name': '${task_name}'}" \
        --path $weight_path \
        --fp16 --fp16-init-scale 4 --fp16-scale-window 256 \
        --log-interval 50 --log-format simple 
@@ -346,19 +334,9 @@ python ./unimol/conf_gen_infer.py --user-dir ./unimol $data_path --valid-subset 
 
 4. Calculate metrics on the results of inference: 
 
-- You need lines 323-328 of `./unimol/conf_gen_cal_metrics.py` for QM9 and comment out the other lines in the `main` function, for example: 
-
+- Run this command
 ```bash
-    predict_path = './infer_confgen/save_confgen_test.out.pkl'  # replace to your inference results path
-    data_path = './qm9/test_data_200.pkl'  # replace to your reference set path
-    use_ff = False
-    threshold = 0.5
-    nthreads = 40
-    cal_metrics(predict_path, data_path, use_ff, threshold, nthreads)
-```
-- and run this command
-```bash
-python ./unimol/conf_gen_cal_metrics.py
+python ./unimol/conf_gen_cal_metrics.py --mode cal_metrics --threshold ${Threshold for cal metrics} --nthreads ${Num of threads} --predict-file ${Your inference file dir} --reference-file ${Your reference file dir}
 ```
 
 
