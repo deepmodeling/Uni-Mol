@@ -172,3 +172,64 @@ class FinetuneSmoothMAELoss(FinetuneMSELoss):
             metrics.log_scalar(
                 f'{split}_agg_mae', agg_mae, sample_size, round=4
             )
+
+
+@register_loss("finetune_mse_pocket")
+class FinetuneMSEPocketLoss(FinetuneMSELoss):
+    def __init__(self, task):
+        super().__init__(task)
+
+    def forward(self, model, sample, reduce=True):
+        """Compute the loss for the given sample.
+
+        Returns a tuple with three elements:
+        1) the loss
+        2) the sample size, which is used as the denominator for the gradient
+        3) logging outputs to display while training
+        """
+        net_output = model(**sample["net_input"],
+                           features_only=True,
+                           classification_head_name=self.args.classification_head_name)
+        reg_output = net_output[0]
+        loss = self.compute_loss(model, reg_output, sample, reduce=reduce)
+        sample_size = sample["target"]["finetune_target"].size(0)
+        if not self.training:
+            if self.task.mean and self.task.std:
+                targets_mean = torch.tensor(self.task.mean, device=reg_output.device)
+                targets_std = torch.tensor(self.task.std, device=reg_output.device)
+                reg_output = reg_output * targets_std + targets_mean
+            logging_output = {
+                "loss": loss.data,
+                "predict": reg_output.view(-1, self.args.num_classes).data,
+                "target": sample["target"]["finetune_target"].view(-1, self.args.num_classes).data,
+                "sample_size": sample_size,
+                "num_task": self.args.num_classes,
+                "bsz": sample["target"]["finetune_target"].size(0),
+            }
+        else:
+            logging_output = {
+                "loss": loss.data,
+                "sample_size": sample_size,
+                "bsz": sample["target"]["finetune_target"].size(0),
+            }
+        return loss, sample_size, logging_output
+
+    @staticmethod
+    def reduce_metrics(logging_outputs, split='valid') -> None:
+        """Aggregate logging outputs from data parallel training."""
+        loss_sum = sum(log.get("loss", 0) for log in logging_outputs)
+        sample_size = sum(log.get("sample_size", 0) for log in logging_outputs)
+        # we divide by log(2) to convert the loss from base e to base 2
+        metrics.log_scalar(
+            "loss", loss_sum / sample_size / math.log(2), sample_size, round=3
+        )
+        if 'valid' in split or 'test' in split:
+            predicts = torch.cat([log.get("predict") for log in logging_outputs], dim=0)
+            if predicts.size(-1) == 1:
+                # single label regression task
+                targets = torch.cat([log.get("target", 0) for log in logging_outputs], dim=0)
+                df = pd.DataFrame({'predict': predicts.view(-1).cpu(), "target": targets.view(-1).cpu()})
+                mse = ((df['predict'] - df['target'])**2).mean()
+                metrics.log_scalar(
+                    f'{split}_mse', mse, sample_size, round=3
+                )

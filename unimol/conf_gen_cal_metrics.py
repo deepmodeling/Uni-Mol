@@ -169,7 +169,7 @@ def single_process(content):
 def write_lmdb(content_list, output_dir, name, nthreads=16):
 
         os.makedirs(output_dir, exist_ok=True)
-        output_name = os.path.join(output_dir, f'{name}_cluster_new_2.lmdb')
+        output_name = os.path.join(output_dir, f'{name}.lmdb')
         print(output_name)
         try:
             os.remove(output_name)
@@ -311,17 +311,18 @@ if __name__ == '__main__':
     ### For QM9
 
     # ## generate test data 
-    # output_dir ='qm9_processed'
+    # output_dir ='qm9'
     # name = 'test'
-    # data = pd.read_pickle('qm9_processed/test_data_200.pkl')
+    # data = pd.read_pickle('qm9/test_data_200.pkl')
     # content_list = pd.DataFrame(data).groupby('smi')['mol'].apply(list).reset_index().values
     # print(content_list[0])
     # write_lmdb(content_list, output_dir, name, nthreads=70)
 
-    ### run conf_gen_infer.sh ###
+    ### inference... ###
     
+    # ## cal metrics ###
     predict_path = './infer_confgen/save_confgen_test.out.pkl'
-    data_path = './qm9_processed/test_data_200.pkl'
+    data_path = './qm9/test_data_200.pkl'
     use_ff = False
     threshold=0.5
     nthreads=40
@@ -330,17 +331,18 @@ if __name__ == '__main__':
 
     ### For Drugs
     # ## generate test data
-    # output_dir ='drugs_processed'
+    # output_dir ='drugs'
     # name = 'test'
-    # data = pd.read_pickle('drugs_processed/test_data_200.pkl')
+    # data = pd.read_pickle('drugs/test_data_200.pkl')
     # content_list = pd.DataFrame(data).groupby('smi')['mol'].apply(list).reset_index().values
     # print(content_list[0])
     # write_lmdb(content_list, output_dir, name, nthreads=60)
 
-    ### run conf_gen_infer.sh ###
+    ### inference... ###
 
+    # ## cal metrics ###
     # predict_path = 'your results file path'
-    # data_path = 'drugs_processed/test_data_200.pkl'
+    # data_path = 'drugs/test_data_200.pkl'
     # use_ff = False
     # threshold=1.25
     # nthreads=40
