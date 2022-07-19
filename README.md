@@ -198,12 +198,12 @@ fi
 export NCCL_ASYNC_ERROR_HANDLING=1
 export OMP_NUM_THREADS=1
 update_freq=`expr $batch_size / $local_batch_size`
-python -m torch.distributed.launch --nproc_per_node=$n_gpu --master_port=$MASTER_PORT $(which unicore-train) $data_path --task-name $task_name --user-dir ./unimol --train-subset train --valid-subset valid,test \
+python -m torch.distributed.launch --nproc_per_node=$n_gpu --master_port=$MASTER_PORT $(which unicore-train) $data_path --task-name $task_name --user-dir ./unimol --train-subset train --valid-subset valid \
        --conf-size $conf_size \
        --num-workers 8 --ddp-backend=c10d \
        --dict-name $dict_name \
        --task mol_finetune --loss $loss_func --arch unimol_base  \
-       --classification-head-name $task_name --num-classes $task_num --reg \
+       --classification-head-name $task_name --num-classes $task_num \
        --optimizer adam --adam-betas '(0.9, 0.99)' --adam-eps 1e-6 --clip-norm 1.0 \
        --lr-scheduler polynomial_decay --lr $lr --warmup-ratio $warmup --max-epoch $epoch --batch-size $local_batch_size --pooler-dropout $dropout\
        --update-freq $update_freq --seed $seed \
@@ -226,13 +226,18 @@ For classification task, we set `--maximize-best-checkpoint-metric`.
 
 Each task will be run by 3 different seeds. We choose the checkpoint with the best metric on validation set and report the mean and standard deviation of the three results on the test set.
 
-For the selection of `task_num`, please refer to the following table:
+For the selection of `task_num` and other hyperparameters, please refer to the following table:
 
 - Classification
 
 |Dataset      | BBBP | BACE | ClinTox | Tox21 | ToxCast | SIDER | HIV | PCBA | MUV |
 |--------|----|----|----|----|----|-----|-----|----|-----|       
 | task_num |  2 | 2 | 2 | 12 | 617 | 27 | 2 | 128 | 17 |
+| lr         |  4e-4 | 1e-4 | 5e-5 | 1e-4 | 1e-4 | 5e-4 | 5e-5 | 1e-4 | 2e-5 |
+| batch_size |  128 | 64 | 256 | 128 | 64 | 32 | 256 | 128 | 128 |
+| epoch      |  40 | 60 | 100 | 80 | 80 | 80 | 5 | 20 | 40 |
+| dropout    |  0 | 0.1 | 0.5 | 0.1 | 0.1 | 0 | 0.2 | 0.1 | 0 |
+| warmup     |  0.06 | 0.06 | 0.1 | 0.06 | 0.06 | 0.1 | 0.1 | 0.06 | 0 |
 
 For BBBP, BACE and HIV, we set `loss_func=finetune_cross_entropy`.
 For ClinTox, Tox21, ToxCast, SIDER, HIV, PCBA and MUV, we set `loss_func=multi_task_BCE`.
@@ -242,6 +247,12 @@ For ClinTox, Tox21, ToxCast, SIDER, HIV, PCBA and MUV, we set `loss_func=multi_t
 | Dataset | ESOL | FreeSolv | Lipo | QM7 | QM8 | QM9 |
 |----- | ---- | ---- | ---- | ---- | --- | --- |
 | task_num | 1 | 1 |  1 | 1  | 12 | 3 |
+| lr         | 5e-4 | 1e-4 |  1e-4 | 3e-4  | 1e-4 | 1e-4 |
+| batch_size | 256 | 64 |  32 | 32  | 32 | 128 |
+| epoch      | 100 | 40 |  80 | 100  | 40 | 40 |
+| dropout    | 0.2 | 0.1 |  0.1 | 0  | 0 | 0 |
+| warmup     | 0.06 | 0.06 | 0.06 | 0.06  | 0.06 | 0.06 |
+
 
 For ESOL, FreeSolv and Lipo, we set `loss_func=finetune_mse`.
 For QM7, QM8 and QM9, we set `loss_func=finetune_smooth_mae`.
@@ -249,11 +260,167 @@ For QM7, QM8 and QM9, we set `loss_func=finetune_smooth_mae`.
 **NOTE**: You'd better align the `only_polar` parameter in pretraining and finetuning: `-1` for all hydrogen, `0` for no hydrogen, `1` for polar hydrogen.
 
 
+Molecular conformation generation
+------------------
+
+1. Finetune Uni-Mol pretrained model on the training set of the conformation generation task: 
+
+```bash
+data_path='./conformation_generation'  # replace to your data path
+save_dir='./save_confgen'  # replace to your save path
+n_gpu=1
+MASTER_PORT=10086
+dict_name='dict.txt'
+weight_path='./weights/checkpoint.pt'  # replace to your ckpt path
+task_name='qm9'  # or 'drugs', conformation generation task name, as a part of complete data path
+dist=8.0
+recycles=4
+coord_loss=1
+distance_loss=1
+beta=4.0
+smooth=0.1
+topN=20
+lr=1e-4
+batch_size=128
+epoch=50
+dropout=0.2
+warmup=0.06
+update_freq=1
+
+export NCCL_ASYNC_ERROR_HANDLING=1
+export OMP_NUM_THREADS=1
+python -m torch.distributed.launch --nproc_per_node=$n_gpu --master_port=$MASTER_PORT $(which unicore-train) $data_path --task-name $task_name --user-dir ./unimol --train-subset train --valid-subset valid \
+       --num-workers 8 --ddp-backend=c10d \
+       --task mol_confG --loss mol_confG --arch mol_confG  \
+       --optimizer adam --adam-betas '(0.9, 0.99)' --adam-eps 1e-6 --clip-norm 1.0 \
+       --lr-scheduler polynomial_decay --lr $lr --warmup-ratio $warmup --max-epoch $epoch --batch-size $batch_size \
+       --update-freq $update_freq --seed 1 \
+       --fp16 --fp16-init-scale 4 --fp16-scale-window 256 \
+       --log-interval 100 --log-format simple --tensorboard-logdir $save_dir/tsb \
+       --validate-interval 1 --keep-last-epochs 10 \
+       --keep-interval-updates 10 --best-checkpoint-metric loss  --patience 50 --all-gather-list-size 102400 \
+       --finetune-from-model $weight_path --save-dir $save_dir \
+       --coord-loss $coord_loss --distance-loss $distance_loss --dist-threshold $dist \
+       --num-recycles $recycles --beta $beta --smooth $smooth --topN $topN \
+       --find-unused-parameters
+
+```
+
+2. Generate initial RDKit conformations for inference: 
+
+- You need lines 313-319 of `./unimol/conf_gen_cal_metrics.py` for QM9 and comment out the other lines in the `main` function, for example: 
+
+```bash
+    ## generate test data for QM9
+    output_dir ='qm9'
+    name = 'test'
+    data = pd.read_pickle('qm9/test_data_200.pkl')
+    content_list = pd.DataFrame(data).groupby('smi')['mol'].apply(list).reset_index().values
+    write_lmdb(content_list, output_dir, name, nthreads=70)
+```
+
+- and run this command
+
+
+```bash
+python ./unimol/conf_gen_cal_metrics.py
+```
+
+3. Inference on the generated RDKit initial conformations:
+
+```bash
+data_path='./conformation_generation'  # replace to your data path
+results_path='./infer_confgen'  # replace to your results path
+weight_path='./save_confgen/checkpoint_best.pt'  # replace to your ckpt path
+batch_size=128
+task_name='qm9'  # or 'drugs', conformation generation task name 
+
+python ./unimol/conf_gen_infer.py --user-dir ./unimol $data_path --valid-subset test \
+       --results-path $results_path \
+       --num-workers 8 --ddp-backend=c10d --batch-size $batch_size --task mol_confG \
+       --model-overrides "{'task_name': '${task_name}', 'loss': 'mol_confG_infer'}" \
+       --path $weight_path \
+       --fp16 --fp16-init-scale 4 --fp16-scale-window 256 \
+       --log-interval 50 --log-format simple 
+```
+
+4. Calculate metrics on the results of inference: 
+
+- You need lines 323-328 of `./unimol/conf_gen_cal_metrics.py` for QM9 and comment out the other lines in the `main` function, for example: 
+
+```bash
+    predict_path = './infer_confgen/save_confgen_test.out.pkl'  # replace to your inference results path
+    data_path = './qm9/test_data_200.pkl'  # replace to your reference set path
+    use_ff = False
+    threshold = 0.5
+    nthreads = 40
+    cal_metrics(predict_path, data_path, use_ff, threshold, nthreads)
+```
+- and run this command
+```bash
+python ./unimol/conf_gen_cal_metrics.py
+```
+
+
+Pocket Property Prediction
+------------------
+
+```bash
+data_path='./pocket_property_prediction'  # replace to your data path
+save_dir='./save_finetune'  # replace to your save path
+n_gpu=1
+MASTER_PORT=10086
+dict_name='dict_coarse.txt'
+weight_path='./weights/checkpoint.pt'
+task_name='drugabbility'  # or 'nrdld', pocket property prediction dataset folder name 
+lr=3e-4
+batch_size=32
+epoch=20
+dropout=0
+warmup=0.1
+local_batch_size=32
+seed=1
+
+if [ "$task_name" == "drugabbility" ]; then
+       metric="valid_mse"
+       loss_func='finetune_mse_pocket'
+       task_num=1
+else
+       metric='loss'
+       loss_func='finetune_cross_entropy_pocket'
+       task_num=2
+fi
+
+export NCCL_ASYNC_ERROR_HANDLING=1
+export OMP_NUM_THREADS=1
+update_freq=`expr $batch_size / $local_batch_size`
+python -m torch.distributed.launch --nproc_per_node=$n_gpu --master_port=$MASTER_PORT $(which unicore-train) $data_path --task-name $task_name --user-dir ./unimol --train-subset train --valid-subset valid \
+       --num-workers 8 --ddp-backend=c10d \
+       --dict-name $dict_name \
+       --task pocket_finetune --loss $loss_func --arch unimol_base  \
+       --classification-head-name $task_name --num-classes $task_num \
+       --optimizer adam --adam-betas '(0.9, 0.99)' --adam-eps 1e-6 --clip-norm 1.0 \
+       --lr-scheduler polynomial_decay --lr $lr --warmup-ratio $warmup --max-epoch $epoch --batch-size $local_batch_size --pooler-dropout $dropout \
+       --update-freq $update_freq --seed $seed \
+       --fp16 --fp16-init-scale 4 --fp16-scale-window 256 \
+       --log-interval 100 --log-format simple \
+       --validate-interval 1 --finetune-from-model $weight_path \
+       --best-checkpoint-metric $metric --patience 2000 \
+       --save-dir $save_dir --remove-hydrogen 
+
+# --maximize-best-checkpoint-metric, for classification task
+
+```
+
+The batch size is `n_gpu * local_batch_size * update_freq`.
+For classification task, we set `--maximize-best-checkpoint-metric`.
+
+We choose the checkpoint with the best metric on validation set or training set.
+
+
 WIP
 ---
 
-- [ ] code & data for molecular conformation
-- [ ] code for pocket property 
 - [ ] code & data for protein-ligand binding
 - [ ] model checkpoints
 
