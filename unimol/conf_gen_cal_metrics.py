@@ -15,6 +15,7 @@ from rdkit.Chem import rdMolAlign as MA
 from scipy.spatial.transform import Rotation
 from multiprocessing import Pool
 from sklearn.cluster import KMeans
+import argparse
 
 
 def get_torsions(m):
@@ -113,7 +114,7 @@ def clustering(mol, M=1000, N=100):
         _coords = _coords - _coords.mean(axis=0)   # need to normalize first
         _R, _score = Rotation.align_vectors(_coords, tgt_coords)
         rdkit_coords_list.append(np.dot(_coords, _R.as_matrix()))
-    total_sz +=sz
+    total_sz += sz
 
     ### add no MMFF optimize conformers
     rdkit_mol = single_conf_gen_no_MMFF(mol, num_confs=int(M//4), seed=43)
@@ -135,7 +136,7 @@ def clustering(mol, M=1000, N=100):
         _coords = _coords - _coords.mean(axis=0)   # need to normalize first
         _R, _score = Rotation.align_vectors(_coords, tgt_coords)
         rdkit_coords_list.append(np.dot(_coords, _R.as_matrix()))
-    total_sz +=sz
+    total_sz += sz
 
     rdkit_coords_flatten = np.array(rdkit_coords_list).reshape(total_sz,-1)
     cluster_size = N
@@ -144,7 +145,7 @@ def clustering(mol, M=1000, N=100):
     return coords_list
 
 
-def single_process(content):
+def single_process_data(content):
     smi, tgt_mol_list = content[0], content[1]
     M = min(20 * len(tgt_mol_list), 2000)
     N = 2 * len(tgt_mol_list)
@@ -168,39 +169,39 @@ def single_process(content):
 
 def write_lmdb(content_list, output_dir, name, nthreads=16):
 
-        os.makedirs(output_dir, exist_ok=True)
-        output_name = os.path.join(output_dir, f'{name}.lmdb')
-        print(output_name)
-        try:
-            os.remove(output_name)
-        except:
-            pass
-        env_new = lmdb.open(
-            output_name,
-            subdir=False,
-            readonly=False,
-            lock=False,
-            readahead=False,
-            meminit=False,
-            max_readers=1,
-            map_size=int(100e9),
-        )
-        txn_write = env_new.begin(write=True)
-        with Pool(nthreads) as pool:
-            i = 0
-            for inner_output in tqdm(pool.imap(inner_process, content_list)):
-                if inner_output is not None:
-                    for item in inner_output:
-                        txn_write.put(f'{i}'.encode("ascii"), pickle.dumps(item, protocol=-1))
-                        i += 1
-            print('{} process {} lines'.format(output_name, i))
-            txn_write.commit()
-            env_new.close()
+    os.makedirs(output_dir, exist_ok=True)
+    output_name = os.path.join(output_dir, f'{name}.lmdb')
+    print(output_name)
+    try:
+        os.remove(output_name)
+    except:
+        pass
+    env_new = lmdb.open(
+        output_name,
+        subdir=False,
+        readonly=False,
+        lock=False,
+        readahead=False,
+        meminit=False,
+        max_readers=1,
+        map_size=int(100e9),
+    )
+    txn_write = env_new.begin(write=True)
+    with Pool(nthreads) as pool:
+        i = 0
+        for inner_output in tqdm(pool.imap(inner_process, content_list)):
+            if inner_output is not None:
+                for item in inner_output:
+                    txn_write.put(f'{i}'.encode("ascii"), pickle.dumps(item, protocol=-1))
+                    i += 1
+        print('{} process {} lines'.format(output_name, i))
+        txn_write.commit()
+        env_new.close()
 
 
 def inner_process(content):
     try:
-        return single_process(content)
+        return single_process_data(content)
     except:
         return None
 
@@ -306,44 +307,65 @@ def cal_metrics(predict_path, data_path, use_ff=False, threshold=0.5, nthreads=4
     return True
 
 
-if __name__ == '__main__':
+def main():
+    parser = argparse.ArgumentParser(description='generate initial rdkit test data and cal metrics')
+    parser.add_argument(
+        "--mode",
+        type=str,
+        default='cal_metrics',
+        choices=['gen_data', 'cal_metrics'],
+    )
+    parser.add_argument(
+        "--reference-file",
+        type=str,
+        default='./conformation_generation/qm9/test_data_200.pkl',
+        help='Location of the reference set'
+    )
+    parser.add_argument(
+        "--output-dir",
+        type=str,
+        default='./conformation_generation/qm9',
+        help='Location of the generated data'
+    )
+    parser.add_argument(
+        "--nthreads",
+        type=int,
+        default=40,
+        help='num of threads'
+    )
+    parser.add_argument(
+        "--predict-file",
+        type=str,
+        default='./infer_confgen/save_confgen_test.out.pkl',
+        help='Location of the prediction file'
+    )
+    parser.add_argument(
+        "--threshold",
+        default=0.5,
+        type=float,
+        help="threshold for cal metrics, qm9: 0.5; drugs: 1.25",
+    )
+    args = parser.parse_args()
 
-    ### For QM9
-
-    # ## generate test data 
-    # output_dir ='qm9'
-    # name = 'test'
-    # data = pd.read_pickle('qm9/test_data_200.pkl')
-    # content_list = pd.DataFrame(data).groupby('smi')['mol'].apply(list).reset_index().values
-    # print(content_list[0])
-    # write_lmdb(content_list, output_dir, name, nthreads=70)
-
-    ### inference... ###
+    if args.mode == 'gen_data':
+        # generate test data 
+        output_dir = args.output_dir
+        name = 'test'
+        data = pd.read_pickle(args.reference_file)
+        content_list = pd.DataFrame(data).groupby('smi')['mol'].apply(list).reset_index().values
+        print(content_list[0])
+        write_lmdb(content_list, output_dir, name, nthreads=args.nthreads)
     
-    # ## cal metrics ###
-    predict_path = './infer_confgen/save_confgen_test.out.pkl'
-    data_path = './qm9/test_data_200.pkl'
-    use_ff = False
-    threshold=0.5
-    nthreads=40
-    cal_metrics(predict_path, data_path, use_ff, threshold, nthreads)
+    ### Uni-Mol predicting... ###
+    
+    elif args.mode == 'cal_metrics':
+        # cal metrics
+        predict_file = args.predict_file
+        data_path = args.reference_file
+        use_ff = False
+        threshold = args.threshold
+        cal_metrics(predict_file, data_path, use_ff, threshold, args.nthreads)
 
 
-    ### For Drugs
-    # ## generate test data
-    # output_dir ='drugs'
-    # name = 'test'
-    # data = pd.read_pickle('drugs/test_data_200.pkl')
-    # content_list = pd.DataFrame(data).groupby('smi')['mol'].apply(list).reset_index().values
-    # print(content_list[0])
-    # write_lmdb(content_list, output_dir, name, nthreads=60)
-
-    ### inference... ###
-
-    # ## cal metrics ###
-    # predict_path = 'your results file path'
-    # data_path = 'drugs/test_data_200.pkl'
-    # use_ff = False
-    # threshold=1.25
-    # nthreads=40
-    # cal_metrics(predict_path, data_path, use_ff, threshold, nthreads)
+if __name__ == '__main__':
+    main()
