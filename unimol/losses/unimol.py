@@ -64,11 +64,11 @@ class UniMolLoss(UnicoreLoss):
             loss = loss + masked_dist_loss * self.args.masked_dist_loss
             logging_output["masked_dist_loss"] = masked_dist_loss.data
 
-        if x_norm is not None:
+        if self.args.x_norm_loss > 0 and x_norm is not None:
             loss = loss + self.args.x_norm_loss * x_norm
             logging_output["x_norm_loss"] = x_norm.data
 
-        if delta_encoder_pair_rep_norm is not None:
+        if self.args.delta_pair_repr_norm_loss > 0 and delta_encoder_pair_rep_norm is not None:
             loss = loss + self.args.delta_pair_repr_norm_loss * delta_encoder_pair_rep_norm
             logging_output["delta_pair_repr_norm_loss"] = delta_encoder_pair_rep_norm.data
 
