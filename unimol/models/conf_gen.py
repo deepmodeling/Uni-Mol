@@ -12,15 +12,9 @@ from .unimol import base_architecture
 
 logger = logging.getLogger(__name__)
 
-torch._C._jit_set_profiling_mode(False)
-torch._C._jit_set_profiling_executor(False)
-torch._C._jit_override_can_fuse_on_cpu(True)
-torch._C._jit_override_can_fuse_on_gpu(True)
-
 
 @register_model("mol_confG")
 class UnimolConfGModel(BaseUnicoreModel):
-    torch.autograd.set_detect_anomaly(True)
 
     @staticmethod
     def add_args(parser):
