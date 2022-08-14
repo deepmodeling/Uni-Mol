@@ -74,7 +74,7 @@ Dependencies
 As Uni-Core needs to compile CUDA kernels in installation, we also provide a docker image to save your efforts. To use the GPU within docker you need to install nvidia-docker2 first. Use the following command to pull the docker image:  
 
 ```bash
-docker pull dptechnology/unimol:pytorch1.11.0-cuda11.3
+docker pull dptechnology/unimol:latest-pytorch1.11.0-cuda11.3
 ```
 
 Molecular Pretraining

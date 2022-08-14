@@ -30,4 +30,4 @@ jobs:
         with:
           context: ./docker/
           push: true
-          tags: dptechnology/unimol:pytorch1.11.0-cuda11.3-latest
+          tags: dptechnology/unimol:latest-pytorch1.11.0-cuda11.3
