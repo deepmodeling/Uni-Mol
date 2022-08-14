@@ -21,7 +21,7 @@ import argparse
 def get_torsions(m):
     m = Chem.RemoveHs(m)
     torsionList = []
-    torsionSmarts = '[!$(*#*)&!D1]-&!@[!$(*#*)&!D1]'
+    torsionSmarts = "[!$(*#*)&!D1]-&!@[!$(*#*)&!D1]"
     torsionQuery = Chem.MolFromSmarts(torsionSmarts)
     matches = m.GetSubstructMatches(torsionQuery)
     for match in matches:
@@ -31,20 +31,20 @@ def get_torsions(m):
         jAtom = m.GetAtomWithIdx(idx2)
         kAtom = m.GetAtomWithIdx(idx3)
         for b1 in jAtom.GetBonds():
-            if (b1.GetIdx() == bond.GetIdx()):
+            if b1.GetIdx() == bond.GetIdx():
                 continue
             idx1 = b1.GetOtherAtomIdx(idx2)
             for b2 in kAtom.GetBonds():
-                if ((b2.GetIdx() == bond.GetIdx())
-                    or (b2.GetIdx() == b1.GetIdx())):
+                if (b2.GetIdx() == bond.GetIdx()) or (b2.GetIdx() == b1.GetIdx()):
                     continue
                 idx4 = b2.GetOtherAtomIdx(idx3)
                 # skip 3-membered rings
-                if (idx4 == idx1):
+                if idx4 == idx1:
                     continue
                 # skip torsions that include hydrogens
-                if ((m.GetAtomWithIdx(idx1).GetAtomicNum() == 1)
-                    or (m.GetAtomWithIdx(idx4).GetAtomicNum() == 1)):
+                if (m.GetAtomWithIdx(idx1).GetAtomicNum() == 1) or (
+                    m.GetAtomWithIdx(idx4).GetAtomicNum() == 1
+                ):
                     continue
                 if m.GetAtomWithIdx(idx4).IsInRing():
                     torsionList.append((idx4, idx3, idx2, idx1))
@@ -57,18 +57,24 @@ def get_torsions(m):
 
 
 def SetDihedral(conf, atom_idx, new_vale):
-    rdMolTransforms.SetDihedralRad(conf, atom_idx[0], atom_idx[1], atom_idx[2], atom_idx[3], new_vale)
+    rdMolTransforms.SetDihedralRad(
+        conf, atom_idx[0], atom_idx[1], atom_idx[2], atom_idx[3], new_vale
+    )
 
 
 def GetDihedral(conf, atom_idx):
-    return rdMolTransforms.GetDihedralRad(conf, atom_idx[0], atom_idx[1], atom_idx[2], atom_idx[3])
+    return rdMolTransforms.GetDihedralRad(
+        conf, atom_idx[0], atom_idx[1], atom_idx[2], atom_idx[3]
+    )
 
 
 def single_conf_gen_bonds(tgt_mol, num_confs=1000, seed=42):
     mol = copy.deepcopy(tgt_mol)
     mol = Chem.AddHs(mol)
-    allconformers = AllChem.EmbedMultipleConfs(mol, numConfs=num_confs, randomSeed=seed, clearConfs=True)
-    mol = Chem.RemoveHs(mol)     
+    allconformers = AllChem.EmbedMultipleConfs(
+        mol, numConfs=num_confs, randomSeed=seed, clearConfs=True
+    )
+    mol = Chem.RemoveHs(mol)
     rotable_bonds = get_torsions(mol)
     for i in range(len(allconformers)):
         np.random.seed(i)
@@ -82,7 +88,9 @@ def single_conf_gen_bonds(tgt_mol, num_confs=1000, seed=42):
 def single_conf_gen(tgt_mol, num_confs=1000, seed=42):
     mol = copy.deepcopy(tgt_mol)
     mol = Chem.AddHs(mol)
-    allconformers = AllChem.EmbedMultipleConfs(mol, numConfs=num_confs, randomSeed=seed, clearConfs=True)
+    allconformers = AllChem.EmbedMultipleConfs(
+        mol, numConfs=num_confs, randomSeed=seed, clearConfs=True
+    )
     sz = len(allconformers)
     for i in range(sz):
         try:
@@ -96,7 +104,9 @@ def single_conf_gen(tgt_mol, num_confs=1000, seed=42):
 def single_conf_gen_no_MMFF(tgt_mol, num_confs=1000, seed=42):
     mol = copy.deepcopy(tgt_mol)
     mol = Chem.AddHs(mol)
-    allconformers = AllChem.EmbedMultipleConfs(mol, numConfs=num_confs, randomSeed=seed, clearConfs=True)
+    allconformers = AllChem.EmbedMultipleConfs(
+        mol, numConfs=num_confs, randomSeed=seed, clearConfs=True
+    )
     mol = Chem.RemoveHs(mol)
     return mol
 
@@ -111,36 +121,40 @@ def clustering(mol, M=1000, N=100):
     rdkit_coords_list = []
     for i in range(sz):
         _coords = rdkit_mol.GetConformers()[i].GetPositions().astype(np.float32)
-        _coords = _coords - _coords.mean(axis=0)   # need to normalize first
+        _coords = _coords - _coords.mean(axis=0)  # need to normalize first
         _R, _score = Rotation.align_vectors(_coords, tgt_coords)
         rdkit_coords_list.append(np.dot(_coords, _R.as_matrix()))
     total_sz += sz
 
     ### add no MMFF optimize conformers
-    rdkit_mol = single_conf_gen_no_MMFF(mol, num_confs=int(M//4), seed=43)
+    rdkit_mol = single_conf_gen_no_MMFF(mol, num_confs=int(M // 4), seed=43)
     rdkit_mol = Chem.RemoveHs(rdkit_mol)
     sz = len(rdkit_mol.GetConformers())
     for i in range(sz):
         _coords = rdkit_mol.GetConformers()[i].GetPositions().astype(np.float32)
-        _coords = _coords - _coords.mean(axis=0)   # need to normalize first
-        _R, _score = Rotation.align_vectors(_coords, tgt_coords)
-        rdkit_coords_list.append(np.dot(_coords, _R.as_matrix()))
-    total_sz +=sz
-
-    ### add uniform rotation bonds conformers
-    rdkit_mol = single_conf_gen_bonds(mol, num_confs=int(M//4), seed=43)
-    rdkit_mol = Chem.RemoveHs(rdkit_mol)
-    sz = len(rdkit_mol.GetConformers())
-    for i in range(sz):
-        _coords = rdkit_mol.GetConformers()[i].GetPositions().astype(np.float32)
-        _coords = _coords - _coords.mean(axis=0)   # need to normalize first
+        _coords = _coords - _coords.mean(axis=0)  # need to normalize first
         _R, _score = Rotation.align_vectors(_coords, tgt_coords)
         rdkit_coords_list.append(np.dot(_coords, _R.as_matrix()))
     total_sz += sz
 
-    rdkit_coords_flatten = np.array(rdkit_coords_list).reshape(total_sz,-1)
+    ### add uniform rotation bonds conformers
+    rdkit_mol = single_conf_gen_bonds(mol, num_confs=int(M // 4), seed=43)
+    rdkit_mol = Chem.RemoveHs(rdkit_mol)
+    sz = len(rdkit_mol.GetConformers())
+    for i in range(sz):
+        _coords = rdkit_mol.GetConformers()[i].GetPositions().astype(np.float32)
+        _coords = _coords - _coords.mean(axis=0)  # need to normalize first
+        _R, _score = Rotation.align_vectors(_coords, tgt_coords)
+        rdkit_coords_list.append(np.dot(_coords, _R.as_matrix()))
+    total_sz += sz
+
+    rdkit_coords_flatten = np.array(rdkit_coords_list).reshape(total_sz, -1)
     cluster_size = N
-    ids = KMeans(n_clusters=cluster_size, random_state=42).fit_predict(rdkit_coords_flatten).tolist()
+    ids = (
+        KMeans(n_clusters=cluster_size, random_state=42)
+        .fit_predict(rdkit_coords_flatten)
+        .tolist()
+    )
     coords_list = [rdkit_coords_list[ids.index(i)] for i in range(cluster_size)]
     return coords_list
 
@@ -163,14 +177,21 @@ def single_process_data(content):
     tgt_coords = tgt_mol.GetConformer().GetPositions().astype(np.float32)
     dump_list = []
     for i in range(sz):
-        dump_list.append({'atoms': atoms, 'coordinates': [rdkit_cluster_coords_list[i]], 'smi': smi, 'target': tgt_coords})
+        dump_list.append(
+            {
+                "atoms": atoms,
+                "coordinates": [rdkit_cluster_coords_list[i]],
+                "smi": smi,
+                "target": tgt_coords,
+            }
+        )
     return dump_list
 
 
 def write_lmdb(content_list, output_dir, name, nthreads=16):
 
     os.makedirs(output_dir, exist_ok=True)
-    output_name = os.path.join(output_dir, f'{name}.lmdb')
+    output_name = os.path.join(output_dir, f"{name}.lmdb")
     print(output_name)
     try:
         os.remove(output_name)
@@ -192,9 +213,11 @@ def write_lmdb(content_list, output_dir, name, nthreads=16):
         for inner_output in tqdm(pool.imap(inner_process, content_list)):
             if inner_output is not None:
                 for item in inner_output:
-                    txn_write.put(f'{i}'.encode("ascii"), pickle.dumps(item, protocol=-1))
+                    txn_write.put(
+                        f"{i}".encode("ascii"), pickle.dumps(item, protocol=-1)
+                    )
                     i += 1
-        print('{} process {} lines'.format(output_name, i))
+        print("{} process {} lines".format(output_name, i))
         txn_write.commit()
         env_new.close()
 
@@ -210,35 +233,35 @@ def data_pre(predict_path, data_path, normalize=True):
 
     predict = pd.read_pickle(predict_path)
     data = pd.read_pickle(data_path)
-    data = data.groupby('smi')['mol'].apply(list).reset_index()
+    data = data.groupby("smi")["mol"].apply(list).reset_index()
     smi_list, predict_list = [], []
     for batch in predict:
-        sz = batch['bsz']
+        sz = batch["bsz"]
         for i in range(sz):
-            smi_list.append(batch['smi_name'][i])
-            coord_predict = batch['coord_predict'][i]
-            coord_target = batch['coord_target'][i]
+            smi_list.append(batch["smi_name"][i])
+            coord_predict = batch["coord_predict"][i]
+            coord_target = batch["coord_target"][i]
             coord_mask = coord_target[:, 0].ne(0)
-            coord_predict = coord_predict[coord_mask, :].cpu().numpy()          
+            coord_predict = coord_predict[coord_mask, :].cpu().numpy()
             if normalize:
                 coord_predict = coord_predict - coord_predict.mean(axis=0)
 
             predict_list.append(coord_predict)
-    
-    predict_df = pd.DataFrame({'smi': smi_list, 'predict_coord': predict_list})
-    predict_df = predict_df.groupby('smi')['predict_coord'].apply(list).reset_index()
 
-    df = pd.merge(data, predict_df, on='smi', how='left')
-    print('preprocessing 1...')
+    predict_df = pd.DataFrame({"smi": smi_list, "predict_coord": predict_list})
+    predict_df = predict_df.groupby("smi")["predict_coord"].apply(list).reset_index()
+
+    df = pd.merge(data, predict_df, on="smi", how="left")
+    print("preprocessing 1...")
     ref_mols_list, gen_mols_list = [], []
-    for smi, mol_list, pos_list in zip(df['smi'], df['mol'], df['predict_coord']):
-        if '.' in smi:
+    for smi, mol_list, pos_list in zip(df["smi"], df["mol"], df["predict_coord"]):
+        if "." in smi:
             print(smi)
             continue
         ref_mols_list.append(mol_list)
         gen_mols = [set_rdmol_positions(mol_list[0], pos) for pos in pos_list]
         gen_mols_list.append(gen_mols)
-    print('preprocessing 2...')
+    print("preprocessing 2...")
     return ref_mols_list, gen_mols_list
 
 
@@ -272,8 +295,8 @@ def set_rdmol_positions(rdkit_mol, pos):
 
 
 def print_results(cov, mat):
-    print('COV_mean: ', np.mean(cov), ';COV_median: ', np.median(cov))
-    print('MAT_mean: ', np.mean(mat), ';MAT_median: ', np.median(mat))
+    print("COV_mean: ", np.mean(cov), ";COV_median: ", np.median(cov))
+    print("MAT_mean: ", np.mean(mat), ";MAT_median: ", np.median(mat))
 
 
 def single_process(content):
@@ -291,7 +314,7 @@ def process(content):
 
 def cal_metrics(predict_path, data_path, use_ff=False, threshold=0.5, nthreads=40):
     ref_mols_list, gen_mols_list = data_pre(predict_path, data_path, normalize=True)
-    print('cal_metrics...')
+    print("cal_metrics...")
     cov_list, mat_list = [], []
     content_list = []
     for ref_mols, gen_mols in zip(ref_mols_list, gen_mols_list):
@@ -308,36 +331,33 @@ def cal_metrics(predict_path, data_path, use_ff=False, threshold=0.5, nthreads=4
 
 
 def main():
-    parser = argparse.ArgumentParser(description='generate initial rdkit test data and cal metrics')
+    parser = argparse.ArgumentParser(
+        description="generate initial rdkit test data and cal metrics"
+    )
     parser.add_argument(
         "--mode",
         type=str,
-        default='cal_metrics',
-        choices=['gen_data', 'cal_metrics'],
+        default="cal_metrics",
+        choices=["gen_data", "cal_metrics"],
     )
     parser.add_argument(
         "--reference-file",
         type=str,
-        default='./conformation_generation/qm9/test_data_200.pkl',
-        help='Location of the reference set'
+        default="./conformation_generation/qm9/test_data_200.pkl",
+        help="Location of the reference set",
     )
     parser.add_argument(
         "--output-dir",
         type=str,
-        default='./conformation_generation/qm9',
-        help='Location of the generated data'
+        default="./conformation_generation/qm9",
+        help="Location of the generated data",
     )
-    parser.add_argument(
-        "--nthreads",
-        type=int,
-        default=40,
-        help='num of threads'
-    )
+    parser.add_argument("--nthreads", type=int, default=40, help="num of threads")
     parser.add_argument(
         "--predict-file",
         type=str,
-        default='./infer_confgen/save_confgen_test.out.pkl',
-        help='Location of the prediction file'
+        default="./infer_confgen/save_confgen_test.out.pkl",
+        help="Location of the prediction file",
     )
     parser.add_argument(
         "--threshold",
@@ -347,18 +367,20 @@ def main():
     )
     args = parser.parse_args()
 
-    if args.mode == 'gen_data':
-        # generate test data 
+    if args.mode == "gen_data":
+        # generate test data
         output_dir = args.output_dir
-        name = 'test'
+        name = "test"
         data = pd.read_pickle(args.reference_file)
-        content_list = pd.DataFrame(data).groupby('smi')['mol'].apply(list).reset_index().values
+        content_list = (
+            pd.DataFrame(data).groupby("smi")["mol"].apply(list).reset_index().values
+        )
         print(content_list[0])
         write_lmdb(content_list, output_dir, name, nthreads=args.nthreads)
-    
+
     ### Uni-Mol predicting... ###
-    
-    elif args.mode == 'cal_metrics':
+
+    elif args.mode == "cal_metrics":
         # cal metrics
         predict_file = args.predict_file
         data_path = args.reference_file
@@ -367,5 +389,5 @@ def main():
         cal_metrics(predict_file, data_path, use_ff, threshold, args.nthreads)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

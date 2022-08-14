@@ -15,7 +15,6 @@ logger = logging.getLogger(__name__)
 
 @register_model("mol_confG")
 class UnimolConfGModel(BaseUnicoreModel):
-
     @staticmethod
     def add_args(parser):
         """Add model-specific arguments to the parser."""
@@ -59,7 +58,6 @@ class UnimolConfGModel(BaseUnicoreModel):
         encoder_masked_tokens=None,
         **kwargs
     ):
-
         def get_dist_features(dist, et):
             n_node = dist.size(-1)
             gbf_feature = self.unimol.gbf(dist, et)
@@ -85,19 +83,22 @@ class UnimolConfGModel(BaseUnicoreModel):
             emb: torch.Tensor,
             attn_mask: Optional[torch.Tensor] = None,
             padding_mask: Optional[torch.Tensor] = None,
-        ):     
+        ):
             x = self.unimol.encoder.emb_layer_norm(emb)
             x = F.dropout(x, p=self.unimol.encoder.emb_dropout, training=self.training)
 
             if padding_mask is not None:
                 x = x * (1 - padding_mask.unsqueeze(-1).type_as(x))
-            attn_mask, padding_mask = fill_attn_mask(attn_mask, padding_mask, fill_val=float("-inf"))
+            attn_mask, padding_mask = fill_attn_mask(
+                attn_mask, padding_mask, fill_val=float("-inf")
+            )
 
             for i in range(len(self.unimol.encoder.layers)):
-                x, attn_mask, _ = self.unimol.encoder.layers[i](x, padding_mask=padding_mask, attn_bias=attn_mask, return_attn=True)
+                x, attn_mask, _ = self.unimol.encoder.layers[i](
+                    x, padding_mask=padding_mask, attn_bias=attn_mask, return_attn=True
+                )
 
             return x, attn_mask
-
 
         padding_mask = src_tokens.eq(self.unimol.padding_idx)
         input_padding_mask = padding_mask
@@ -108,7 +109,9 @@ class UnimolConfGModel(BaseUnicoreModel):
         seq_len = x.size(1)
 
         for _ in range(self.args.num_recycles):
-            x, attn_mask = single_encoder(x, padding_mask=padding_mask, attn_mask=attn_mask)
+            x, attn_mask = single_encoder(
+                x, padding_mask=padding_mask, attn_mask=attn_mask
+            )
 
         if self.unimol.encoder.final_layer_norm is not None:
             x = self.unimol.encoder.final_layer_norm(x)
@@ -116,8 +119,14 @@ class UnimolConfGModel(BaseUnicoreModel):
         delta_pair_repr = attn_mask - input_attn_mask
         delta_pair_repr, _ = fill_attn_mask(delta_pair_repr, input_padding_mask, 0)
         attn_mask, _ = fill_attn_mask(attn_mask, input_padding_mask, 0)
-        attn_mask = attn_mask.view(bsz, -1, seq_len, seq_len).permute(0, 2, 3, 1).contiguous()
-        delta_pair_repr = delta_pair_repr.view(bsz, -1, seq_len, seq_len).permute(0, 2, 3, 1).contiguous()
+        attn_mask = (
+            attn_mask.view(bsz, -1, seq_len, seq_len).permute(0, 2, 3, 1).contiguous()
+        )
+        delta_pair_repr = (
+            delta_pair_repr.view(bsz, -1, seq_len, seq_len)
+            .permute(0, 2, 3, 1)
+            .contiguous()
+        )
 
         distance_predict, coords_predict = None, None
 
@@ -156,4 +165,5 @@ def unimol_confG_architecture(args):
         args.post_ln = getattr(args, "post_ln", False)
         args.masked_coord_loss = getattr(args, "masked_coord_loss", 1.0)
         args.masked_dist_loss = getattr(args, "masked_dist_loss", 1.0)
+
     base_architecture(args)

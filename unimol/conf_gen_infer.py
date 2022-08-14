@@ -43,16 +43,15 @@ def main(args):
         data_parallel_rank = 0
 
     overrides = ast.literal_eval(args.model_overrides)
-    if 'data' not in overrides:
-        overrides['data'] = args.data
-    if 'task_name' not in overrides:
-        overrides['task_name'] = args.task_name
+    if "data" not in overrides:
+        overrides["data"] = args.data
+    if "task_name" not in overrides:
+        overrides["task_name"] = args.task_name
 
     # Load ensemble
     logger.info("loading model(s) from {}".format(args.path))
     models, saved_args, task = checkpoint_utils.load_model_ensemble_and_task(
-        [args.path],
-        arg_overrides=overrides
+        [args.path], arg_overrides=overrides
     )
     model = models[0]
 
@@ -78,8 +77,8 @@ def main(args):
 
         if not os.path.exists(args.results_path):
             os.makedirs(args.results_path)
-        fname = (args.path).split('/')[-2]
-        save_path = os.path.join(args.results_path, fname + '_' + subset+".out.pkl")
+        fname = (args.path).split("/")[-2]
+        save_path = os.path.join(args.results_path, fname + "_" + subset + ".out.pkl")
         # Initialize data iterator
         itr = task.get_batch_iterator(
             dataset=dataset,
@@ -107,7 +106,7 @@ def main(args):
             _, _, log_output = task.valid_step(sample, model, loss, test=True)
             progress.log({}, step=i)
             log_outputs.append(log_output)
-        pickle.dump(log_outputs, open(save_path, 'wb'))
+        pickle.dump(log_outputs, open(save_path, "wb"))
     return None
 
 
@@ -115,9 +114,7 @@ def cli_main():
     parser = options.get_validation_parser()
     args = options.parse_args_and_arch(parser)
 
-    distributed_utils.call_main(
-        args, main
-    )
+    distributed_utils.call_main(args, main)
 
 
 if __name__ == "__main__":

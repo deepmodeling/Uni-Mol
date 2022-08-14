@@ -10,7 +10,6 @@ from unicore.data import BaseWrapperDataset
 
 
 class DistanceDataset(BaseWrapperDataset):
-
     def __init__(self, dataset):
         super().__init__(dataset)
         self.dataset = dataset
@@ -23,11 +22,7 @@ class DistanceDataset(BaseWrapperDataset):
 
 
 class EdgeTypeDataset(BaseWrapperDataset):
-    def __init__(
-        self,
-        dataset: torch.utils.data.Dataset,
-        num_types: int
-    ):
+    def __init__(self, dataset: torch.utils.data.Dataset, num_types: int):
         self.dataset = dataset
         self.num_types = num_types
 
