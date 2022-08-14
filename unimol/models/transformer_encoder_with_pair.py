@@ -77,7 +77,6 @@ class TransformerEncoderWithPair(nn.Module):
             x = x * (1 - padding_mask.unsqueeze(-1).type_as(x))
         input_attn_mask = attn_mask
         input_padding_mask = padding_mask
-        mask_pos = padding_mask
 
         def fill_attn_mask(attn_mask, padding_mask, fill_val=float("-inf")):
             if attn_mask is not None and padding_mask is not None:
@@ -99,23 +98,21 @@ class TransformerEncoderWithPair(nn.Module):
                 x, padding_mask=padding_mask, attn_bias=attn_mask, return_attn=True
             )
 
-        mask_pos_t = torch.ones((x.size(0), x.size(1)), device=x.device)
-        mask_pos_t = mask_pos_t.type_as(x)
-        if mask_pos is not None:
-            mask_pos_t.masked_fill_(
-                mask_pos.to(torch.bool),
-                0,
-            )
-        x_norm = (x.float().norm(dim=-1) - math.sqrt(x.size(-1))).abs()
-        mask_pos_t.masked_fill_(
-            x_norm <= 1,
-            0,
-        )
-        mask_pos_t = mask_pos_t.to(torch.bool)
-        if mask_pos_t.any():
-            x_norm = x_norm[mask_pos_t].mean()
-        else:
-            x_norm = torch.zeros(1, device=mask_pos_t.device)
+        def norm_loss(x, eps=1e-10, tolerance=1.0):
+            x = x.float()
+            max_norm = x.shape[-1] ** 0.5
+            norm = torch.sqrt(torch.sum(x**2, dim=-1) + eps)
+            error = torch.nn.functional.relu((norm - max_norm).abs() - tolerance)
+            return error
+
+        def masked_mean(mask, value, dim=-1, eps=1e-10):
+            return (
+                torch.sum(mask * value, dim=dim) / (eps + torch.sum(mask, dim=dim))
+            ).mean()
+
+        x_norm = norm_loss(x)
+        token_mask = 1.0 - input_padding_mask.float()
+        x_norm = masked_mean(token_mask, x_norm)
 
         if self.final_layer_norm is not None:
             x = self.final_layer_norm(x)
@@ -131,32 +128,12 @@ class TransformerEncoderWithPair(nn.Module):
             .contiguous()
         )
 
-        delta_pair_repr_norm = delta_pair_repr.float().norm(dim=-1)
-        mask_pos_t = torch.ones_like(delta_pair_repr_norm)
-        if mask_pos is not None:
-            mask_pos_t.masked_fill_(
-                mask_pos.unsqueeze(1).to(torch.bool),
-                0,
-            )
-            mask_pos_t = mask_pos_t.permute(0, 2, 1)
-            mask_pos_t.masked_fill_(
-                mask_pos.unsqueeze(1).to(torch.bool),
-                0,
-            )
-            mask_pos_t = mask_pos_t.permute(0, 2, 1)
-
-        delta_pair_repr_norm = (
-            delta_pair_repr_norm - math.sqrt(delta_pair_repr.size(-1))
-        ).abs()
-        mask_pos_t.masked_fill_(
-            delta_pair_repr_norm <= 1,
-            0,
+        pair_mask = token_mask[..., None] * token_mask[..., None, :]
+        delta_pair_repr_norm = norm_loss(delta_pair_repr)
+        delta_pair_repr_norm = masked_mean(
+            pair_mask, delta_pair_repr_norm, dim=(-1, -2)
         )
-        mask_pos_t = mask_pos_t.to(torch.bool)
-        if mask_pos_t.any():
-            delta_pair_repr_norm = delta_pair_repr_norm[mask_pos_t].mean()
-        else:
-            delta_pair_repr_norm = torch.zeros(1, device=mask_pos_t.device)
+
         if self.final_head_layer_norm is not None:
             delta_pair_repr = self.final_head_layer_norm(delta_pair_repr)
 
