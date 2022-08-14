@@ -8,7 +8,14 @@ from unicore.data import BaseWrapperDataset
 
 
 class RemoveHydrogenDataset(BaseWrapperDataset):
-    def __init__(self, dataset, atoms, coordinates, remove_hydrogen=False, remove_polar_hydrogen=False):
+    def __init__(
+        self,
+        dataset,
+        atoms,
+        coordinates,
+        remove_hydrogen=False,
+        remove_polar_hydrogen=False,
+    ):
         self.dataset = dataset
         self.atoms = atoms
         self.coordinates = coordinates
@@ -27,13 +34,13 @@ class RemoveHydrogenDataset(BaseWrapperDataset):
         coordinates = dd[self.coordinates]
 
         if self.remove_hydrogen:
-            mask_hydrogen = atoms != 'H'
+            mask_hydrogen = atoms != "H"
             atoms = atoms[mask_hydrogen]
             coordinates = coordinates[mask_hydrogen]
         if not self.remove_hydrogen and self.remove_polar_hydrogen:
             end_idx = 0
             for i, atom in enumerate(atoms[::-1]):
-                if atom != 'H':
+                if atom != "H":
                     break
                 else:
                     end_idx = i + 1
@@ -74,7 +81,7 @@ class RemoveHydrogenResiduePocketDataset(BaseWrapperDataset):
             coordinates = coordinates[:min_len, :]
 
         if self.remove_hydrogen:
-            mask_hydrogen = atoms != 'H'
+            mask_hydrogen = atoms != "H"
             atoms = atoms[mask_hydrogen]
             residues = residues[mask_hydrogen]
             coordinates = coordinates[mask_hydrogen]

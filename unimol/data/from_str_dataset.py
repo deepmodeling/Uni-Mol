@@ -7,7 +7,7 @@ class FromStrLabelDataset(UnicoreDataset):
     def __init__(self, labels):
         super().__init__()
         self.labels = labels
-    
+
     @lru_cache(maxsize=16)
     def __getitem__(self, index):
         return self.labels[index]

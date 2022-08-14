@@ -11,8 +11,8 @@ class AtomTypeDataset(BaseWrapperDataset):
         self,
         raw_dataset,
         dataset,
-        smi='smi',
-        atoms='atoms',
+        smi="smi",
+        atoms="atoms",
     ):
         self.raw_dataset = raw_dataset
         self.dataset = dataset
@@ -22,8 +22,13 @@ class AtomTypeDataset(BaseWrapperDataset):
     @lru_cache(maxsize=16)
     def __getitem__(self, index: int):
         # for low rdkit version
-        if len(self.dataset[index]['atoms']) != len(self.dataset[index]['coordinates']):
-            min_len = min(len(self.dataset[index]['atoms']), len(self.dataset[index]['coordinates']))
-            self.dataset[index]['atoms'] = self.dataset[index]['atoms'][:min_len]
-            self.dataset[index]['coordinates'] = self.dataset[index]['coordinates'][:min_len]
+        if len(self.dataset[index]["atoms"]) != len(self.dataset[index]["coordinates"]):
+            min_len = min(
+                len(self.dataset[index]["atoms"]),
+                len(self.dataset[index]["coordinates"]),
+            )
+            self.dataset[index]["atoms"] = self.dataset[index]["atoms"][:min_len]
+            self.dataset[index]["coordinates"] = self.dataset[index]["coordinates"][
+                :min_len
+            ]
         return self.dataset[index]

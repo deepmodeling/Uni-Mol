@@ -29,7 +29,7 @@ class Add2DConformerDataset(BaseWrapperDataset):
         coordinates_2d = smi2_2Dcoords(smi)
         coordinates = self.dataset[index][self.coordinates]
         coordinates.append(coordinates_2d)
-        return {'smi': smi, 'atoms': atoms, 'coordinates': coordinates}
+        return {"smi": smi, "atoms": atoms, "coordinates": coordinates}
 
     def __getitem__(self, index: int):
         return self.__cached_item__(index, self.epoch)
@@ -40,5 +40,7 @@ def smi2_2Dcoords(smi):
     mol = AllChem.AddHs(mol)
     AllChem.Compute2DCoords(mol)
     coordinates = mol.GetConformer().GetPositions().astype(np.float32)
-    len(mol.GetAtoms()) == len(coordinates), "2D coordinates shape is not align with {}".format(smi)
+    len(mol.GetAtoms()) == len(
+        coordinates
+    ), "2D coordinates shape is not align with {}".format(smi)
     return coordinates

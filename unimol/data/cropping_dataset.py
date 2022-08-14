@@ -16,7 +16,9 @@ class CroppingDataset(BaseWrapperDataset):
         self.seed = seed
         self.atoms = atoms
         self.coordinates = coordinates
-        self.max_atoms = max_atoms   # max number of atoms in a molecule, None indicates no limit.
+        self.max_atoms = (
+            max_atoms  # max number of atoms in a molecule, None indicates no limit.
+        )
         self.set_epoch(None)
 
     def set_epoch(self, epoch, **unused):
@@ -47,7 +49,9 @@ class CroppingPocketDataset(BaseWrapperDataset):
         self.seed = seed
         self.atoms = atoms
         self.coordinates = coordinates
-        self.max_atoms = max_atoms   # max number of atoms in a molecule, None indicates no limit.
+        self.max_atoms = (
+            max_atoms  # max number of atoms in a molecule, None indicates no limit.
+        )
         self.set_epoch(None)
 
     def set_epoch(self, epoch, **unused):
@@ -59,27 +63,32 @@ class CroppingPocketDataset(BaseWrapperDataset):
         dd = self.dataset[index].copy()
         atoms = dd[self.atoms]
         coordinates = dd[self.coordinates]
-        residue = dd['residue']
+        residue = dd["residue"]
 
         # crop atoms according to their distance to the center of pockets
         if self.max_atoms and len(atoms) > self.max_atoms:
             with data_utils.numpy_seed(self.seed, epoch, index):
-                distance = np.linalg.norm(coordinates - coordinates.mean(axis=0), axis=1)
+                distance = np.linalg.norm(
+                    coordinates - coordinates.mean(axis=0), axis=1
+                )
 
                 def softmax(x):
                     x -= np.max(x)
-                    x = np.exp(x)/np.sum(np.exp(x))
+                    x = np.exp(x) / np.sum(np.exp(x))
                     return x
+
                 distance += 1  # prevent inf
                 weight = softmax(np.reciprocal(distance))
-                index = np.random.choice(len(atoms), self.max_atoms, replace=False, p=weight)
+                index = np.random.choice(
+                    len(atoms), self.max_atoms, replace=False, p=weight
+                )
                 atoms = atoms[index]
                 coordinates = coordinates[index]
                 residue = residue[index]
 
         dd[self.atoms] = atoms
         dd[self.coordinates] = coordinates.astype(np.float32)
-        dd['residue'] = residue
+        dd["residue"] = residue
         return dd
 
     def __getitem__(self, index: int):
@@ -93,7 +102,9 @@ class CroppingResiduePocketDataset(BaseWrapperDataset):
         self.atoms = atoms
         self.residues = residues
         self.coordinates = coordinates
-        self.max_atoms = max_atoms   # max number of atoms in a molecule, None indicates no limit.
+        self.max_atoms = (
+            max_atoms  # max number of atoms in a molecule, None indicates no limit.
+        )
 
         self.set_epoch(None)
 
@@ -113,7 +124,9 @@ class CroppingResiduePocketDataset(BaseWrapperDataset):
         # crop atoms according to their distance to the center of pockets
         if self.max_atoms and len(atoms) > self.max_atoms:
             with data_utils.numpy_seed(self.seed, epoch, index):
-                distance = np.linalg.norm(coordinates - coordinates.mean(axis=0), axis=1)
+                distance = np.linalg.norm(
+                    coordinates - coordinates.mean(axis=0), axis=1
+                )
                 residues_ids, residues_distance = [], []
                 for res in residues:
                     if res not in residues_ids:
@@ -124,16 +137,23 @@ class CroppingResiduePocketDataset(BaseWrapperDataset):
 
                 def softmax(x):
                     x -= np.max(x)
-                    x = np.exp(x)/np.sum(np.exp(x))
+                    x = np.exp(x) / np.sum(np.exp(x))
                     return x
+
                 residues_distance += 1  # prevent inf and smoothing out the distance
                 weight = softmax(np.reciprocal(residues_distance))
                 max_residues = self.max_atoms // (len(atoms) // (len(residues_ids) + 1))
                 if max_residues < 1:
                     max_residues += 1
                 max_residues = min(max_residues, len(residues_ids))
-                residue_index = np.random.choice(len(residues_ids), max_residues, replace=False, p=weight)
-                index = [i for i in range(len(atoms)) if residues[i] in residues_ids[residue_index]]
+                residue_index = np.random.choice(
+                    len(residues_ids), max_residues, replace=False, p=weight
+                )
+                index = [
+                    i
+                    for i in range(len(atoms))
+                    if residues[i] in residues_ids[residue_index]
+                ]
                 atoms = atoms[index]
                 coordinates = coordinates[index]
                 residues = residues[index]

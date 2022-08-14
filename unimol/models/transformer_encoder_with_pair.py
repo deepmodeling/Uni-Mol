@@ -55,7 +55,6 @@ class TransformerEncoderWithPair(nn.Module):
                     activation_dropout=activation_dropout,
                     activation_fn=activation_fn,
                     post_ln=post_ln,
-
                 )
                 for _ in range(encoder_layers)
             ]
@@ -91,11 +90,14 @@ class TransformerEncoderWithPair(nn.Module):
                 attn_mask = attn_mask.view(-1, seq_len, seq_len)
                 padding_mask = None
             return attn_mask, padding_mask
+
         assert attn_mask is not None
         attn_mask, padding_mask = fill_attn_mask(attn_mask, padding_mask)
 
         for i in range(len(self.layers)):
-            x, attn_mask, _ = self.layers[i](x, padding_mask=padding_mask, attn_bias=attn_mask, return_attn=True)
+            x, attn_mask, _ = self.layers[i](
+                x, padding_mask=padding_mask, attn_bias=attn_mask, return_attn=True
+            )
 
         mask_pos_t = torch.ones((x.size(0), x.size(1)), device=x.device)
         mask_pos_t = mask_pos_t.type_as(x)
@@ -120,8 +122,14 @@ class TransformerEncoderWithPair(nn.Module):
 
         delta_pair_repr = attn_mask - input_attn_mask
         delta_pair_repr, _ = fill_attn_mask(delta_pair_repr, input_padding_mask, 0)
-        attn_mask = attn_mask.view(bsz, -1, seq_len, seq_len).permute(0, 2, 3, 1).contiguous()
-        delta_pair_repr = delta_pair_repr.view(bsz, -1, seq_len, seq_len).permute(0, 2, 3, 1).contiguous()
+        attn_mask = (
+            attn_mask.view(bsz, -1, seq_len, seq_len).permute(0, 2, 3, 1).contiguous()
+        )
+        delta_pair_repr = (
+            delta_pair_repr.view(bsz, -1, seq_len, seq_len)
+            .permute(0, 2, 3, 1)
+            .contiguous()
+        )
 
         delta_pair_repr_norm = delta_pair_repr.float().norm(dim=-1)
         mask_pos_t = torch.ones_like(delta_pair_repr_norm)
@@ -137,7 +145,9 @@ class TransformerEncoderWithPair(nn.Module):
             )
             mask_pos_t = mask_pos_t.permute(0, 2, 1)
 
-        delta_pair_repr_norm = (delta_pair_repr_norm - math.sqrt(delta_pair_repr.size(-1))).abs()
+        delta_pair_repr_norm = (
+            delta_pair_repr_norm - math.sqrt(delta_pair_repr.size(-1))
+        ).abs()
         mask_pos_t.masked_fill_(
             delta_pair_repr_norm <= 1,
             0,

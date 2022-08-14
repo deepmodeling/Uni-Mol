@@ -53,7 +53,10 @@ class UniMolModel(BaseUnicoreModel):
             help="activation function to use for pooler layer",
         )
         parser.add_argument(
-            "--emb-dropout", type=float, metavar="D", help="dropout probability for embeddings"
+            "--emb-dropout",
+            type=float,
+            metavar="D",
+            help="dropout probability for embeddings",
         )
         parser.add_argument(
             "--dropout", type=float, metavar="D", help="dropout probability"
@@ -124,7 +127,9 @@ class UniMolModel(BaseUnicoreModel):
         base_architecture(args)
         self.args = args
         self.padding_idx = dictionary.pad()
-        self.embed_tokens = nn.Embedding(len(dictionary), args.encoder_embed_dim, self.padding_idx)
+        self.embed_tokens = nn.Embedding(
+            len(dictionary), args.encoder_embed_dim, self.padding_idx
+        )
         self._num_updates = None
         self.encoder = TransformerEncoderWithPair(
             encoder_layers=args.encoder_layers,
@@ -140,7 +145,8 @@ class UniMolModel(BaseUnicoreModel):
             no_final_head_layer_norm=args.delta_pair_repr_norm_loss < 0,
         )
         if args.masked_token_loss > 0:
-            self.lm_head = MaskLMHead(embed_dim=args.encoder_embed_dim,
+            self.lm_head = MaskLMHead(
+                embed_dim=args.encoder_embed_dim,
                 output_dim=len(dictionary),
                 activation_fn=args.activation_fn,
                 weight=None,
@@ -148,13 +154,19 @@ class UniMolModel(BaseUnicoreModel):
 
         K = 128
         n_edge_type = len(dictionary) * len(dictionary)
-        self.gbf_proj = NonLinearHead(K, args.encoder_attention_heads, args.activation_fn)
+        self.gbf_proj = NonLinearHead(
+            K, args.encoder_attention_heads, args.activation_fn
+        )
         self.gbf = GaussianLayer(K, n_edge_type)
 
         if args.masked_coord_loss > 0:
-            self.pair2coord_proj = NonLinearHead(args.encoder_attention_heads, 1, args.activation_fn)
+            self.pair2coord_proj = NonLinearHead(
+                args.encoder_attention_heads, 1, args.activation_fn
+            )
         if args.masked_dist_loss > 0:
-            self.dist_head = DistanceHead(args.encoder_attention_heads, args.activation_fn)
+            self.dist_head = DistanceHead(
+                args.encoder_attention_heads, args.activation_fn
+            )
         self.classification_heads = nn.ModuleDict()
         self.apply(init_bert_params)
 
@@ -193,8 +205,14 @@ class UniMolModel(BaseUnicoreModel):
             return graph_attn_bias
 
         graph_attn_bias = get_dist_features(src_distance, src_edge_type)
-        encoder_rep, encoder_pair_rep, delta_encoder_pair_rep, x_norm, delta_encoder_pair_rep_norm = self.encoder(x, padding_mask=padding_mask, attn_mask=graph_attn_bias)
-        encoder_pair_rep[encoder_pair_rep == float('-inf')] = 0
+        (
+            encoder_rep,
+            encoder_pair_rep,
+            delta_encoder_pair_rep,
+            x_norm,
+            delta_encoder_pair_rep_norm,
+        ) = self.encoder(x, padding_mask=padding_mask, attn_mask=graph_attn_bias)
+        encoder_pair_rep[encoder_pair_rep == float("-inf")] = 0
 
         encoder_distance = None
         encoder_coord = None
@@ -205,7 +223,9 @@ class UniMolModel(BaseUnicoreModel):
             if self.args.masked_coord_loss > 0:
                 coords_emb = src_coord
                 if padding_mask is not None:
-                    atom_num = (torch.sum(1-padding_mask.type_as(x), dim=1) - 1).view(-1, 1, 1, 1)
+                    atom_num = (torch.sum(1 - padding_mask.type_as(x), dim=1) - 1).view(
+                        -1, 1, 1, 1
+                    )
                 else:
                     atom_num = src_coord.shape[1] - 1
                 delta_pos = coords_emb.unsqueeze(1) - coords_emb.unsqueeze(2)
@@ -219,7 +239,13 @@ class UniMolModel(BaseUnicoreModel):
         if classification_head_name is not None:
             logits = self.classification_heads[classification_head_name](encoder_rep)
 
-        return logits, encoder_distance, encoder_coord, x_norm, delta_encoder_pair_rep_norm
+        return (
+            logits,
+            encoder_distance,
+            encoder_coord,
+            x_norm,
+            delta_encoder_pair_rep_norm,
+        )
 
     def register_classification_head(
         self, name, num_classes=None, inner_dim=None, **kwargs
@@ -355,7 +381,7 @@ class DistanceHead(nn.Module):
 @torch.jit.script
 def gaussian(x, mean, std):
     pi = 3.14159
-    a = (2*pi) ** 0.5
+    a = (2 * pi) ** 0.5
     return torch.exp(-0.5 * (((x - mean) / std) ** 2)) / (a * std)
 
 

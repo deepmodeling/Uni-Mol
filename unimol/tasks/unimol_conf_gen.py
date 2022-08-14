@@ -46,18 +46,11 @@ class UniMolConfGTask(UnicoreTask):
     @staticmethod
     def add_args(parser):
         """Add task-specific arguments to the parser."""
-        parser.add_argument(
-            "data",
-            help="downstream data path"
-        )
-        parser.add_argument(
-            "--task-name",
-            type=str,
-            help='downstream task name'
-        )
+        parser.add_argument("data", help="downstream data path")
+        parser.add_argument("--task-name", type=str, help="downstream task name")
         parser.add_argument(
             "--dict-name",
-            default='dict.txt',
+            default="dict.txt",
             help="dictionary file",
         )
         parser.add_argument(
@@ -91,7 +84,7 @@ class UniMolConfGTask(UnicoreTask):
         self.seed = args.seed
         # add mask token
         self.mask_idx = dictionary.add_symbol("[MASK]", is_special=True)
-        if self.args.dict_name == 'mol.dict.txt':
+        if self.args.dict_name == "mol.dict.txt":
             self.use_atom_type = True
         else:
             self.use_atom_type = False
@@ -109,17 +102,30 @@ class UniMolConfGTask(UnicoreTask):
         """
         split_path = os.path.join(self.args.data, self.args.task_name, split + ".lmdb")
         dataset = LMDBDataset(split_path)
-        smi_dataset = KeyDataset(dataset, 'smi')
-        src_dataset = KeyDataset(dataset, 'atoms')
-        if not split.startswith('test'):
-            sample_dataset = ConformerSampleConfGV2Dataset(dataset, self.args.seed, 'atoms', 'coordinates', 'target', self.args.beta, self.args.smooth, self.args.topN)
+        smi_dataset = KeyDataset(dataset, "smi")
+        src_dataset = KeyDataset(dataset, "atoms")
+        if not split.startswith("test"):
+            sample_dataset = ConformerSampleConfGV2Dataset(
+                dataset,
+                self.args.seed,
+                "atoms",
+                "coordinates",
+                "target",
+                self.args.beta,
+                self.args.smooth,
+                self.args.topN,
+            )
         else:
-            sample_dataset = ConformerSampleConfGDataset(dataset, self.args.seed, 'atoms', 'coordinates', 'target')
-        sample_dataset = NormalizeDataset(sample_dataset, 'coordinates')
-        sample_dataset = NormalizeDataset(sample_dataset, 'target')
-        src_dataset = TokenizeDataset(src_dataset, self.dictionary, max_seq_len=self.args.max_seq_len)
-        coord_dataset = KeyDataset(sample_dataset, 'coordinates')
-        tgt_coord_dataset = KeyDataset(sample_dataset, 'target')
+            sample_dataset = ConformerSampleConfGDataset(
+                dataset, self.args.seed, "atoms", "coordinates", "target"
+            )
+        sample_dataset = NormalizeDataset(sample_dataset, "coordinates")
+        sample_dataset = NormalizeDataset(sample_dataset, "target")
+        src_dataset = TokenizeDataset(
+            src_dataset, self.dictionary, max_seq_len=self.args.max_seq_len
+        )
+        coord_dataset = KeyDataset(sample_dataset, "coordinates")
+        tgt_coord_dataset = KeyDataset(sample_dataset, "target")
 
         def PrependAndAppend(dataset, pre_token, app_token):
             dataset = PrependTokenDataset(dataset, pre_token)
@@ -129,62 +135,60 @@ class UniMolConfGTask(UnicoreTask):
         tgt_coord_dataset = PrependAndAppend(tgt_coord_dataset, 0.0, 0.0)
         tgt_distance_dataset = DistanceDataset(tgt_coord_dataset)
 
-        src_dataset = PrependAndAppend(src_dataset, self.dictionary.bos(), self.dictionary.eos())
+        src_dataset = PrependAndAppend(
+            src_dataset, self.dictionary.bos(), self.dictionary.eos()
+        )
         edge_type = EdgeTypeDataset(src_dataset, len(self.dictionary))
         coord_dataset = FromNumpyDataset(coord_dataset)
         coord_dataset = PrependAndAppend(coord_dataset, 0.0, 0.0)
         distance_dataset = DistanceDataset(coord_dataset)
 
         nest_dataset = NestedDictionaryDataset(
-                {
-                    "net_input": {
-                        "src_tokens": RightPadDataset(
-                            src_dataset,
-                            pad_idx=self.dictionary.pad(),
-                        ),
-                        'src_coord': RightPadDatasetCoord(
-                            coord_dataset,
-                            pad_idx=0,
-                        ),
-                        'src_distance': RightPadDataset2D(
-                            distance_dataset,
-                            pad_idx=0,
-                        ),
-                        'src_edge_type': RightPadDataset2D(
-                            edge_type,
-                            pad_idx=0,
-                        ),
-                    },
-                    "target": {
-                        "coord_target": RightPadDatasetCoord(
-                            tgt_coord_dataset,
-                            pad_idx=0,
-                        ),
-                        "distance_target": RightPadDataset2D(
-                            tgt_distance_dataset,
-                            pad_idx=0,
-                        ),
-
-                    },
-                    "smi_name": RawArrayDataset(
-                        smi_dataset
+            {
+                "net_input": {
+                    "src_tokens": RightPadDataset(
+                        src_dataset,
+                        pad_idx=self.dictionary.pad(),
+                    ),
+                    "src_coord": RightPadDatasetCoord(
+                        coord_dataset,
+                        pad_idx=0,
+                    ),
+                    "src_distance": RightPadDataset2D(
+                        distance_dataset,
+                        pad_idx=0,
+                    ),
+                    "src_edge_type": RightPadDataset2D(
+                        edge_type,
+                        pad_idx=0,
                     ),
                 },
-            )
-        if split.startswith('train'):
+                "target": {
+                    "coord_target": RightPadDatasetCoord(
+                        tgt_coord_dataset,
+                        pad_idx=0,
+                    ),
+                    "distance_target": RightPadDataset2D(
+                        tgt_distance_dataset,
+                        pad_idx=0,
+                    ),
+                },
+                "smi_name": RawArrayDataset(smi_dataset),
+            },
+        )
+        if split.startswith("train"):
             with data_utils.numpy_seed(self.args.seed):
                 shuffle = np.random.permutation(len(src_dataset))
 
             self.datasets[split] = SortDataset(
                 nest_dataset,
-                sort_order=[
-                    shuffle
-                ],
+                sort_order=[shuffle],
             )
         else:
             self.datasets[split] = nest_dataset
 
     def build_model(self, args):
         from unicore import models
+
         model = models.build_model(args, self)
         return model

@@ -11,7 +11,6 @@ from unicore.data import BaseWrapperDataset
 
 
 class MaskPointsDataset(BaseWrapperDataset):
-
     def __init__(
         self,
         dataset: torch.utils.data.Dataset,
@@ -49,12 +48,18 @@ class MaskPointsDataset(BaseWrapperDataset):
             self.weights = weights / weights.sum()
 
         self.epoch = None
-        if self.noise_type == 'trunc_normal':
-            self.noise_f = lambda num_mask: np.clip(np.random.randn(num_mask, 3) * self.noise, a_min=-self.noise*2.0, a_max=self.noise*2.0)
-        elif self.noise_type == 'normal':
+        if self.noise_type == "trunc_normal":
+            self.noise_f = lambda num_mask: np.clip(
+                np.random.randn(num_mask, 3) * self.noise,
+                a_min=-self.noise * 2.0,
+                a_max=self.noise * 2.0,
+            )
+        elif self.noise_type == "normal":
             self.noise_f = lambda num_mask: np.random.randn(num_mask, 3) * self.noise
-        elif self.noise_type == 'uniform':
-            self.noise_f = lambda num_mask: np.random.uniform(low=-self.noise, high=self.noise, size=(num_mask, 3))
+        elif self.noise_type == "uniform":
+            self.noise_f = lambda num_mask: np.random.uniform(
+                low=-self.noise, high=self.noise, size=(num_mask, 3)
+            )
         else:
             self.noise_f = lambda num_mask: 0.0
 
@@ -79,14 +84,15 @@ class MaskPointsDataset(BaseWrapperDataset):
             # decide elements to mask
             num_mask = int(
                 # add a random number for probabilistic rounding
-                self.mask_prob * sz + np.random.rand()
+                self.mask_prob * sz
+                + np.random.rand()
             )
             mask_idc = np.random.choice(sz, num_mask, replace=False)
             mask = np.full(sz, False)
             mask[mask_idc] = True
-            ret['targets'] = np.full(len(mask), self.pad_idx)
-            ret['targets'][mask] = item[mask]
-            ret['targets'] = torch.from_numpy(ret['targets']).long()
+            ret["targets"] = np.full(len(mask), self.pad_idx)
+            ret["targets"][mask] = item[mask]
+            ret["targets"] = torch.from_numpy(ret["targets"]).long()
             # decide unmasking and random replacement
             rand_or_unmask_prob = self.random_token_prob + self.leave_unmasked_prob
             if rand_or_unmask_prob > 0.0:
@@ -123,13 +129,12 @@ class MaskPointsDataset(BaseWrapperDataset):
                         num_rand,
                         p=self.weights,
                     )
-            ret['atoms'] = torch.from_numpy(new_item).long()
-            ret['coordinates'] = torch.from_numpy(new_coord).float()
+            ret["atoms"] = torch.from_numpy(new_item).long()
+            ret["coordinates"] = torch.from_numpy(new_coord).float()
             return ret
 
 
 class MaskPointsPocketDataset(BaseWrapperDataset):
-
     def __init__(
         self,
         dataset: torch.utils.data.Dataset,
@@ -169,12 +174,18 @@ class MaskPointsPocketDataset(BaseWrapperDataset):
             self.weights = weights / weights.sum()
 
         self.epoch = None
-        if self.noise_type == 'trunc_normal':
-            self.noise_f = lambda num_mask: np.clip(np.random.randn(num_mask, 3) * self.noise, a_min=-self.noise*2.0, a_max=self.noise*2.0)
-        elif self.noise_type == 'normal':
+        if self.noise_type == "trunc_normal":
+            self.noise_f = lambda num_mask: np.clip(
+                np.random.randn(num_mask, 3) * self.noise,
+                a_min=-self.noise * 2.0,
+                a_max=self.noise * 2.0,
+            )
+        elif self.noise_type == "normal":
             self.noise_f = lambda num_mask: np.random.randn(num_mask, 3) * self.noise
-        elif self.noise_type == 'uniform':
-            self.noise_f = lambda num_mask: np.random.uniform(low=-self.noise, high=self.noise, size=(num_mask, 3))
+        elif self.noise_type == "uniform":
+            self.noise_f = lambda num_mask: np.random.uniform(
+                low=-self.noise, high=self.noise, size=(num_mask, 3)
+            )
         else:
             self.noise_f = lambda num_mask: 0.0
 
@@ -205,14 +216,15 @@ class MaskPointsPocketDataset(BaseWrapperDataset):
             # decide elements to mask
             num_mask = int(
                 # add a random number for probabilistic rounding
-                self.mask_prob * res_sz + np.random.rand()
+                self.mask_prob * res_sz
+                + np.random.rand()
             )
             mask_res = np.random.choice(res_list, num_mask, replace=False).tolist()
             mask = np.isin(residue, mask_res)
 
-            ret['targets'] = np.full(len(mask), self.pad_idx)
-            ret['targets'][mask] = item[mask]
-            ret['targets'] = torch.from_numpy(ret['targets']).long()
+            ret["targets"] = np.full(len(mask), self.pad_idx)
+            ret["targets"][mask] = item[mask]
+            ret["targets"] = torch.from_numpy(ret["targets"]).long()
             # decide unmasking and random replacement
             rand_or_unmask_prob = self.random_token_prob + self.leave_unmasked_prob
             if rand_or_unmask_prob > 0.0:
@@ -249,6 +261,6 @@ class MaskPointsPocketDataset(BaseWrapperDataset):
                         num_rand,
                         p=self.weights,
                     )
-            ret['atoms'] = torch.from_numpy(new_item).long()
-            ret['coordinates'] = torch.from_numpy(new_coord).float()
+            ret["atoms"] = torch.from_numpy(new_item).long()
+            ret["coordinates"] = torch.from_numpy(new_coord).float()
             return ret

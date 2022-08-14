@@ -29,9 +29,14 @@ class TTADataset(BaseWrapperDataset):
         coord_idx = index % self.conf_size
         atoms = np.array(self.dataset[smi_idx][self.atoms])
         coordinates = np.array(self.dataset[smi_idx][self.coordinates][coord_idx])
-        smi = self.dataset[smi_idx]['smi']
-        target = self.dataset[smi_idx]['target']
-        return {'atoms': atoms, 'coordinates': coordinates.astype(np.float32), 'smi': smi, 'target': target}
+        smi = self.dataset[smi_idx]["smi"]
+        target = self.dataset[smi_idx]["target"]
+        return {
+            "atoms": atoms,
+            "coordinates": coordinates.astype(np.float32),
+            "smi": smi,
+            "target": target,
+        }
 
     def __getitem__(self, index: int):
         return self.__cached_item__(index, self.epoch)

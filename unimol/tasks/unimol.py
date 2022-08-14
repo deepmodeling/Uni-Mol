@@ -136,14 +136,28 @@ class UniMolTask(UnicoreTask):
         raw_dataset = LMDBDataset(split_path)
 
         def one_dataset(raw_dataset, coord_seed, mask_seed):
-            raw_dataset = Add2DConformerDataset(raw_dataset, "smi", "atoms", "coordinates")
-            dataset = ConformerSampleDataset(raw_dataset, coord_seed, "atoms", "coordinates")
+            raw_dataset = Add2DConformerDataset(
+                raw_dataset, "smi", "atoms", "coordinates"
+            )
+            dataset = ConformerSampleDataset(
+                raw_dataset, coord_seed, "atoms", "coordinates"
+            )
             dataset = AtomTypeDataset(raw_dataset, dataset)
-            dataset = RemoveHydrogenDataset(dataset, "atoms", "coordinates", self.args.remove_hydrogen, self.args.remove_polar_hydrogen)
-            dataset = CroppingDataset(dataset, self.seed, "atoms", "coordinates", self.args.max_atoms)
+            dataset = RemoveHydrogenDataset(
+                dataset,
+                "atoms",
+                "coordinates",
+                self.args.remove_hydrogen,
+                self.args.remove_polar_hydrogen,
+            )
+            dataset = CroppingDataset(
+                dataset, self.seed, "atoms", "coordinates", self.args.max_atoms
+            )
             dataset = NormalizeDataset(dataset, "coordinates", normalize_coord=True)
             token_dataset = KeyDataset(dataset, "atoms")
-            token_dataset = TokenizeDataset(token_dataset, self.dictionary, max_seq_len=self.args.max_seq_len)
+            token_dataset = TokenizeDataset(
+                token_dataset, self.dictionary, max_seq_len=self.args.max_seq_len
+            )
             coord_dataset = KeyDataset(dataset, "coordinates")
             expand_dataset = MaskPointsDataset(
                 token_dataset,
@@ -167,8 +181,12 @@ class UniMolTask(UnicoreTask):
             encoder_target_dataset = KeyDataset(expand_dataset, "targets")
             encoder_coord_dataset = KeyDataset(expand_dataset, "coordinates")
 
-            src_dataset = PrependAndAppend(encoder_token_dataset, self.dictionary.bos(), self.dictionary.eos())
-            tgt_dataset = PrependAndAppend(encoder_target_dataset, self.dictionary.pad(), self.dictionary.pad())
+            src_dataset = PrependAndAppend(
+                encoder_token_dataset, self.dictionary.bos(), self.dictionary.eos()
+            )
+            tgt_dataset = PrependAndAppend(
+                encoder_target_dataset, self.dictionary.pad(), self.dictionary.pad()
+            )
             encoder_coord_dataset = PrependAndAppend(encoder_coord_dataset, 0.0, 0.0)
             encoder_distance_dataset = DistanceDataset(encoder_coord_dataset)
 
@@ -177,36 +195,39 @@ class UniMolTask(UnicoreTask):
             coord_dataset = PrependAndAppend(coord_dataset, 0.0, 0.0)
             distance_dataset = DistanceDataset(coord_dataset)
             return {
-                    "src_tokens": RightPadDataset(
-                        src_dataset,
-                        pad_idx=self.dictionary.pad(),
-                    ),
-                    "src_coord": RightPadDatasetCoord(
-                        encoder_coord_dataset,
-                        pad_idx=0,
-                    ),
-                    "src_distance": RightPadDataset2D(
-                        encoder_distance_dataset,
-                        pad_idx=0,
-                    ),
-                    "src_edge_type": RightPadDataset2D(
-                        edge_type,
-                        pad_idx=0,
-                    ),
-            }, {"tokens_target": RightPadDataset(tgt_dataset, pad_idx=self.dictionary.pad()),
+                "src_tokens": RightPadDataset(
+                    src_dataset,
+                    pad_idx=self.dictionary.pad(),
+                ),
+                "src_coord": RightPadDatasetCoord(
+                    encoder_coord_dataset,
+                    pad_idx=0,
+                ),
+                "src_distance": RightPadDataset2D(
+                    encoder_distance_dataset,
+                    pad_idx=0,
+                ),
+                "src_edge_type": RightPadDataset2D(
+                    edge_type,
+                    pad_idx=0,
+                ),
+            }, {
+                "tokens_target": RightPadDataset(
+                    tgt_dataset, pad_idx=self.dictionary.pad()
+                ),
                 "distance_target": RightPadDataset2D(distance_dataset, pad_idx=0),
                 "coord_target": RightPadDatasetCoord(coord_dataset, pad_idx=0),
-                }
+            }
+
         net_input, target = one_dataset(raw_dataset, self.args.seed, self.args.seed)
         dataset = {"net_input": net_input, "target": target}
-        dataset = NestedDictionaryDataset(
-            dataset
-        )
+        dataset = NestedDictionaryDataset(dataset)
         if split in ["train", "train.small"]:
             dataset = EpochShuffleDataset(dataset, len(dataset), self.args.seed)
         self.datasets[split] = dataset
 
     def build_model(self, args):
         from unicore import models
+
         model = models.build_model(args, self)
         return model
