@@ -68,10 +68,10 @@ We use pickle protocol 5, so Python >= 3.8 is recommended.
 
 Dependencies
 ------------
- - [Uni-Core](https://github.com/dptech-corp/Uni-Core), install via `pip install git+git://github.com/dptech-crop/Uni-Core.git@stable#egg=Uni-Core`
+ - [Uni-Core](https://github.com/dptech-corp/Uni-Core), check its [Installation Documentation](https://github.com/dptech-corp/Uni-Core#installation).
  - rdkit==2021.09.5, install via `conda install -y -c conda-forge rdkit==2021.09.5`
 
-As Uni-Core needs to compile CUDA kernels in installation, we also provide a docker image to save your efforts. To use the GPU within docker you need to install nvidia-docker2 first. Use the following command to pull the docker image:  
+To use GPUs within docker you need to [install nvidia-docker-2](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html#docker) first. Use the following command to pull the docker image:
 
 ```bash
 docker pull dptechnology/unimol:latest-pytorch1.11.0-cuda11.3
