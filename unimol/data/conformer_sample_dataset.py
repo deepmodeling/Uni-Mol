@@ -4,7 +4,8 @@
 
 import numpy as np
 from functools import lru_cache
-from unicore.data import BaseWrapperDataset, data_utils
+from unicore.data import BaseWrapperDataset
+from . import data_utils
 
 
 class ConformerSampleDataset(BaseWrapperDataset):

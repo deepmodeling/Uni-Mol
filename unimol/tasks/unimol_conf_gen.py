@@ -19,7 +19,6 @@ from unicore.data import (
     RightPadDataset,
     SortDataset,
     TokenizeDataset,
-    data_utils,
     RightPadDataset2D,
     RawArrayDataset,
     FromNumpyDataset,
@@ -32,6 +31,7 @@ from unimol.data import (
     RightPadDatasetCoord,
     ConformerSampleConfGDataset,
     ConformerSampleConfGV2Dataset,
+    data_utils,
 )
 from unicore.tasks import UnicoreTask, register_task
 

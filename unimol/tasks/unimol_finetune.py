@@ -15,7 +15,6 @@ from unicore.data import (
     RightPadDataset,
     SortDataset,
     TokenizeDataset,
-    data_utils,
     RightPadDataset2D,
     RawLabelDataset,
     RawArrayDataset,
@@ -31,6 +30,7 @@ from unimol.data import (
     NormalizeDataset,
     CroppingDataset,
     RightPadDatasetCoord,
+    data_utils,
 )
 
 from unimol.data.tta_dataset import TTADataset

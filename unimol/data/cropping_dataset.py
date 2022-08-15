@@ -5,7 +5,8 @@
 import numpy as np
 from functools import lru_cache
 import logging
-from unicore.data import BaseWrapperDataset, data_utils
+from unicore.data import BaseWrapperDataset
+from . import data_utils
 
 logger = logging.getLogger(__name__)
 

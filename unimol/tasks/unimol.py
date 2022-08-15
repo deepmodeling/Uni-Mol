@@ -9,7 +9,6 @@ import numpy as np
 from unicore.data import (
     Dictionary,
     NestedDictionaryDataset,
-    LMDBDataset,
     AppendTokenDataset,
     PrependTokenDataset,
     RightPadDataset,
@@ -30,6 +29,7 @@ from unimol.data import (
     CroppingDataset,
     RightPadDatasetCoord,
     Add2DConformerDataset,
+    LMDBDataset,
 )
 from unicore.tasks import UnicoreTask, register_task
 
