@@ -6,8 +6,9 @@ from functools import lru_cache
 
 import numpy as np
 import torch
-from unicore.data import Dictionary, data_utils
+from unicore.data import Dictionary
 from unicore.data import BaseWrapperDataset
+from . import data_utils
 
 
 class MaskPointsDataset(BaseWrapperDataset):

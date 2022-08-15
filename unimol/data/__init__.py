@@ -23,5 +23,6 @@ from .conformer_sample_dataset import (
 from .mask_points_dataset import MaskPointsDataset, MaskPointsPocketDataset
 from .coord_pad_dataset import RightPadDatasetCoord
 from .from_str_dataset import FromStrLabelDataset
+from .lmdb_dataset import LMDBDataset
 
 __all__ = []
