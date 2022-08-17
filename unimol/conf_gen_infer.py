@@ -12,7 +12,7 @@ import pickle
 import torch
 from unicore import checkpoint_utils, distributed_utils, options, utils
 from unicore.logging import progress_bar
-
+from unicore import tasks 
 
 logging.basicConfig(
     format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
@@ -50,10 +50,12 @@ def main(args):
 
     # Load ensemble
     logger.info("loading model(s) from {}".format(args.path))
-    models, saved_args, task = checkpoint_utils.load_model_ensemble_and_task(
-        [args.path], arg_overrides=overrides
+    state = checkpoint_utils.load_checkpoint_to_cpu(
+        args.path
     )
-    model = models[0]
+    task = tasks.setup_task(args)
+    model = task.build_model(args)
+    model.load_state_dict(state["model"], strict=False)
 
     # Move models to GPU
     if use_fp16:
@@ -62,10 +64,10 @@ def main(args):
         model.cuda()
 
     # Print args
-    logger.info(saved_args)
+    logger.info(args)
 
     # Build loss
-    loss = task.build_loss(saved_args)
+    loss = task.build_loss(args)
     loss.eval()
 
     for subset in args.valid_subset.split(","):
@@ -112,6 +114,7 @@ def main(args):
 
 def cli_main():
     parser = options.get_validation_parser()
+    options.add_model_args(parser)
     args = options.parse_args_and_arch(parser)
 
     distributed_utils.call_main(args, main)
