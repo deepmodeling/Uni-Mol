@@ -67,8 +67,8 @@ def read_lmdb(lmdb_path):
 We use pickle protocol 5, so Python >= 3.8 is recommended.
 
 
-Uni-Mol's pretraining model
-------------------------------
+Uni-Mol's pretrained model weights
+----------------------------------
 
 | Model                     | File Size  |Update Date | Download Link                                                                    | 
 |--------------------------|------------| ------------|-----------------------------------------------------------------------------------|
@@ -270,7 +270,7 @@ For ClinTox, Tox21, ToxCast, SIDER, HIV, PCBA and MUV, we set `loss_func=multi_t
 For ESOL, FreeSolv and Lipo, we set `loss_func=finetune_mse`.
 For QM7, QM8 and QM9, we set `loss_func=finetune_smooth_mae`.
 
-Our first version of the molecular pretraining ran with [all hydrogen](https://unimol.dp.tech/ckp/mol_pre_all_h_220816.pt). The hyperparameter table above is for all hydrogen. Besides, the pretraining model with no hydrogen performs close to it with all hydrogen in molecular property prediction. We will update the hyperparameters for the no hydrogen version later.
+**Note**: Our first version of the molecular pretraining ran with **all hydrogen** pretrained model, and above hyper-parameters are also for **all hydrogen** pretrained model. You can download the [all hydrogen model parameter](https://unimol.dp.tech/ckp/mol_pre_all_h_220816.pt) here, and use it to reproduce our results. The performance of pretraining model with **no hydrogen** is very close to the **all hydrogen** one in molecular property prediction. We will update the hyperparameters for the no hydrogen version later.
 
 **NOTE**: You'd better align the `only_polar` parameter in pretraining and finetuning: `-1` for all hydrogen, `0` for no hydrogen, `1` for polar hydrogen.
 
