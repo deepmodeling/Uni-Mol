@@ -15,6 +15,7 @@ Uni-Mol is composed of two models: a molecular pretraining model trained by 209M
 
 News
 ----
+**Aug 17 2022**: Pretraining models are released.
 
 **Jul 10 2022**: Pretraining codes are released.
 
@@ -32,7 +33,7 @@ There are total 6 datasets:
 | Data                     | File Size  | Update Date | Download Link                                                                    | 
 |--------------------------|------------| ----------- |-----------------------------------------------------------------------------------|
 | molecular pretrain       | 114.76GB   | Jun 10 2022 |https://unimol.dp.tech/data/pretrain/ligands.tar.gz                               |
-| pocket pretrain          | 8.585GB    | Jun 10 2022 |https://unimol.dp.tech/data/pretrain/pockets.tar.gz                               |
+| pocket pretrain          | 8.585GB    | Aug 17 2022 |https://unimol.dp.tech/data/pretrain/pockets.tar.gz                               |
 | molecular property       | 3.506GB    | Jul 10 2022 |https://unimol.dp.tech/data/finetune/molecular_property_prediction.tar.gz         |
 | molecular conformation   | 8.331GB    | Jul 19 2022 |https://unimol.dp.tech/data/finetune/conformation_generation.tar.gz               |
 | pocket property          | 455.239MB  | Jul 19 2022 |https://unimol.dp.tech/data/finetune/pocket_property_prediction.tar.gz            |
@@ -66,6 +67,15 @@ def read_lmdb(lmdb_path):
 We use pickle protocol 5, so Python >= 3.8 is recommended.
 
 
+Uni-Mol's pretraining model
+------------------------------
+
+| Model                     | File Size  |Update Date | Download Link                                                                    | 
+|--------------------------|------------| ------------|-----------------------------------------------------------------------------------|
+| molecular pretrain       | 181MB   | Aug 17 2022 |https://unimol.dp.tech/ckp/mol_pre_no_h_220816.pt                              |
+| pocket pretrain          | 181MB    | Aug 17 2022 |https://unimol.dp.tech/ckp/pocket_pre_220816.pt                             |
+
+
 Dependencies
 ------------
  - [Uni-Core](https://github.com/dptech-corp/Uni-Core), check its [Installation Documentation](https://github.com/dptech-corp/Uni-Core#installation).
@@ -95,7 +105,7 @@ masked_dist_loss=10
 x_norm_loss=0.01
 delta_pair_repr_norm_loss=0.01
 mask_prob=0.15
-only_polar=-1
+only_polar=0
 noise_type='uniform'
 noise=1.0
 seed=1
@@ -137,6 +147,8 @@ update_freq=1
 masked_token_loss=1
 masked_coord_loss=1
 masked_dist_loss=1
+x_norm_loss=0.01
+delta_pair_repr_norm_loss=0.01
 mask_prob=0.15
 noise_type='uniform'
 noise=1.0
@@ -157,6 +169,7 @@ python -m torch.distributed.launch --nproc_per_node=$n_gpu --master_port=$MASTER
        --max-update $max_steps --log-interval 10 --log-format simple \
        --save-interval-updates 10000 --validate-interval-updates 10000 --keep-interval-updates 10 \
        --masked-token-loss $masked_token_loss --masked-coord-loss $masked_coord_loss --masked-dist-loss $masked_dist_loss \
+       --x-norm-loss $x_norm_loss --delta-pair-repr-norm-loss $delta_pair_repr_norm_loss \
        --mask-prob $mask_prob --noise-type $noise_type --noise $noise --batch-size $batch_size \
        --save-dir $save_dir
 
@@ -183,7 +196,7 @@ epoch=40
 dropout=0
 warmup=0.06
 local_batch_size=32
-only_polar=-1
+only_polar=0
 conf_size=11
 seed=0
 
@@ -257,6 +270,8 @@ For ClinTox, Tox21, ToxCast, SIDER, HIV, PCBA and MUV, we set `loss_func=multi_t
 For ESOL, FreeSolv and Lipo, we set `loss_func=finetune_mse`.
 For QM7, QM8 and QM9, we set `loss_func=finetune_smooth_mae`.
 
+Our first version of the molecular pretraining ran with [all hydrogen](https://unimol.dp.tech/ckp/mol_pre_all_h_220816.pt). The hyperparameter table above is for all hydrogen. Besides, the pretraining model with no hydrogen performs close to it with all hydrogen in molecular property prediction. We will update the hyperparameters for the no hydrogen version later.
+
 **NOTE**: You'd better align the `only_polar` parameter in pretraining and finetuning: `-1` for all hydrogen, `0` for no hydrogen, `1` for polar hydrogen.
 
 
@@ -323,10 +338,10 @@ weight_path='./save_confgen/checkpoint_best.pt'  # replace to your ckpt path
 batch_size=128
 task_name='qm9'  # or 'drugs', conformation generation task name 
 
-python ./unimol/conf_gen_infer.py --user-dir ./unimol $data_path --valid-subset test \
+python ./unimol/conf_gen_infer.py --user-dir ./unimol $data_path --task-name $task_name --valid-subset test \
        --results-path $results_path \
-       --num-workers 8 --ddp-backend=c10d --batch-size $batch_size --task mol_confG \
-       --model-overrides "{'task_name': '${task_name}'}" \
+       --num-workers 8 --ddp-backend=c10d --batch-size $batch_size \
+       --task mol_confG --loss mol_confG --arch mol_confG \
        --path $weight_path \
        --fp16 --fp16-init-scale 4 --fp16-scale-window 256 \
        --log-interval 50 --log-format simple 
@@ -400,7 +415,6 @@ WIP
 ---
 
 - [ ] code & data for protein-ligand binding
-- [ ] model checkpoints
 
 
 
