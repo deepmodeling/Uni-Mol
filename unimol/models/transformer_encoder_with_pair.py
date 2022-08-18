@@ -111,7 +111,10 @@ class TransformerEncoderWithPair(nn.Module):
             ).mean()
 
         x_norm = norm_loss(x)
-        token_mask = 1.0 - input_padding_mask.float()
+        if input_padding_mask is not None:
+            token_mask = 1.0 - input_padding_mask.float()
+        else:
+            token_mask = torch.ones_like(x_norm, device=x_norm.device)
         x_norm = masked_mean(token_mask, x_norm)
 
         if self.final_layer_norm is not None:
