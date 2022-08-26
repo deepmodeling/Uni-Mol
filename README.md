@@ -337,11 +337,13 @@ results_path='./infer_confgen'  # replace to your results path
 weight_path='./save_confgen/checkpoint_best.pt'  # replace to your ckpt path
 batch_size=128
 task_name='qm9'  # or 'drugs', conformation generation task name 
+recycles=4
 
 python ./unimol/conf_gen_infer.py --user-dir ./unimol $data_path --task-name $task_name --valid-subset test \
        --results-path $results_path \
        --num-workers 8 --ddp-backend=c10d --batch-size $batch_size \
        --task mol_confG --loss mol_confG --arch mol_confG \
+       --num-recycles $recycles \
        --path $weight_path \
        --fp16 --fp16-init-scale 4 --fp16-scale-window 256 \
        --log-interval 50 --log-format simple 
