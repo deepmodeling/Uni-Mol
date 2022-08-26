@@ -34,7 +34,7 @@ from unimol.data import (
     data_utils,
 )
 from unicore.tasks import UnicoreTask, register_task
-
+from unicore import checkpoint_utils
 
 logger = logging.getLogger(__name__)
 
@@ -76,6 +76,12 @@ class UniMolConfGTask(UnicoreTask):
             type=int,
             default=10,
             help="only top N best rmsd for conformation importance sampling",
+        )
+        parser.add_argument(
+            "--finetune-mol-model",
+            default=None,
+            type=str,
+            help="pretrained molecular model path",
         )
 
     def __init__(self, args, dictionary):
@@ -191,4 +197,10 @@ class UniMolConfGTask(UnicoreTask):
         from unicore import models
 
         model = models.build_model(args, self)
+        if args.finetune_mol_model is not None:
+            print("load pretrain model weight from...", args.finetune_mol_model)
+            state = checkpoint_utils.load_checkpoint_to_cpu(
+                args.finetune_mol_model,
+            )
+            model.unimol.load_state_dict(state["model"], strict=False)
         return model

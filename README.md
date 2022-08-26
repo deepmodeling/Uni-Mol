@@ -314,7 +314,7 @@ python -m torch.distributed.launch --nproc_per_node=$n_gpu --master_port=$MASTER
        --log-interval 100 --log-format simple --tensorboard-logdir $save_dir/tsb \
        --validate-interval 1 --keep-last-epochs 10 \
        --keep-interval-updates 10 --best-checkpoint-metric loss  --patience 50 --all-gather-list-size 102400 \
-       --finetune-from-model $weight_path --save-dir $save_dir \
+       --finetune-mol-model $weight_path --save-dir $save_dir \
        --coord-loss $coord_loss --distance-loss $distance_loss --dist-threshold $dist \
        --num-recycles $recycles --beta $beta --smooth $smooth --topN $topN \
        --find-unused-parameters
@@ -337,11 +337,13 @@ results_path='./infer_confgen'  # replace to your results path
 weight_path='./save_confgen/checkpoint_best.pt'  # replace to your ckpt path
 batch_size=128
 task_name='qm9'  # or 'drugs', conformation generation task name 
+recycles=4
 
 python ./unimol/conf_gen_infer.py --user-dir ./unimol $data_path --task-name $task_name --valid-subset test \
        --results-path $results_path \
        --num-workers 8 --ddp-backend=c10d --batch-size $batch_size \
        --task mol_confG --loss mol_confG --arch mol_confG \
+       --num-recycles $recycles \
        --path $weight_path \
        --fp16 --fp16-init-scale 4 --fp16-scale-window 256 \
        --log-interval 50 --log-format simple 
