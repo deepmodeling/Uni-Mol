@@ -272,6 +272,8 @@ For QM7, QM8 and QM9, we set `loss_func=finetune_smooth_mae`.
 
 **NOTE**: Our first version of the molecular pretraining ran with **all hydrogen** pretrained model, and above hyper-parameters are also for **all hydrogen** pretrained model. You can download the [all hydrogen model parameter](https://unimol.dp.tech/ckp/mol_pre_all_h_220816.pt) here, and use it with `only_polar=-1` to reproduce our results. The performance of pretraining model with **no hydrogen** is very close to the **all hydrogen** one in molecular property prediction. We will update the hyperparameters for the no hydrogen version later.
 
+**NOTE**: For reproduce, you can do the validation on test set while training, with `--valid-subset valid` changing to `--valid-subset valid,test`. The model selection is still based on the performance of the valid set. It is controlled by `--best-checkpoint-metric $metric`.
+
 **NOTE**: You'd better align the `only_polar` parameter in pretraining and finetuning: `-1` for all hydrogen, `0` for no hydrogen, `1` for polar hydrogen.
 
 
@@ -349,6 +351,8 @@ python ./unimol/conf_gen_infer.py --user-dir ./unimol $data_path --task-name $ta
        --log-interval 50 --log-format simple 
 ```
 
+- **NOTE**: Currently, the inference is only supported to run on a single GPU. You can add `CUDA_VISIBLE_DEVICES='0'` before the command.
+
 4. Calculate metrics on the results of inference: 
 
 - Run this command
@@ -410,8 +414,12 @@ python -m torch.distributed.launch --nproc_per_node=$n_gpu --master_port=$MASTER
 The batch size is `n_gpu * local_batch_size * update_freq`.
 For classification task, we set `--maximize-best-checkpoint-metric`.
 
-We choose the checkpoint with the best metric on validation set or training set.
+We choose the checkpoint with the best metric on validation set or training set. It is controlled by `--best-checkpoint-metric $metric`.
 
+**NOTE**: In `drugabbility` task, the default MSE is for `Druggability Score`. For other scores, you can replace `Druggability Score` in this [line](https://github.com/dptech-corp/Uni-Mol/blob/765220dffd86e8c4712446e3fd94081d70579ccd/unimol/tasks/unimol_pocket_finetune.py#L114) with
+`Score` (i.e., Fpocket Score), `Total SASA` or `Hydrophobicity score`.
+
+**NOTE**: For reproduce, you can do the validation on test set while training, with `--valid-subset valid` changing to `--valid-subset valid,test`.
 
 WIP
 ---
