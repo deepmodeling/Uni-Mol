@@ -1,7 +1,7 @@
 Uni-Mol: A Universal 3D Molecular Representation Learning Framework 
 ===================================================================
 
-[[ChemRxiv](https://chemrxiv.org/engage/chemrxiv/article-details/6294500fcd6c1c16be204e28)]
+[[ChemRxiv](https://chemrxiv.org/engage/chemrxiv/article-details/6318b529bada388485bc8361)]
 
 Authors: Gengmo Zhou, Zhifeng Gao, Qiankun Ding, Hang Zheng, Hongteng Xu, Zhewei Wei, Linfeng Zhang, Guolin Ke 
 
@@ -260,11 +260,11 @@ For ClinTox, Tox21, ToxCast, SIDER, HIV, PCBA and MUV, we set `loss_func=multi_t
 | Dataset | ESOL | FreeSolv | Lipo | QM7 | QM8 | QM9 |
 |----- | ---- | ---- | ---- | ---- | --- | --- |
 | task_num | 1 | 1 |  1 | 1  | 12 | 3 |
-| lr         | 5e-4 | 1e-4 |  1e-4 | 3e-4  | 1e-4 | 1e-4 |
+| lr         | 5e-4 | 8e-5 |  1e-4 | 3e-4  | 1e-4 | 1e-4 |
 | batch_size | 256 | 64 |  32 | 32  | 32 | 128 |
-| epoch      | 100 | 40 |  80 | 100  | 40 | 40 |
-| dropout    | 0.2 | 0.1 |  0.1 | 0  | 0 | 0 |
-| warmup     | 0.06 | 0.06 | 0.06 | 0.06  | 0.06 | 0.06 |
+| epoch      | 100 | 60 |  80 | 100  | 40 | 40 |
+| dropout    | 0.2 | 0.2 |  0.1 | 0  | 0 | 0 |
+| warmup     | 0.06 | 0.1 | 0.06 | 0.06  | 0.06 | 0.06 |
 
 
 For ESOL, FreeSolv and Lipo, we set `loss_func=finetune_mse`.
@@ -290,17 +290,15 @@ MASTER_PORT=10086
 dict_name='dict.txt'
 weight_path='./weights/checkpoint.pt'  # replace to your ckpt path
 task_name='qm9'  # or 'drugs', conformation generation task name, as a part of complete data path
-dist=8.0
 recycles=4
 coord_loss=1
 distance_loss=1
 beta=4.0
 smooth=0.1
 topN=20
-lr=1e-4
+lr=2e-5
 batch_size=128
 epoch=50
-dropout=0.2
 warmup=0.06
 update_freq=1
 
@@ -317,7 +315,7 @@ python -m torch.distributed.launch --nproc_per_node=$n_gpu --master_port=$MASTER
        --validate-interval 1 --keep-last-epochs 10 \
        --keep-interval-updates 10 --best-checkpoint-metric loss  --patience 50 --all-gather-list-size 102400 \
        --finetune-mol-model $weight_path --save-dir $save_dir \
-       --coord-loss $coord_loss --distance-loss $distance_loss --dist-threshold $dist \
+       --coord-loss $coord_loss --distance-loss $distance_loss \
        --num-recycles $recycles --beta $beta --smooth $smooth --topN $topN \
        --find-unused-parameters
 
@@ -341,7 +339,7 @@ batch_size=128
 task_name='qm9'  # or 'drugs', conformation generation task name 
 recycles=4
 
-python ./unimol/conf_gen_infer.py --user-dir ./unimol $data_path --task-name $task_name --valid-subset test \
+python ./unimol/infer.py --user-dir ./unimol $data_path --task-name $task_name --valid-subset test \
        --results-path $results_path \
        --num-workers 8 --ddp-backend=c10d --batch-size $batch_size \
        --task mol_confG --loss mol_confG --arch mol_confG \
@@ -371,7 +369,7 @@ n_gpu=1
 MASTER_PORT=10086
 dict_name='dict_coarse.txt'
 weight_path='./weights/checkpoint.pt'
-task_name='drugabbility'  # or 'nrdld', pocket property prediction dataset folder name 
+task_name='druggability'  # or 'nrdld', pocket property prediction dataset folder name 
 lr=3e-4
 batch_size=32
 epoch=20
@@ -380,10 +378,11 @@ warmup=0.1
 local_batch_size=32
 seed=1
 
-if [ "$task_name" == "drugabbility" ]; then
-       metric="valid_mse"
+if [ "$task_name" == "druggability" ]; then
+       metric="valid_rmse"
        loss_func='finetune_mse_pocket'
        task_num=1
+       fpocket_score='Druggability Score'  # choose in ['Score', 'Druggability Score', 'Total SASA', 'Hydrophobicity score']
 else
        metric='loss'
        loss_func='finetune_cross_entropy_pocket'
@@ -405,7 +404,7 @@ python -m torch.distributed.launch --nproc_per_node=$n_gpu --master_port=$MASTER
        --log-interval 100 --log-format simple \
        --validate-interval 1 --finetune-from-model $weight_path \
        --best-checkpoint-metric $metric --patience 2000 \
-       --save-dir $save_dir --remove-hydrogen 
+       --save-dir $save_dir --remove-hydrogen --fpocket-score "$fpocket_score"
 
 # --maximize-best-checkpoint-metric, for classification task
 
@@ -414,10 +413,7 @@ python -m torch.distributed.launch --nproc_per_node=$n_gpu --master_port=$MASTER
 The batch size is `n_gpu * local_batch_size * update_freq`.
 For classification task, we set `--maximize-best-checkpoint-metric`.
 
-We choose the checkpoint with the best metric on validation set or training set. It is controlled by `--best-checkpoint-metric $metric`.
-
-**NOTE**: In `drugabbility` task, the default MSE is for `Druggability Score`. For other scores, you can replace `Druggability Score` in this [line](https://github.com/dptech-corp/Uni-Mol/blob/765220dffd86e8c4712446e3fd94081d70579ccd/unimol/tasks/unimol_pocket_finetune.py#L114) with
-`Score` (i.e., Fpocket Score), `Total SASA` or `Hydrophobicity score`.
+We choose the checkpoint with the best metric on validation set. It is controlled by `--best-checkpoint-metric $metric`. Specifically, for NRDLD, since it has no validation set, we choose the checkpoint of the last epoch. For Fpocket Scores, we report the mean and standard deviation of the results for three random seeds.
 
 **NOTE**: For reproduce, you can do the validation on test set while training, with `--valid-subset valid` changing to `--valid-subset valid,test`.
 

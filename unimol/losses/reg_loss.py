@@ -264,3 +264,6 @@ class FinetuneMSEPocketLoss(FinetuneMSELoss):
                 )
                 mse = ((df["predict"] - df["target"]) ** 2).mean()
                 metrics.log_scalar(f"{split}_mse", mse, sample_size, round=3)
+                metrics.log_scalar(
+                    f"{split}_rmse", np.sqrt(mse), sample_size, round=4
+                )
