@@ -34,7 +34,6 @@ class EdgeTypeDataset(BaseWrapperDataset):
 
 
 class CrossDistanceDataset(BaseWrapperDataset):
-
     def __init__(self, mol_dataset, pocket_dataset):
         super().__init__(mol_dataset)
         self.mol_dataset = mol_dataset

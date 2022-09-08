@@ -32,7 +32,6 @@ from unimol.data import (
     FromStrLabelDataset,
 )
 
-from unimol.data.tta_dataset import TTADataset
 from unicore.tasks import UnicoreTask, register_task
 
 
@@ -41,19 +40,19 @@ logger = logging.getLogger(__name__)
 task_metainfo = {
     "Score": {
         "mean": -0.02113608960384876,
-        "std": 0.14467607204629246,   
+        "std": 0.14467607204629246,
     },
     "Druggability Score": {
         "mean": 0.04279187401338044,
-        "std": 0.1338187819653573,   
+        "std": 0.1338187819653573,
     },
     "Total SASA": {
         "mean": 118.7343246335413,
-        "std": 59.82260887999069,   
+        "std": 59.82260887999069,
     },
     "Hydrophobicity score": {
         "mean": 16.824823092535517,
-        "std": 18.16340833552264,   
+        "std": 18.16340833552264,
     },
 }
 
@@ -96,9 +95,14 @@ class UniMolPocketFinetuneTask(UnicoreTask):
         )
         parser.add_argument(
             "--fpocket-score",
-            default='Druggability Score',
+            default="Druggability Score",
             help="Select one of the 4 Fpocket scores as the target",
-            choices=['Score', 'Druggability Score', 'Total SASA', 'Hydrophobicity score'],
+            choices=[
+                "Score",
+                "Druggability Score",
+                "Total SASA",
+                "Hydrophobicity score",
+            ],
         )
 
     def __init__(self, args, dictionary):
@@ -107,7 +111,7 @@ class UniMolPocketFinetuneTask(UnicoreTask):
         self.seed = args.seed
         # add mask token
         self.mask_idx = dictionary.add_symbol("[MASK]", is_special=True)
-        if self.args.task_name == 'drugabbility':
+        if self.args.task_name == "drugabbility":
             if self.args.fpocket_score in task_metainfo:
                 # for regression task, pre-compute mean and std
                 self.mean = task_metainfo[self.args.fpocket_score]["mean"]

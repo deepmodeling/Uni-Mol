@@ -26,24 +26,29 @@ class DockingPossLoss(UnicoreLoss):
         ### distance loss
         distance_mask = sample["target"]["distance_target"].ne(0)  # 0 is padding
         if self.args.dist_threshold > 0:
-            distance_mask &= sample["target"]["distance_target"] < self.args.dist_threshold
+            distance_mask &= (
+                sample["target"]["distance_target"] < self.args.dist_threshold
+            )
         distance_predict = cross_distance_predict[distance_mask]
         distance_target = sample["target"]["distance_target"][distance_mask]
         distance_loss = F.mse_loss(
-            distance_predict.float(),
-            distance_target.float(),
-            reduction="mean")
+            distance_predict.float(), distance_target.float(), reduction="mean"
+        )
 
         ### holo distance loss
-        holo_distance_mask = sample["target"]["holo_distance_target"].ne(0)  # 0 is padding
+        holo_distance_mask = sample["target"]["holo_distance_target"].ne(
+            0
+        )  # 0 is padding
         holo_distance_predict_train = holo_distance_predict[holo_distance_mask]
-        holo_distance_target = sample["target"]["holo_distance_target"][holo_distance_mask]
+        holo_distance_target = sample["target"]["holo_distance_target"][
+            holo_distance_mask
+        ]
         holo_distance_loss = F.smooth_l1_loss(
             holo_distance_predict_train.float(),
             holo_distance_target.float(),
             reduction="mean",
             beta=1.0,
-            )
+        )
 
         loss = distance_loss + holo_distance_loss
         sample_size = sample["target"]["holo_coord"].size(0)
@@ -57,25 +62,37 @@ class DockingPossLoss(UnicoreLoss):
         if not self.training:
             logging_output["smi_name"] = sample["smi_name"]
             logging_output["pocket_name"] = sample["pocket_name"]
-            logging_output["cross_distance_predict"] = cross_distance_predict.data.detach().cpu()
-            logging_output["holo_distance_predict"] = holo_distance_predict.data.detach().cpu()
-            logging_output["atoms"] = sample["net_input"]["mol_src_tokens"].data.detach().cpu()
-            logging_output["pocket_atoms"] = sample["net_input"]["pocket_src_tokens"].data.detach().cpu()
-            logging_output["holo_center_coordinates"] = sample["holo_center_coordinates"].data.detach().cpu()
-            logging_output["holo_coordinates"] = sample["target"]["holo_coord"].data.detach().cpu()
-            logging_output["pocket_coordinates"] = sample["net_input"]["pocket_src_coord"].data.detach().cpu()
+            logging_output[
+                "cross_distance_predict"
+            ] = cross_distance_predict.data.detach().cpu()
+            logging_output[
+                "holo_distance_predict"
+            ] = holo_distance_predict.data.detach().cpu()
+            logging_output["atoms"] = (
+                sample["net_input"]["mol_src_tokens"].data.detach().cpu()
+            )
+            logging_output["pocket_atoms"] = (
+                sample["net_input"]["pocket_src_tokens"].data.detach().cpu()
+            )
+            logging_output["holo_center_coordinates"] = (
+                sample["holo_center_coordinates"].data.detach().cpu()
+            )
+            logging_output["holo_coordinates"] = (
+                sample["target"]["holo_coord"].data.detach().cpu()
+            )
+            logging_output["pocket_coordinates"] = (
+                sample["net_input"]["pocket_src_coord"].data.detach().cpu()
+            )
 
         return loss, 1, logging_output
 
     @staticmethod
-    def reduce_metrics(logging_outputs, split='valid') -> None:
+    def reduce_metrics(logging_outputs, split="valid") -> None:
         """Aggregate logging outputs from data parallel training."""
         loss_sum = sum(log.get("loss", 0) for log in logging_outputs)
         sample_size = sum(log.get("sample_size", 0) for log in logging_outputs)
 
-        metrics.log_scalar(
-            "loss", loss_sum / sample_size, sample_size, round=4
-        )
+        metrics.log_scalar("loss", loss_sum / sample_size, sample_size, round=4)
         metrics.log_scalar(
             f"{split}_loss", loss_sum / sample_size, sample_size, round=4
         )

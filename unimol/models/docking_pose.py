@@ -21,7 +21,6 @@ logger = logging.getLogger(__name__)
 
 @register_model("docking_pose")
 class DockingPoseModel(BaseUnicoreModel):
-
     @staticmethod
     def add_args(parser):
         """Add model-specific arguments to the parser."""
@@ -57,18 +56,22 @@ class DockingPoseModel(BaseUnicoreModel):
         self.mol_model = UniMolModel(args.mol, mol_dictionary)
         self.pocket_model = UniMolModel(args.pocket, pocket_dictionary)
         self.concat_decoder = TransformerEncoderWithPair(
-                                        encoder_layers=4,
-                                        embed_dim=args.mol.encoder_embed_dim,
-                                        ffn_embed_dim=args.mol.encoder_ffn_embed_dim,
-                                        attention_heads=args.mol.encoder_attention_heads,
-                                        emb_dropout=0.1,
-                                        dropout=0.1,
-                                        attention_dropout=0.1,
-                                        activation_dropout=0.0,
-                                        activation_fn="gelu",
-                                        )
-        self.cross_distance_project = NonLinearHead(args.mol.encoder_embed_dim*2+args.mol.encoder_attention_heads, 1, 'relu')
-        self.holo_distance_project = DistanceHead(args.mol.encoder_embed_dim+args.mol.encoder_attention_heads, 'relu')
+            encoder_layers=4,
+            embed_dim=args.mol.encoder_embed_dim,
+            ffn_embed_dim=args.mol.encoder_ffn_embed_dim,
+            attention_heads=args.mol.encoder_attention_heads,
+            emb_dropout=0.1,
+            dropout=0.1,
+            attention_dropout=0.1,
+            activation_dropout=0.0,
+            activation_fn="gelu",
+        )
+        self.cross_distance_project = NonLinearHead(
+            args.mol.encoder_embed_dim * 2 + args.mol.encoder_attention_heads, 1, "relu"
+        )
+        self.holo_distance_project = DistanceHead(
+            args.mol.encoder_embed_dim + args.mol.encoder_attention_heads, "relu"
+        )
 
     @classmethod
     def build_model(cls, args, task):
@@ -87,9 +90,8 @@ class DockingPoseModel(BaseUnicoreModel):
         features_only=True,
         **kwargs
     ):
-
         def get_dist_features(dist, et, flag):
-            if flag == 'mol':
+            if flag == "mol":
                 n_node = dist.size(-1)
                 gbf_feature = self.mol_model.gbf(dist, et)
                 gbf_result = self.mol_model.gbf_proj(gbf_feature)
@@ -108,58 +110,99 @@ class DockingPoseModel(BaseUnicoreModel):
 
         mol_padding_mask = mol_src_tokens.eq(self.mol_model.padding_idx)
         mol_x = self.mol_model.embed_tokens(mol_src_tokens)
-        mol_graph_attn_bias = get_dist_features(mol_src_distance, mol_src_edge_type, 'mol')
-        mol_outputs = self.mol_model.encoder(mol_x, padding_mask=mol_padding_mask, attn_mask=mol_graph_attn_bias)
+        mol_graph_attn_bias = get_dist_features(
+            mol_src_distance, mol_src_edge_type, "mol"
+        )
+        mol_outputs = self.mol_model.encoder(
+            mol_x, padding_mask=mol_padding_mask, attn_mask=mol_graph_attn_bias
+        )
         mol_encoder_rep = mol_outputs[0]
         mol_encoder_pair_rep = mol_outputs[1]
 
         pocket_padding_mask = pocket_src_tokens.eq(self.pocket_model.padding_idx)
         pocket_x = self.pocket_model.embed_tokens(pocket_src_tokens)
-        pocket_graph_attn_bias = get_dist_features(pocket_src_distance, pocket_src_edge_type, 'pocket')
-        pocket_outputs = self.pocket_model.encoder(pocket_x, padding_mask=pocket_padding_mask, attn_mask=pocket_graph_attn_bias)
+        pocket_graph_attn_bias = get_dist_features(
+            pocket_src_distance, pocket_src_edge_type, "pocket"
+        )
+        pocket_outputs = self.pocket_model.encoder(
+            pocket_x, padding_mask=pocket_padding_mask, attn_mask=pocket_graph_attn_bias
+        )
         pocket_encoder_rep = pocket_outputs[0]
         pocket_encoder_pair_rep = pocket_outputs[1]
 
         mol_sz = mol_encoder_rep.size(1)
         pocket_sz = pocket_encoder_rep.size(1)
 
-        concat_rep = torch.cat([mol_encoder_rep, pocket_encoder_rep], dim=-2)  # [batch, mol_sz+pocket_sz, hidden_dim]
-        concat_mask = torch.cat([mol_padding_mask, pocket_padding_mask], dim=-1)   # [batch, mol_sz+pocket_sz]
+        concat_rep = torch.cat(
+            [mol_encoder_rep, pocket_encoder_rep], dim=-2
+        )  # [batch, mol_sz+pocket_sz, hidden_dim]
+        concat_mask = torch.cat(
+            [mol_padding_mask, pocket_padding_mask], dim=-1
+        )  # [batch, mol_sz+pocket_sz]
         attn_bs = mol_graph_attn_bias.size(0)
 
-        concat_attn_bias = torch.zeros(attn_bs, mol_sz+pocket_sz, mol_sz+pocket_sz).type_as(concat_rep)  # [batch, mol_sz+pocket_sz, mol_sz+pocket_sz]
-        concat_attn_bias[:, :mol_sz, :mol_sz] = mol_encoder_pair_rep.permute(0, 3, 1, 2).reshape(-1, mol_sz, mol_sz).contiguous()
-        concat_attn_bias[:, -pocket_sz:, -pocket_sz:] = pocket_encoder_pair_rep.permute(0, 3, 1, 2).reshape(-1, pocket_sz, pocket_sz).contiguous()
+        concat_attn_bias = torch.zeros(
+            attn_bs, mol_sz + pocket_sz, mol_sz + pocket_sz
+        ).type_as(
+            concat_rep
+        )  # [batch, mol_sz+pocket_sz, mol_sz+pocket_sz]
+        concat_attn_bias[:, :mol_sz, :mol_sz] = (
+            mol_encoder_pair_rep.permute(0, 3, 1, 2)
+            .reshape(-1, mol_sz, mol_sz)
+            .contiguous()
+        )
+        concat_attn_bias[:, -pocket_sz:, -pocket_sz:] = (
+            pocket_encoder_pair_rep.permute(0, 3, 1, 2)
+            .reshape(-1, pocket_sz, pocket_sz)
+            .contiguous()
+        )
 
         decoder_rep = concat_rep
         decoder_pair_rep = concat_attn_bias
         for i in range(self.args.recycling):
-            decoder_outputs = self.concat_decoder(decoder_rep, padding_mask=concat_mask, attn_mask=decoder_pair_rep)
+            decoder_outputs = self.concat_decoder(
+                decoder_rep, padding_mask=concat_mask, attn_mask=decoder_pair_rep
+            )
             decoder_rep = decoder_outputs[0]
             decoder_pair_rep = decoder_outputs[1]
             if i != (self.args.recycling - 1):
-                decoder_pair_rep = decoder_pair_rep.permute(0, 3, 1, 2).reshape(-1, mol_sz+pocket_sz, mol_sz+pocket_sz)
+                decoder_pair_rep = decoder_pair_rep.permute(0, 3, 1, 2).reshape(
+                    -1, mol_sz + pocket_sz, mol_sz + pocket_sz
+                )
 
         mol_decoder = decoder_rep[:, :mol_sz]
         pocket_decoder = decoder_rep[:, mol_sz:]
 
         mol_pair_decoder_rep = decoder_pair_rep[:, :mol_sz, :mol_sz, :]
-        mol_pocket_pair_decoder_rep = (decoder_pair_rep[:, :mol_sz, mol_sz:, :] + decoder_pair_rep[:, mol_sz:, :mol_sz, :].transpose(1, 2))/2.0
-        mol_pocket_pair_decoder_rep[mol_pocket_pair_decoder_rep == float('-inf')] = 0
+        mol_pocket_pair_decoder_rep = (
+            decoder_pair_rep[:, :mol_sz, mol_sz:, :]
+            + decoder_pair_rep[:, mol_sz:, :mol_sz, :].transpose(1, 2)
+        ) / 2.0
+        mol_pocket_pair_decoder_rep[mol_pocket_pair_decoder_rep == float("-inf")] = 0
 
-        cross_rep = torch.cat([
-                                mol_pocket_pair_decoder_rep,
-                                mol_decoder.unsqueeze(-2).repeat(1, 1, pocket_sz, 1),
-                                pocket_decoder.unsqueeze(-3).repeat(1, mol_sz, 1, 1),
-                                ], dim=-1)   # [batch, mol_sz, pocket_sz, 4*hidden_size]
+        cross_rep = torch.cat(
+            [
+                mol_pocket_pair_decoder_rep,
+                mol_decoder.unsqueeze(-2).repeat(1, 1, pocket_sz, 1),
+                pocket_decoder.unsqueeze(-3).repeat(1, mol_sz, 1, 1),
+            ],
+            dim=-1,
+        )  # [batch, mol_sz, pocket_sz, 4*hidden_size]
 
-        cross_distance_predict = F.elu(self.cross_distance_project(cross_rep).squeeze(-1)) + 1.0  # batch, mol_sz, pocket_sz
+        cross_distance_predict = (
+            F.elu(self.cross_distance_project(cross_rep).squeeze(-1)) + 1.0
+        )  # batch, mol_sz, pocket_sz
 
-        holo_encoder_pair_rep = torch.cat([
-                                mol_pair_decoder_rep,
-                                mol_decoder.unsqueeze(-2).repeat(1, 1, mol_sz, 1),
-                                ], dim=-1)  # [batch, mol_sz, mol_sz, 3*hidden_size]
-        holo_distance_predict = self.holo_distance_project(holo_encoder_pair_rep)  # batch, mol_sz, mol_sz
+        holo_encoder_pair_rep = torch.cat(
+            [
+                mol_pair_decoder_rep,
+                mol_decoder.unsqueeze(-2).repeat(1, 1, mol_sz, 1),
+            ],
+            dim=-1,
+        )  # [batch, mol_sz, mol_sz, 3*hidden_size]
+        holo_distance_predict = self.holo_distance_project(
+            holo_encoder_pair_rep
+        )  # batch, mol_sz, mol_sz
 
         return cross_distance_predict, holo_distance_predict
 
@@ -186,7 +229,7 @@ class DistanceHead(nn.Module):
 
     def forward(self, x):
         bsz, seq_len, seq_len, _ = x.size()
-        x[x == float('-inf')] = 0
+        x[x == float("-inf")] = 0
         x = self.dense(x)
         x = self.activation_fn(x)
         x = self.layer_norm(x)
@@ -223,8 +266,12 @@ def unimol_docking_architecture(args):
 
     args.pocket.encoder_layers = getattr(args, "pocket_encoder_layers", 15)
     args.pocket.encoder_embed_dim = getattr(args, "pocket_encoder_embed_dim", 512)
-    args.pocket.encoder_ffn_embed_dim = getattr(args, "pocket_encoder_ffn_embed_dim", 2048)
-    args.pocket.encoder_attention_heads = getattr(args, "pocket_encoder_attention_heads", 64)
+    args.pocket.encoder_ffn_embed_dim = getattr(
+        args, "pocket_encoder_ffn_embed_dim", 2048
+    )
+    args.pocket.encoder_attention_heads = getattr(
+        args, "pocket_encoder_attention_heads", 64
+    )
     args.pocket.dropout = getattr(args, "pocket_dropout", 0.1)
     args.pocket.emb_dropout = getattr(args, "pocket_emb_dropout", 0.1)
     args.pocket.attention_dropout = getattr(args, "pocket_attention_dropout", 0.1)
@@ -232,7 +279,9 @@ def unimol_docking_architecture(args):
     args.pocket.pooler_dropout = getattr(args, "pocket_pooler_dropout", 0.0)
     args.pocket.max_seq_len = getattr(args, "pocket_max_seq_len", 512)
     args.pocket.activation_fn = getattr(args, "pocket_activation_fn", "gelu")
-    args.pocket.pooler_activation_fn = getattr(args, "pocket_pooler_activation_fn", "tanh")
+    args.pocket.pooler_activation_fn = getattr(
+        args, "pocket_pooler_activation_fn", "tanh"
+    )
     args.pocket.post_ln = getattr(args, "pocket_post_ln", False)
     args.pocket.masked_token_loss = -1.0
     args.pocket.masked_coord_loss = -1.0

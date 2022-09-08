@@ -8,15 +8,14 @@ import os
 import pickle
 from functools import lru_cache
 import logging
+
 logger = logging.getLogger(__name__)
 
 
 class LMDBDataset:
     def __init__(self, db_path):
         self.db_path = db_path
-        assert os.path.isfile(self.db_path), "{} not found".format(
-            self.db_path
-        )
+        assert os.path.isfile(self.db_path), "{} not found".format(self.db_path)
         env = self.connect_db(self.db_path)
         with env.begin() as txn:
             self._keys = list(txn.cursor().iternext(values=False))
@@ -41,8 +40,8 @@ class LMDBDataset:
 
     @lru_cache(maxsize=16)
     def __getitem__(self, idx):
-        if not hasattr(self, 'env'):
+        if not hasattr(self, "env"):
             self.connect_db(self.db_path, save_to_self=True)
-        datapoint_pickled = self.env.begin().get(f'{idx}'.encode("ascii"))
+        datapoint_pickled = self.env.begin().get(f"{idx}".encode("ascii"))
         data = pickle.loads(datapoint_pickled)
         return data

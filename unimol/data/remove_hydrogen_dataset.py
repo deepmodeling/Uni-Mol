@@ -96,7 +96,15 @@ class RemoveHydrogenResiduePocketDataset(BaseWrapperDataset):
 
 
 class RemoveHydrogenPocketDataset(BaseWrapperDataset):
-    def __init__(self, dataset, atoms, coordinates, holo_coordinates, remove_hydrogen=True, remove_polar_hydrogen=False):
+    def __init__(
+        self,
+        dataset,
+        atoms,
+        coordinates,
+        holo_coordinates,
+        remove_hydrogen=True,
+        remove_polar_hydrogen=False,
+    ):
         self.dataset = dataset
         self.atoms = atoms
         self.coordinates = coordinates
@@ -117,14 +125,14 @@ class RemoveHydrogenPocketDataset(BaseWrapperDataset):
         holo_coordinates = dd[self.holo_coordinates]
 
         if self.remove_hydrogen:
-            mask_hydrogen = atoms != 'H'
+            mask_hydrogen = atoms != "H"
             atoms = atoms[mask_hydrogen]
             coordinates = coordinates[mask_hydrogen]
             holo_coordinates = holo_coordinates[mask_hydrogen]
         if not self.remove_hydrogen and self.remove_polar_hydrogen:
             end_idx = 0
             for i, atom in enumerate(atoms[::-1]):
-                if atom != 'H':
+                if atom != "H":
                     break
                 else:
                     end_idx = i + 1

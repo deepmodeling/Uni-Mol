@@ -11,7 +11,7 @@ import pickle
 import torch
 from unicore import checkpoint_utils, distributed_utils, options, utils
 from unicore.logging import progress_bar
-from unicore import tasks 
+from unicore import tasks
 
 logging.basicConfig(
     format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
@@ -43,9 +43,7 @@ def main(args):
 
     # Load model
     logger.info("loading model(s) from {}".format(args.path))
-    state = checkpoint_utils.load_checkpoint_to_cpu(
-        args.path
-    )
+    state = checkpoint_utils.load_checkpoint_to_cpu(args.path)
     task = tasks.setup_task(args)
     model = task.build_model(args)
     model.load_state_dict(state["model"], strict=False)

@@ -17,9 +17,7 @@ class CroppingDataset(BaseWrapperDataset):
         self.seed = seed
         self.atoms = atoms
         self.coordinates = coordinates
-        self.max_atoms = (
-            max_atoms  # max number of atoms in a molecule, None indicates no limit.
-        )
+        self.max_atoms = max_atoms
         self.set_epoch(None)
 
     def set_epoch(self, epoch, **unused):
@@ -169,13 +167,15 @@ class CroppingResiduePocketDataset(BaseWrapperDataset):
 
 
 class CroppingPocketDockingPoseDataset(BaseWrapperDataset):
-    def __init__(self, dataset, seed, atoms, coordinates, holo_coordinates, max_atoms=256):
+    def __init__(
+        self, dataset, seed, atoms, coordinates, holo_coordinates, max_atoms=256
+    ):
         self.dataset = dataset
         self.seed = seed
         self.atoms = atoms
         self.coordinates = coordinates
         self.holo_coordinates = holo_coordinates
-        self.max_atoms = max_atoms   # max number of atoms in a molecule, None indicates no limit.
+        self.max_atoms = max_atoms
 
         self.set_epoch(None)
 
@@ -193,15 +193,20 @@ class CroppingPocketDockingPoseDataset(BaseWrapperDataset):
         # crop atoms according to their distance to the center of pockets
         if self.max_atoms and len(atoms) > self.max_atoms:
             with data_utils.numpy_seed(self.seed, epoch):
-                distance = np.linalg.norm(coordinates - coordinates.mean(axis=0), axis=1)
-                
+                distance = np.linalg.norm(
+                    coordinates - coordinates.mean(axis=0), axis=1
+                )
+
                 def softmax(x):
                     x -= np.max(x)
-                    x = np.exp(x)/np.sum(np.exp(x))
+                    x = np.exp(x) / np.sum(np.exp(x))
                     return x
+
                 distance += 1  # prevent inf
                 weight = softmax(np.reciprocal(distance))
-                index = np.random.choice(len(atoms), self.max_atoms, replace=False, p=weight)
+                index = np.random.choice(
+                    len(atoms), self.max_atoms, replace=False, p=weight
+                )
                 atoms = atoms[index]
                 coordinates = coordinates[index]
                 holo_coordinates = holo_coordinates[index]

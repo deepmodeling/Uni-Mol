@@ -10,17 +10,30 @@ from multiprocessing import Pool
 from tqdm import tqdm
 import glob
 import argparse
-from docking_utils import docking_data_pre, ensemble_iterations, print_results, rmsd_func
+from docking_utils import (
+    docking_data_pre,
+    ensemble_iterations,
+    print_results,
+    rmsd_func,
+)
 import warnings
-warnings.filterwarnings(action='ignore')
+
+warnings.filterwarnings(action="ignore")
 
 
 def result_log(dir_path):
     ### result logging ###
-    output_dir = os.path.join(dir_path, 'cache')
+    output_dir = os.path.join(dir_path, "cache")
     rmsd_results = []
-    for path in glob.glob(os.path.join(output_dir, '*.docking.pkl')):
-        bst_predict_coords, holo_coords, bst_loss, smi, pocket, pocket_coords = pd.read_pickle(path)
+    for path in glob.glob(os.path.join(output_dir, "*.docking.pkl")):
+        (
+            bst_predict_coords,
+            holo_coords,
+            bst_loss,
+            smi,
+            pocket,
+            pocket_coords,
+        ) = pd.read_pickle(path)
         rmsd = rmsd_func(holo_coords, bst_predict_coords)
         rmsd_results.append(rmsd)
     rmsd_results = np.array(rmsd_results)
@@ -28,9 +41,7 @@ def result_log(dir_path):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description="docking"
-    )
+    parser = argparse.ArgumentParser(description="docking")
     parser.add_argument(
         "--reference-file",
         type=str,
@@ -52,18 +63,42 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    raw_data_path, predict_path, dir_path, nthreads = args.reference_file, args.predict_file, args.output_path, args.nthreads
+    raw_data_path, predict_path, dir_path, nthreads = (
+        args.reference_file,
+        args.predict_file,
+        args.output_path,
+        args.nthreads,
+    )
     tta_times = 10
-    mol_list, smi_list, pocket_list, pocket_coords_list, distance_predict_list, holo_distance_predict_list, holo_coords_list, holo_center_coords_list = docking_data_pre(raw_data_path, predict_path)
-    iterations = ensemble_iterations(mol_list, smi_list, pocket_list, pocket_coords_list, distance_predict_list, holo_distance_predict_list, holo_coords_list, holo_center_coords_list, tta_times=tta_times)
+    (
+        mol_list,
+        smi_list,
+        pocket_list,
+        pocket_coords_list,
+        distance_predict_list,
+        holo_distance_predict_list,
+        holo_coords_list,
+        holo_center_coords_list,
+    ) = docking_data_pre(raw_data_path, predict_path)
+    iterations = ensemble_iterations(
+        mol_list,
+        smi_list,
+        pocket_list,
+        pocket_coords_list,
+        distance_predict_list,
+        holo_distance_predict_list,
+        holo_coords_list,
+        holo_center_coords_list,
+        tta_times=tta_times,
+    )
     sz = len(mol_list) // tta_times
     new_pocket_list = pocket_list[::tta_times]
-    output_dir = os.path.join(dir_path, 'cache')
+    output_dir = os.path.join(dir_path, "cache")
     os.makedirs(output_dir, exist_ok=True)
 
     def dump(content):
         pocket = content[3]
-        output_name = os.path.join(output_dir, '{}.pkl'.format(pocket))
+        output_name = os.path.join(output_dir, "{}.pkl".format(pocket))
         try:
             os.remove(output_name)
         except:
@@ -74,12 +109,14 @@ if __name__ == "__main__":
     with Pool(nthreads) as pool:
         for inner_output in tqdm(pool.imap(dump, iterations), total=sz):
             if not inner_output:
-                print('fail to dump')
+                print("fail to dump")
 
     def single_docking(pocket_name):
-        input_name = os.path.join(output_dir, '{}.pkl'.format(pocket_name))
-        output_name = os.path.join(output_dir, '{}.docking.pkl'.format(pocket_name))
-        output_ligand_name = os.path.join(output_dir, '{}.ligand.sdf'.format(pocket_name))
+        input_name = os.path.join(output_dir, "{}.pkl".format(pocket_name))
+        output_name = os.path.join(output_dir, "{}.docking.pkl".format(pocket_name))
+        output_ligand_name = os.path.join(
+            output_dir, "{}.ligand.sdf".format(pocket_name)
+        )
         try:
             os.remove(output_name)
         except:
@@ -88,13 +125,17 @@ if __name__ == "__main__":
             os.remove(output_ligand_name)
         except:
             pass
-        cmd = 'python ./unimol/utils/coordinate_model.py --input {} --output {} --output-ligand {}'.format(input_name, output_name, output_ligand_name)
+        cmd = "python ./unimol/utils/coordinate_model.py --input {} --output {} --output-ligand {}".format(
+            input_name, output_name, output_ligand_name
+        )
         os.system(cmd)
         return True
 
     with Pool(nthreads) as pool:
-        for inner_output in tqdm(pool.imap(single_docking, new_pocket_list), total=len(new_pocket_list)):
+        for inner_output in tqdm(
+            pool.imap(single_docking, new_pocket_list), total=len(new_pocket_list)
+        ):
             if not inner_output:
-                print('fail to docking')
+                print("fail to docking")
 
     result_log(args.output_path)

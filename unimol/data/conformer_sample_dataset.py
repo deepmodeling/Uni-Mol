@@ -217,7 +217,18 @@ class ConformerSampleConfGV2Dataset(BaseWrapperDataset):
 
 
 class ConformerSampleDockingPoseDataset(BaseWrapperDataset):
-    def __init__(self, dataset, seed, atoms, coordinates, pocket_atoms, pocket_coordinates, holo_coordinates, holo_pocket_coordinates, is_train=True):
+    def __init__(
+        self,
+        dataset,
+        seed,
+        atoms,
+        coordinates,
+        pocket_atoms,
+        pocket_coordinates,
+        holo_coordinates,
+        holo_pocket_coordinates,
+        is_train=True,
+    ):
         self.dataset = dataset
         self.seed = seed
         self.atoms = atoms
@@ -240,27 +251,32 @@ class ConformerSampleDockingPoseDataset(BaseWrapperDataset):
         with data_utils.numpy_seed(self.seed, epoch, index):
             sample_idx = np.random.randint(size)
         coordinates = self.dataset[index][self.coordinates][sample_idx]
-        pocket_atoms = np.array([item[0] for item in self.dataset[index][self.pocket_atoms]])
+        pocket_atoms = np.array(
+            [item[0] for item in self.dataset[index][self.pocket_atoms]]
+        )
         pocket_coordinates = self.dataset[index][self.pocket_coordinates][0]
         if self.is_train:
             holo_coordinates = self.dataset[index][self.holo_coordinates][0]
-            holo_pocket_coordinates = self.dataset[index][self.holo_pocket_coordinates][0]
+            holo_pocket_coordinates = self.dataset[index][self.holo_pocket_coordinates][
+                0
+            ]
         else:
             holo_coordinates = coordinates
             holo_pocket_coordinates = pocket_coordinates
 
-        smi = self.dataset[sample_idx]['smi']
-        pocket = self.dataset[sample_idx]['pocket']
+        smi = self.dataset[sample_idx]["smi"]
+        pocket = self.dataset[sample_idx]["pocket"]
 
-        return {'atoms': atoms,
-                'coordinates': coordinates.astype(np.float32),
-                'pocket_atoms': pocket_atoms,
-                'pocket_coordinates': pocket_coordinates.astype(np.float32),
-                'holo_coordinates': holo_coordinates.astype(np.float32),
-                'holo_pocket_coordinates': holo_pocket_coordinates.astype(np.float32),
-                'smi': smi,
-                'pocket': pocket,
-                }
+        return {
+            "atoms": atoms,
+            "coordinates": coordinates.astype(np.float32),
+            "pocket_atoms": pocket_atoms,
+            "pocket_coordinates": pocket_coordinates.astype(np.float32),
+            "holo_coordinates": holo_coordinates.astype(np.float32),
+            "holo_pocket_coordinates": holo_pocket_coordinates.astype(np.float32),
+            "smi": smi,
+            "pocket": pocket,
+        }
 
     def __getitem__(self, index: int):
         return self.__cached_item__(index, self.epoch)

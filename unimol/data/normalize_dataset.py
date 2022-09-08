@@ -33,7 +33,13 @@ class NormalizeDataset(BaseWrapperDataset):
 
 
 class NormalizeDockingPoseDataset(BaseWrapperDataset):
-    def __init__(self, dataset, coordinates, pocket_coordinates, center_coordinates='center_coordinates'):
+    def __init__(
+        self,
+        dataset,
+        coordinates,
+        pocket_coordinates,
+        center_coordinates="center_coordinates",
+    ):
         self.dataset = dataset
         self.coordinates = coordinates
         self.pocket_coordinates = pocket_coordinates

@@ -280,18 +280,20 @@ class FinetuneCrossEntropyPocketLoss(FinetuneCrossEntropyLoss):
             metrics.log_scalar(
                 f"{split}_acc", acc_sum / sample_size, sample_size, round=3
             )
-            preds = torch.cat(
-                [log.get("prob").argmax(dim=-1) for log in logging_outputs], dim=0
-            ).cpu().numpy()
-            targets = torch.cat(
-                [log.get("target", 0) for log in logging_outputs], dim=0
-            ).cpu().numpy()
-            metrics.log_scalar(
-                f"{split}_pre", precision_score(targets, preds), round=3
+            preds = (
+                torch.cat(
+                    [log.get("prob").argmax(dim=-1) for log in logging_outputs], dim=0
+                )
+                .cpu()
+                .numpy()
             )
-            metrics.log_scalar(
-                f"{split}_rec", recall_score(targets, preds), round=3
+            targets = (
+                torch.cat([log.get("target", 0) for log in logging_outputs], dim=0)
+                .cpu()
+                .numpy()
             )
+            metrics.log_scalar(f"{split}_pre", precision_score(targets, preds), round=3)
+            metrics.log_scalar(f"{split}_rec", recall_score(targets, preds), round=3)
             metrics.log_scalar(
                 f"{split}_f1", f1_score(targets, preds), sample_size, round=3
             )

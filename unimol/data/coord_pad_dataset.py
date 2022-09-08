@@ -61,7 +61,12 @@ def collate_cross_2d(
         dst.copy_(src)
 
     for i, v in enumerate(values):
-        copy_tensor(v, res[i][size_h - v.size(0):, size_w - v.size(1):] if left_pad else res[i][:v.size(0), :v.size(1)])
+        copy_tensor(
+            v,
+            res[i][size_h - v.size(0) :, size_w - v.size(1) :]
+            if left_pad
+            else res[i][: v.size(0), : v.size(1)],
+        )
     return res
 
 
@@ -72,4 +77,6 @@ class RightPadDatasetCross2D(BaseWrapperDataset):
         self.left_pad = left_pad
 
     def collater(self, samples):
-        return collate_cross_2d(samples, self.pad_idx, left_pad=self.left_pad, pad_to_multiple=8)
+        return collate_cross_2d(
+            samples, self.pad_idx, left_pad=self.left_pad, pad_to_multiple=8
+        )
