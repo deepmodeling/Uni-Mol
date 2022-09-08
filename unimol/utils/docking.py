@@ -52,7 +52,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--predict-file",
         type=str,
-        default="./infer_confgen/save_pose_test.out.pkl",
+        default="./infer_pose/save_pose_test.out.pkl",
         help="Location of the prediction file",
     )
     parser.add_argument(

@@ -15,7 +15,7 @@ Uni-Mol is composed of two models: a molecular pretraining model trained by 209M
 
 News
 ----
-**Sep 8 2022**: Protein-ligand binding code and data are released. Finetuned models are released.
+**Sep 8 2022**: Protein-ligand binding code and data are released. Finetuned models are released. Update some results in the [paper](https://chemrxiv.org/engage/chemrxiv/article-details/6318b529bada388485bc8361).
 
 **Aug 17 2022**: Pretrained models are released.
 
@@ -338,7 +338,13 @@ python -m torch.distributed.launch --nproc_per_node=$n_gpu --master_port=$MASTER
 - Run this command, 
 
 ```bash
-python ./unimol/utils/conf_gen_cal_metrics.py --mode gen_data --nthreads ${Num of threads} --reference-file ${Reference file dir} --output-dir ${Generated initial data dir}
+mode="gen_data"
+nthreads=20  # Num of threads
+reference_file="./conformation_generation/qm9/test_data_200.pkl"  # Your reference file dir
+output_path="./conformation_generation/qm9"  # Generated initial data dir
+
+python ./unimol/utils/conf_gen_cal_metrics.py --mode $mode --nthreads $nthreads --reference-file $reference_file --output-dir $output_dir
+
 ```
 
 3. Inference on the generated RDKit initial conformations:
@@ -368,7 +374,13 @@ python ./unimol/infer.py --user-dir ./unimol $data_path --task-name $task_name -
 
 - Run this command
 ```bash
-python ./unimol/utils/conf_gen_cal_metrics.py --mode cal_metrics --threshold ${Threshold for cal metrics} --nthreads ${Num of threads} --predict-file ${Your inference file dir} --reference-file ${Your reference file dir}
+mode="cal_metrics"
+threshold=0.5  # Threshold for cal metrics, 0.5 for qm9, 1.25 for drugs
+nthreads=20  # Num of threads
+predict_file="./infer_confgen/save_confgen_test.out.pkl"  # Your inference file dir
+reference_file="./conformation_generation/qm9/test_data_200.pkl"  # Your reference file dir
+
+python ./unimol/utils/conf_gen_cal_metrics.py --mode $mode --threshold $threshold --nthreads $nthreads --predict-file $predict_file --reference-file $reference_file
 ```
 
 
@@ -500,7 +512,12 @@ python ./unimol/infer.py --user-dir ./unimol $data_path --valid-subset test \
 
 - Run this command
 ```bash
-python ./unimol/utils/docking.py --nthreads ${Num of threads} --predict-file ${Your inference file dir} --reference-file ${Your reference file dir} --output-path ${Docking results path}
+nthreads=20  # Num of threads
+predict_file="./infer_pose/save_pose_test.out.pkl"  # Your inference file dir
+reference_file="./protein_ligand_binding_pose_prediction/test.lmdb"  # Your reference file dir
+output_path="./protein_ligand_binding_pose_prediction"  # Docking results path
+
+python ./unimol/utils/docking.py --nthreads $nthreads --predict-file $predict_file --reference-file reference_file --output-path $output_path
 ```
 
 
