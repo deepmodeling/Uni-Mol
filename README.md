@@ -24,7 +24,7 @@ News
 **Jun 10 2022**: The 3D conformation data used in Uni-Mol is released.
 
 
-Uni-Mol's 3D conformation data 
+Uni-Mol"s 3D conformation data 
 ------------------------------
 
 For the details of datasets, please refer to Appendix A and B in our [paper](https://chemrxiv.org/engage/chemrxiv/article-details/6294500fcd6c1c16be204e28).
@@ -32,14 +32,14 @@ For the details of datasets, please refer to Appendix A and B in our [paper](htt
 There are total 6 datasets:
 
 
-| Data                     | File Size  | Update Date | Download Link                                                                    | 
+| Data                     | File Size  | Update Date | Download Link                                                                     | 
 |--------------------------|------------| ----------- |-----------------------------------------------------------------------------------|
-| molecular pretrain       | 114.76GB   | Jun 10 2022 |https://unimol.dp.tech/data/pretrain/ligands.tar.gz                               |
-| pocket pretrain          | 8.585GB    | Aug 17 2022 |https://unimol.dp.tech/data/pretrain/pockets.tar.gz                               |
-| molecular property       | 3.506GB    | Jul 10 2022 |https://unimol.dp.tech/data/finetune/molecular_property_prediction.tar.gz         |
-| molecular conformation   | 8.331GB    | Jul 19 2022 |https://unimol.dp.tech/data/finetune/conformation_generation.tar.gz               |
-| pocket property          | 455.239MB  | Jul 19 2022 |https://unimol.dp.tech/data/finetune/pocket_property_prediction.tar.gz            |
-| protein-ligand binding   |  263.27MB    | Sep 8  2022 | https://unimol.dp.tech/data/finetune/protein_ligand_binding_pose_prediction.tar.gz |
+| molecular pretrain       | 114.76GB   | Jun 10 2022 |https://unimol.dp.tech/data/pretrain/ligands.tar.gz                                |
+| pocket pretrain          | 8.585GB    | Aug 17 2022 |https://unimol.dp.tech/data/pretrain/pockets.tar.gz                                |
+| molecular property       | 3.506GB    | Jul 10 2022 |https://unimol.dp.tech/data/finetune/molecular_property_prediction.tar.gz          |
+| molecular conformation   | 8.331GB    | Jul 19 2022 |https://unimol.dp.tech/data/finetune/conformation_generation.tar.gz                |
+| pocket property          | 455.239MB  | Jul 19 2022 |https://unimol.dp.tech/data/finetune/pocket_property_prediction.tar.gz             |
+| protein-ligand binding   | 263.27MB   | Sep 8  2022 |https://unimol.dp.tech/data/finetune/protein_ligand_binding_pose_prediction.tar.gz |
 
 
 We use [LMDB](https://lmdb.readthedocs.io) to store data, you can use the following code snippets to read from the LMDB file.
@@ -69,23 +69,23 @@ def read_lmdb(lmdb_path):
 We use pickle protocol 5, so Python >= 3.8 is recommended.
 
 
-Uni-Mol's pretrained model weights
+Uni-Mol"s pretrained model weights
 ----------------------------------
 
-| Model                     | File Size  |Update Date | Download Link                                                                    | 
-|--------------------------|------------| ------------|-----------------------------------------------------------------------------------|
-| molecular pretrain       | 181MB   | Aug 17 2022 |https://unimol.dp.tech/ckp/mol_pre_no_h_220816.pt                              |
-| pocket pretrain          | 181MB    | Aug 17 2022 |https://unimol.dp.tech/ckp/pocket_pre_220816.pt                             |
+| Model                     | File Size  |Update Date | Download Link                                                | 
+|--------------------------|------------| ------------|--------------------------------------------------------------|
+| molecular pretrain       | 181MB   | Aug 17 2022 |https://unimol.dp.tech/ckp/mol_pre_no_h_220816.pt                |
+| pocket pretrain          | 181MB   | Aug 17 2022 |https://unimol.dp.tech/ckp/pocket_pre_220816.pt                  |
 
 
-Uni-Mol's finetuned model weights
+Uni-Mol"s finetuned model weights
 ----------------------------------
 
-| Model                     | File Size  |Update Date | Download Link                                                                    | 
-|--------------------------|------------| ------------|-----------------------------------------------------------------------------------|
-| molecular conformation generation (qm9)       | 181MB   | Sep 8 2022 |https://unimol.dp.tech/ckp/conformation_generation/qm9_220908.pt
-| molecular conformation generation (drugs)       | 181MB   | Sep 8 2022 |https://unimol.dp.tech/ckp/conformation_generation/drugs_220908.pt
-| Protein-ligand binding pose prediction          | 415MB    | Sep 8 2022 |https://unimol.dp.tech/ckp/bindind_pose/binding_pose_220908.pt                             |
+| Model                     | File Size  |Update Date | Download Link                                                                         | 
+|--------------------------|------------| ------------|---------------------------------------------------------------------------------------|
+| molecular conformation generation (qm9)       | 181MB   | Sep 8 2022 |https://unimol.dp.tech/ckp/conformation_generation/qm9_220908.pt      |
+| molecular conformation generation (drugs)       | 181MB   | Sep 8 2022 |https://unimol.dp.tech/ckp/conformation_generation/drugs_220908.pt  |
+| Protein-ligand binding pose prediction          | 415MB    | Sep 8 2022 |https://unimol.dp.tech/ckp/bindind_pose/binding_pose_220908.pt     |
 
 
 Dependencies
@@ -118,7 +118,7 @@ x_norm_loss=0.01
 delta_pair_repr_norm_loss=0.01
 mask_prob=0.15
 only_polar=0
-noise_type='uniform'
+noise_type="uniform"
 noise=1.0
 seed=1
 warmup_steps=10000
@@ -129,7 +129,7 @@ export OMP_NUM_THREADS=1
 python -m torch.distributed.launch --nproc_per_node=$n_gpu --master_port=$MASTER_PORT $(which unicore-train) $data_path  --user-dir ./unimol --train-subset train --valid-subset valid \
        --num-workers 8 --ddp-backend=c10d \
        --task unimol --loss unimol --arch unimol_base  \
-       --optimizer adam --adam-betas '(0.9, 0.99)' --adam-eps 1e-6 --clip-norm 1.0 --weight-decay $wd \
+       --optimizer adam --adam-betas "(0.9, 0.99)" --adam-eps 1e-6 --clip-norm 1.0 --weight-decay $wd \
        --lr-scheduler polynomial_decay --lr $lr --warmup-updates $warmup_steps --total-num-update $max_steps \
        --update-freq $update_freq --seed $seed \
        --fp16 --fp16-init-scale 4 --fp16-scale-window 256 --tensorboard-logdir $save_dir/tsb \
@@ -151,7 +151,7 @@ data_path=./example_data/pocket/ # replace to your data path
 save_dir=./save/ # replace to your save path
 n_gpu=8
 MASTER_PORT=10086
-dict_name='dict_coarse.txt'
+dict_name="dict_coarse.txt"
 lr=1e-4
 wd=1e-4
 batch_size=16
@@ -162,7 +162,7 @@ masked_dist_loss=1
 x_norm_loss=0.01
 delta_pair_repr_norm_loss=0.01
 mask_prob=0.15
-noise_type='uniform'
+noise_type="uniform"
 noise=1.0
 seed=1
 warmup_steps=10000
@@ -173,7 +173,7 @@ export OMP_NUM_THREADS=1
 python -m torch.distributed.launch --nproc_per_node=$n_gpu --master_port=$MASTER_PORT $(which unicore-train) $data_path  --user-dir ./unimol --train-subset train --valid-subset valid \
        --num-workers 8 --ddp-backend=c10d \
        --task unimol_pocket --loss unimol --arch unimol_base  \
-       --optimizer adam --adam-betas '(0.9, 0.99)' --adam-eps 1e-6 --clip-norm 1.0 --weight-decay $wd \
+       --optimizer adam --adam-betas "(0.9, 0.99)" --adam-eps 1e-6 --clip-norm 1.0 --weight-decay $wd \
        --lr-scheduler polynomial_decay --lr $lr --warmup-updates $warmup_steps --total-num-update $max_steps \
        --update-freq $update_freq --seed $seed \
        --dict-name $dict_name \
@@ -193,15 +193,15 @@ Molecular Property Prediction
 ------------------
 
 ```bash
-data_path='./molecular_property_prediction'  # replace to your data path
-save_dir='./save_finetune'  # replace to your save path
+data_path="./molecular_property_prediction"  # replace to your data path
+save_dir="./save_finetune"  # replace to your save path
 n_gpu=4
 MASTER_PORT=10086
-dict_name='dict.txt'
-weight_path='./weights/checkpoint.pt'  # replace to your ckpt path
-task_name='qm9dft'  # molecular property prediction task name 
+dict_name="dict.txt"
+weight_path="./weights/checkpoint.pt"  # replace to your ckpt path
+task_name="qm9dft"  # molecular property prediction task name 
 task_num=3
-loss_func='finetune_smooth_mae'
+loss_func="finetune_smooth_mae"
 lr=1e-4
 batch_size=32
 epoch=40
@@ -229,7 +229,7 @@ python -m torch.distributed.launch --nproc_per_node=$n_gpu --master_port=$MASTER
        --dict-name $dict_name \
        --task mol_finetune --loss $loss_func --arch unimol_base  \
        --classification-head-name $task_name --num-classes $task_num \
-       --optimizer adam --adam-betas '(0.9, 0.99)' --adam-eps 1e-6 --clip-norm 1.0 \
+       --optimizer adam --adam-betas "(0.9, 0.99)" --adam-eps 1e-6 --clip-norm 1.0 \
        --lr-scheduler polynomial_decay --lr $lr --warmup-ratio $warmup --max-epoch $epoch --batch-size $local_batch_size --pooler-dropout $dropout\
        --update-freq $update_freq --seed $seed \
        --fp16 --fp16-init-scale 4 --fp16-scale-window 256 \
@@ -286,7 +286,7 @@ For QM7, QM8 and QM9, we set `loss_func=finetune_smooth_mae`.
 
 **NOTE**: For reproduce, you can do the validation on test set while training, with `--valid-subset valid` changing to `--valid-subset valid,test`. The model selection is still based on the performance of the valid set. It is controlled by `--best-checkpoint-metric $metric`.
 
-**NOTE**: You'd better align the `only_polar` parameter in pretraining and finetuning: `-1` for all hydrogen, `0` for no hydrogen, `1` for polar hydrogen.
+**NOTE**: You"d better align the `only_polar` parameter in pretraining and finetuning: `-1` for all hydrogen, `0` for no hydrogen, `1` for polar hydrogen.
 
 
 Molecular conformation generation
@@ -295,13 +295,13 @@ Molecular conformation generation
 1. Finetune Uni-Mol pretrained model on the training set of the conformation generation task: 
 
 ```bash
-data_path='./conformation_generation'  # replace to your data path
-save_dir='./save_confgen'  # replace to your save path
+data_path="./conformation_generation"  # replace to your data path
+save_dir="./save_confgen"  # replace to your save path
 n_gpu=1
 MASTER_PORT=10086
-dict_name='dict.txt'
-weight_path='./weights/checkpoint.pt'  # replace to your ckpt path
-task_name='qm9'  # or 'drugs', conformation generation task name, as a part of complete data path
+dict_name="dict.txt"
+weight_path="./weights/checkpoint.pt"  # replace to your ckpt path
+task_name="qm9"  # or "drugs", conformation generation task name, as a part of complete data path
 recycles=4
 coord_loss=1
 distance_loss=1
@@ -319,7 +319,7 @@ export OMP_NUM_THREADS=1
 python -m torch.distributed.launch --nproc_per_node=$n_gpu --master_port=$MASTER_PORT $(which unicore-train) $data_path --task-name $task_name --user-dir ./unimol --train-subset train --valid-subset valid \
        --num-workers 8 --ddp-backend=c10d \
        --task mol_confG --loss mol_confG --arch mol_confG  \
-       --optimizer adam --adam-betas '(0.9, 0.99)' --adam-eps 1e-6 --clip-norm 1.0 \
+       --optimizer adam --adam-betas "(0.9, 0.99)" --adam-eps 1e-6 --clip-norm 1.0 \
        --lr-scheduler polynomial_decay --lr $lr --warmup-ratio $warmup --max-epoch $epoch --batch-size $batch_size \
        --update-freq $update_freq --seed 1 \
        --fp16 --fp16-init-scale 4 --fp16-scale-window 256 \
@@ -344,11 +344,11 @@ python ./unimol/utils/conf_gen_cal_metrics.py --mode gen_data --nthreads ${Num o
 3. Inference on the generated RDKit initial conformations:
 
 ```bash
-data_path='./conformation_generation'  # replace to your data path
-results_path='./infer_confgen'  # replace to your results path
-weight_path='./save_confgen/checkpoint_best.pt'  # replace to your ckpt path
+data_path="./conformation_generation"  # replace to your data path
+results_path="./infer_confgen"  # replace to your results path
+weight_path="./save_confgen/checkpoint_best.pt"  # replace to your ckpt path
 batch_size=128
-task_name='qm9'  # or 'drugs', conformation generation task name 
+task_name="qm9"  # or "drugs", conformation generation task name 
 recycles=4
 
 python ./unimol/infer.py --user-dir ./unimol $data_path --task-name $task_name --valid-subset test \
@@ -362,7 +362,7 @@ python ./unimol/infer.py --user-dir ./unimol $data_path --task-name $task_name -
 ```
 - For reproduce, you can also use the finetuned checkpoint we released in the table above to infer.
 
-- **NOTE**: Currently, the inference is only supported to run on a single GPU. You can add `CUDA_VISIBLE_DEVICES='0'` before the command.
+- **NOTE**: Currently, the inference is only supported to run on a single GPU. You can add `CUDA_VISIBLE_DEVICES="0"` before the command.
 
 4. Calculate metrics on the results of inference: 
 
@@ -376,13 +376,13 @@ Pocket Property Prediction
 ------------------
 
 ```bash
-data_path='./pocket_property_prediction'  # replace to your data path
-save_dir='./save_finetune'  # replace to your save path
+data_path="./pocket_property_prediction"  # replace to your data path
+save_dir="./save_finetune"  # replace to your save path
 n_gpu=1
 MASTER_PORT=10086
-dict_name='dict_coarse.txt'
-weight_path='./weights/checkpoint.pt'
-task_name='druggability'  # or 'nrdld', pocket property prediction dataset folder name 
+dict_name="dict_coarse.txt"
+weight_path="./weights/checkpoint.pt"
+task_name="druggability"  # or "nrdld", pocket property prediction dataset folder name 
 lr=3e-4
 batch_size=32
 epoch=20
@@ -393,12 +393,12 @@ seed=1
 
 if [ "$task_name" == "druggability" ]; then
        metric="valid_rmse"
-       loss_func='finetune_mse_pocket'
+       loss_func="finetune_mse_pocket"
        task_num=1
-       fpocket_score='Druggability Score'  # choose in ['Score', 'Druggability Score', 'Total SASA', 'Hydrophobicity score']
+       fpocket_score="Druggability Score"  # choose in ["Score", "Druggability Score", "Total SASA", "Hydrophobicity score"]
 else
-       metric='loss'
-       loss_func='finetune_cross_entropy_pocket'
+       metric="loss"
+       loss_func="finetune_cross_entropy_pocket"
        task_num=2
 fi
 
@@ -410,7 +410,7 @@ python -m torch.distributed.launch --nproc_per_node=$n_gpu --master_port=$MASTER
        --dict-name $dict_name \
        --task pocket_finetune --loss $loss_func --arch unimol_base  \
        --classification-head-name $task_name --num-classes $task_num \
-       --optimizer adam --adam-betas '(0.9, 0.99)' --adam-eps 1e-6 --clip-norm 1.0 \
+       --optimizer adam --adam-betas "(0.9, 0.99)" --adam-eps 1e-6 --clip-norm 1.0 \
        --lr-scheduler polynomial_decay --lr $lr --warmup-ratio $warmup --max-epoch $epoch --batch-size $local_batch_size --pooler-dropout $dropout \
        --update-freq $update_freq --seed $seed \
        --fp16 --fp16-init-scale 4 --fp16-scale-window 256 \
@@ -437,12 +437,12 @@ Protein-ligand binding pose prediction
 1. Finetune Uni-Mol pretrained model on the training set: 
 
 ```bash
-data_path='./protein_ligand_binding_pose_prediction'  # replace to your data path
-save_dir='./save_pose'  # replace to your save path
+data_path="./protein_ligand_binding_pose_prediction"  # replace to your data path
+save_dir="./save_pose"  # replace to your save path
 n_gpu=4
 MASTER_PORT=10086
-finetune_mol_model='./weights/mol_checkpoint.pt'
-finetune_pocket_model='./weights/pocket_checkpoint.pt'
+finetune_mol_model="./weights/mol_checkpoint.pt"
+finetune_pocket_model="./weights/pocket_checkpoint.pt"
 lr=3e-4
 batch_size=8
 epoch=50
@@ -457,7 +457,7 @@ export OMP_NUM_THREADS=1
 python -m torch.distributed.launch --nproc_per_node=$n_gpu --master_port=$MASTER_PORT $(which unicore-train) $data_path --user-dir ./unimol --train-subset train --valid-subset valid \
        --num-workers 8 --ddp-backend=c10d \
        --task docking_pose --loss docking_pose --arch docking_pose  \
-       --optimizer adam --adam-betas '(0.9, 0.99)' --adam-eps 1e-6 --clip-norm 1.0 \
+       --optimizer adam --adam-betas "(0.9, 0.99)" --adam-eps 1e-6 --clip-norm 1.0 \
        --lr-scheduler polynomial_decay --lr $lr --warmup-ratio $warmup --max-epoch $epoch --batch-size $batch_size \
        --mol-pooler-dropout $dropout --pocket-pooler-dropout $dropout \
        --fp16 --fp16-init-scale 4 --fp16-scale-window 256 --update-freq $update_freq --seed 1 \
@@ -476,9 +476,9 @@ python -m torch.distributed.launch --nproc_per_node=$n_gpu --master_port=$MASTER
 2. Inference on the test set:
 
 ```bash
-data_path='./protein_ligand_binding_pose_prediction'  # replace to your data path
-results_path='./infer_pose'  # replace to your results path
-weight_path='./save_pose/checkpoint.pt'
+data_path="./protein_ligand_binding_pose_prediction"  # replace to your data path
+results_path="./infer_pose"  # replace to your results path
+weight_path="./save_pose/checkpoint.pt"
 batch_size=8
 dist_threshold=8.0
 recycling=3
@@ -494,7 +494,7 @@ python ./unimol/infer.py --user-dir ./unimol $data_path --valid-subset test \
 ```
 - For reproduce, you can also use the finetuned checkpoint we released in the table above to infer.
 
-- **NOTE**: Currently, the inference is only supported to run on a single GPU. You can add `CUDA_VISIBLE_DEVICES='0'` before the command.
+- **NOTE**: Currently, the inference is only supported to run on a single GPU. You can add `CUDA_VISIBLE_DEVICES="0"` before the command.
 
 4. Docking and cal metrics: 
 
