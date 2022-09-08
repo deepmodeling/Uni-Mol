@@ -6,10 +6,6 @@
 import logging
 import os
 
-import contextlib
-from typing import Optional
-
-import numpy as np
 from unicore.data import (
     Dictionary,
     NestedDictionaryDataset,
@@ -42,7 +38,24 @@ from unicore.tasks import UnicoreTask, register_task
 
 logger = logging.getLogger(__name__)
 
-task_metainfo = {}
+task_metainfo = {
+    "Score": {
+        "mean": -0.02113608960384876,
+        "std": 0.14467607204629246,   
+    },
+    "Druggability Score": {
+        "mean": 0.04279187401338044,
+        "std": 0.1338187819653573,   
+    },
+    "Total SASA": {
+        "mean": 118.7343246335413,
+        "std": 59.82260887999069,   
+    },
+    "Hydrophobicity score": {
+        "mean": 16.824823092535517,
+        "std": 18.16340833552264,   
+    },
+}
 
 
 @register_task("pocket_finetune")
@@ -81,6 +94,12 @@ class UniMolPocketFinetuneTask(UnicoreTask):
             default="dict_pkt.txt",
             help="dictionary file",
         )
+        parser.add_argument(
+            "--fpocket-score",
+            default='Druggability Score',
+            help="Select one of the 4 Fpocket scores as the target",
+            choices=['Score', 'Druggability Score', 'Total SASA', 'Hydrophobicity score'],
+        )
 
     def __init__(self, args, dictionary):
         super().__init__(args)
@@ -88,11 +107,11 @@ class UniMolPocketFinetuneTask(UnicoreTask):
         self.seed = args.seed
         # add mask token
         self.mask_idx = dictionary.add_symbol("[MASK]", is_special=True)
-        # self.__init_data()
-        if self.args.task_name in task_metainfo:
-            # for regression task, pre-compute mean and std
-            self.mean = task_metainfo[self.args.task_name]["mean"]
-            self.std = task_metainfo[self.args.task_name]["std"]
+        if self.args.task_name == 'drugabbility':
+            if self.args.fpocket_score in task_metainfo:
+                # for regression task, pre-compute mean and std
+                self.mean = task_metainfo[self.args.fpocket_score]["mean"]
+                self.std = task_metainfo[self.args.fpocket_score]["std"]
         else:
             self.mean, self.std = None, None
 
@@ -109,9 +128,9 @@ class UniMolPocketFinetuneTask(UnicoreTask):
         """
         split_path = os.path.join(self.args.data, self.args.task_name, split + ".lmdb")
         dataset = LMDBDataset(split_path)
-        if self.args.task_name == "drugabbility":
+        if self.args.task_name == "druggability":
             tgt_dataset_inner = KeyDataset(dataset, "target")
-            tgt_dataset = KeyDataset(tgt_dataset_inner, "Druggability Score")
+            tgt_dataset = KeyDataset(tgt_dataset_inner, self.args.fpocket_score)
             tgt_dataset = FromStrLabelDataset(tgt_dataset)
         else:
             tgt_dataset = KeyDataset(dataset, "target")

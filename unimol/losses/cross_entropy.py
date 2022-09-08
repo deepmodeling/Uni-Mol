@@ -9,7 +9,7 @@ import pandas as pd
 from unicore import metrics
 from unicore.losses import UnicoreLoss, register_loss
 from unicore.losses.cross_entropy import CrossEntropyLoss
-from sklearn.metrics import roc_auc_score
+from sklearn.metrics import roc_auc_score, precision_score, recall_score, f1_score
 import numpy as np
 import warnings
 
@@ -277,17 +277,21 @@ class FinetuneCrossEntropyPocketLoss(FinetuneCrossEntropyLoss):
                 sum(log.get("prob").argmax(dim=-1) == log.get("target"))
                 for log in logging_outputs
             )
-            probs = torch.cat([log.get("prob") for log in logging_outputs], dim=0)
             metrics.log_scalar(
                 f"{split}_acc", acc_sum / sample_size, sample_size, round=3
             )
-            if probs.size(-1) == 2:
-                # binary classification task, add auc score
-                targets = torch.cat(
-                    [log.get("target", 0) for log in logging_outputs], dim=0
-                )
-                df = pd.DataFrame(
-                    {"probs": probs[:, 1].cpu(), "targets": targets.cpu()}
-                )
-                auc = roc_auc_score(df["targets"], df["probs"])
-                metrics.log_scalar(f"{split}_auc", auc, sample_size, round=3)
+            preds = torch.cat(
+                [log.get("prob").argmax(dim=-1) for log in logging_outputs], dim=0
+            ).cpu().numpy()
+            targets = torch.cat(
+                [log.get("target", 0) for log in logging_outputs], dim=0
+            ).cpu().numpy()
+            metrics.log_scalar(
+                f"{split}_pre", precision_score(targets, preds), round=3
+            )
+            metrics.log_scalar(
+                f"{split}_rec", recall_score(targets, preds), round=3
+            )
+            metrics.log_scalar(
+                f"{split}_f1", f1_score(targets, preds), sample_size, round=3
+            )

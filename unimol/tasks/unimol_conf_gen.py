@@ -6,9 +6,6 @@
 import logging
 import os
 
-import contextlib
-from typing import Optional
-
 import numpy as np
 from unicore.data import (
     Dictionary,
@@ -54,12 +51,6 @@ class UniMolConfGTask(UnicoreTask):
             help="dictionary file",
         )
         parser.add_argument(
-            "--dist-threshold",
-            type=float,
-            default=100.0,
-            help="threshold for the distance",
-        )
-        parser.add_argument(
             "--beta",
             type=float,
             default=1.0,
@@ -90,10 +81,6 @@ class UniMolConfGTask(UnicoreTask):
         self.seed = args.seed
         # add mask token
         self.mask_idx = dictionary.add_symbol("[MASK]", is_special=True)
-        if self.args.dict_name == "mol.dict.txt":
-            self.use_atom_type = True
-        else:
-            self.use_atom_type = False
 
     @classmethod
     def setup_task(cls, args, **kwargs):

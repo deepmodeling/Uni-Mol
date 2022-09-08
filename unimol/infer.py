@@ -4,7 +4,6 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
-import ast
 import logging
 import os
 import sys
@@ -20,7 +19,7 @@ logging.basicConfig(
     level=os.environ.get("LOGLEVEL", "INFO").upper(),
     stream=sys.stdout,
 )
-logger = logging.getLogger("unimol.conf_gen_infer")
+logger = logging.getLogger("unimol.inference")
 
 
 def main(args):
@@ -42,13 +41,7 @@ def main(args):
         data_parallel_world_size = 1
         data_parallel_rank = 0
 
-    overrides = ast.literal_eval(args.model_overrides)
-    if "data" not in overrides:
-        overrides["data"] = args.data
-    if "task_name" not in overrides:
-        overrides["task_name"] = args.task_name
-
-    # Load ensemble
+    # Load model
     logger.info("loading model(s) from {}".format(args.path))
     state = checkpoint_utils.load_checkpoint_to_cpu(
         args.path
@@ -109,6 +102,7 @@ def main(args):
             progress.log({}, step=i)
             log_outputs.append(log_output)
         pickle.dump(log_outputs, open(save_path, "wb"))
+        logger.info("Done inference! ")
     return None
 
 
