@@ -15,7 +15,9 @@ Uni-Mol is composed of two models: a molecular pretraining model trained by 209M
 
 News
 ----
-**Aug 17 2022**: Pretraining models are released.
+**Sep 8 2022**: Protein-ligand binding code and data are released. Finetuned models are released.
+
+**Aug 17 2022**: Pretrained models are released.
 
 **Jul 10 2022**: Pretraining codes are released.
 
@@ -37,7 +39,7 @@ There are total 6 datasets:
 | molecular property       | 3.506GB    | Jul 10 2022 |https://unimol.dp.tech/data/finetune/molecular_property_prediction.tar.gz         |
 | molecular conformation   | 8.331GB    | Jul 19 2022 |https://unimol.dp.tech/data/finetune/conformation_generation.tar.gz               |
 | pocket property          | 455.239MB  | Jul 19 2022 |https://unimol.dp.tech/data/finetune/pocket_property_prediction.tar.gz            |
-| protein-ligand binding   |            |             | TBA |
+| protein-ligand binding   |  263.27MB    | Sep 8  2022 | https://unimol.dp.tech/data/finetune/protein_ligand_binding_pose_prediction.tar.gz |
 
 
 We use [LMDB](https://lmdb.readthedocs.io) to store data, you can use the following code snippets to read from the LMDB file.
@@ -74,6 +76,16 @@ Uni-Mol's pretrained model weights
 |--------------------------|------------| ------------|-----------------------------------------------------------------------------------|
 | molecular pretrain       | 181MB   | Aug 17 2022 |https://unimol.dp.tech/ckp/mol_pre_no_h_220816.pt                              |
 | pocket pretrain          | 181MB    | Aug 17 2022 |https://unimol.dp.tech/ckp/pocket_pre_220816.pt                             |
+
+
+Uni-Mol's finetuned model weights
+----------------------------------
+
+| Model                     | File Size  |Update Date | Download Link                                                                    | 
+|--------------------------|------------| ------------|-----------------------------------------------------------------------------------|
+| molecular conformation generation (qm9)       | 181MB   | Sep 8 2022 |https://unimol.dp.tech/ckp/conformation_generation/qm9_220908.pt
+| molecular conformation generation (drugs)       | 181MB   | Sep 8 2022 |https://unimol.dp.tech/ckp/conformation_generation/drugs_220908.pt
+| Protein-ligand binding pose prediction          | 415MB    | Sep 8 2022 |https://unimol.dp.tech/ckp/bindind_pose/binding_pose_220908.pt                             |
 
 
 Dependencies
@@ -326,7 +338,7 @@ python -m torch.distributed.launch --nproc_per_node=$n_gpu --master_port=$MASTER
 - Run this command, 
 
 ```bash
-python ./unimol/conf_gen_cal_metrics.py --mode gen_data --nthreads ${Num of threads} --reference-file ${Reference file dir} --output-dir ${Generated initial data dir}
+python ./unimol/utils/conf_gen_cal_metrics.py --mode gen_data --nthreads ${Num of threads} --reference-file ${Reference file dir} --output-dir ${Generated initial data dir}
 ```
 
 3. Inference on the generated RDKit initial conformations:
@@ -348,6 +360,7 @@ python ./unimol/infer.py --user-dir ./unimol $data_path --task-name $task_name -
        --fp16 --fp16-init-scale 4 --fp16-scale-window 256 \
        --log-interval 50 --log-format simple 
 ```
+- For reproduce, you can also use the finetuned checkpoint we released in the table above to infer.
 
 - **NOTE**: Currently, the inference is only supported to run on a single GPU. You can add `CUDA_VISIBLE_DEVICES='0'` before the command.
 
@@ -355,7 +368,7 @@ python ./unimol/infer.py --user-dir ./unimol $data_path --task-name $task_name -
 
 - Run this command
 ```bash
-python ./unimol/conf_gen_cal_metrics.py --mode cal_metrics --threshold ${Threshold for cal metrics} --nthreads ${Num of threads} --predict-file ${Your inference file dir} --reference-file ${Your reference file dir}
+python ./unimol/utils/conf_gen_cal_metrics.py --mode cal_metrics --threshold ${Threshold for cal metrics} --nthreads ${Num of threads} --predict-file ${Your inference file dir} --reference-file ${Your reference file dir}
 ```
 
 
@@ -417,11 +430,78 @@ We choose the checkpoint with the best metric on validation set. It is controlle
 
 **NOTE**: For reproduce, you can do the validation on test set while training, with `--valid-subset valid` changing to `--valid-subset valid,test`.
 
-WIP
----
 
-- [ ] code & data for protein-ligand binding
+Protein-ligand binding pose prediction
+------------------
 
+1. Finetune Uni-Mol pretrained model on the training set: 
+
+```bash
+data_path='./protein_ligand_binding_pose_prediction'  # replace to your data path
+save_dir='./save_pose'  # replace to your save path
+n_gpu=4
+MASTER_PORT=10086
+finetune_mol_model='./weights/mol_checkpoint.pt'
+finetune_pocket_model='./weights/pocket_checkpoint.pt'
+lr=3e-4
+batch_size=8
+epoch=50
+dropout=0.2
+warmup=0.06
+update_freq=1
+dist_threshold=8.0
+recycling=3
+
+export NCCL_ASYNC_ERROR_HANDLING=1
+export OMP_NUM_THREADS=1
+python -m torch.distributed.launch --nproc_per_node=$n_gpu --master_port=$MASTER_PORT $(which unicore-train) $data_path --user-dir ./unimol --train-subset train --valid-subset valid \
+       --num-workers 8 --ddp-backend=c10d \
+       --task docking_pose --loss docking_pose --arch docking_pose  \
+       --optimizer adam --adam-betas '(0.9, 0.99)' --adam-eps 1e-6 --clip-norm 1.0 \
+       --lr-scheduler polynomial_decay --lr $lr --warmup-ratio $warmup --max-epoch $epoch --batch-size $batch_size \
+       --mol-pooler-dropout $dropout --pocket-pooler-dropout $dropout \
+       --fp16 --fp16-init-scale 4 --fp16-scale-window 256 --update-freq $update_freq --seed 1 \
+       --tensorboard-logdir $save_dir/tsb \
+       --log-interval 100 --log-format simple \
+       --validate-interval 1 --keep-last-epochs 10 \
+       --best-checkpoint-metric valid_loss  --patience 2000 --all-gather-list-size 2048000 \
+       --finetune-mol-model $finetune_mol_model \
+       --finetune-pocket-model $finetune_pocket_model \
+       --dist-threshold $dist_threshold --recycling $recycling \
+       --save-dir $save_dir \
+       --find-unused-parameters
+
+```
+
+2. Inference on the test set:
+
+```bash
+data_path='./protein_ligand_binding_pose_prediction'  # replace to your data path
+results_path='./infer_pose'  # replace to your results path
+weight_path='./save_pose/checkpoint.pt'
+batch_size=8
+dist_threshold=8.0
+recycling=3
+
+python ./unimol/infer.py --user-dir ./unimol $data_path --valid-subset test \
+       --results-path $results_path \
+       --num-workers 8 --ddp-backend=c10d --batch-size $batch_size \
+       --task docking_pose --loss docking_pose --arch docking_pose \
+       --path $weight_path \
+       --fp16 --fp16-init-scale 4 --fp16-scale-window 256 \
+       --dist-threshold $dist_threshold --recycling $recycling \
+       --log-interval 50 --log-format simple
+```
+- For reproduce, you can also use the finetuned checkpoint we released in the table above to infer.
+
+- **NOTE**: Currently, the inference is only supported to run on a single GPU. You can add `CUDA_VISIBLE_DEVICES='0'` before the command.
+
+4. Docking and cal metrics: 
+
+- Run this command
+```bash
+python ./unimol/utils/docking.py --nthreads ${Num of threads} --predict-file ${Your inference file dir} --reference-file ${Your reference file dir} --output-path ${Docking results path}
+```
 
 
 Citation

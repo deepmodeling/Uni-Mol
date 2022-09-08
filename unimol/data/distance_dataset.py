@@ -31,3 +31,18 @@ class EdgeTypeDataset(BaseWrapperDataset):
         node_input = self.dataset[index].clone()
         offset = node_input.view(-1, 1) * self.num_types + node_input.view(1, -1)
         return offset
+
+
+class CrossDistanceDataset(BaseWrapperDataset):
+
+    def __init__(self, mol_dataset, pocket_dataset):
+        super().__init__(mol_dataset)
+        self.mol_dataset = mol_dataset
+        self.pocket_dataset = pocket_dataset
+
+    @lru_cache(maxsize=16)
+    def __getitem__(self, idx):
+        mol_pos = self.mol_dataset[idx].view(-1, 3).numpy()
+        pocket_pos = self.pocket_dataset[idx].view(-1, 3).numpy()
+        dist = distance_matrix(mol_pos, pocket_pos).astype(np.float32)
+        return torch.from_numpy(dist)
