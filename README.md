@@ -24,7 +24,7 @@ News
 **Jun 10 2022**: The 3D conformation data used in Uni-Mol is released.
 
 
-Uni-Mol"s 3D conformation data 
+Uni-Mol's 3D conformation data 
 ------------------------------
 
 For the details of datasets, please refer to Appendix A and B in our [paper](https://chemrxiv.org/engage/chemrxiv/article-details/6294500fcd6c1c16be204e28).
@@ -69,7 +69,7 @@ def read_lmdb(lmdb_path):
 We use pickle protocol 5, so Python >= 3.8 is recommended.
 
 
-Uni-Mol"s pretrained model weights
+Uni-Mol's pretrained model weights
 ----------------------------------
 
 | Model                     | File Size  |Update Date | Download Link                                                | 
@@ -78,7 +78,7 @@ Uni-Mol"s pretrained model weights
 | pocket pretrain          | 181MB   | Aug 17 2022 |https://unimol.dp.tech/ckp/pocket_pre_220816.pt                  |
 
 
-Uni-Mol"s finetuned model weights
+Uni-Mol's finetuned model weights
 ----------------------------------
 
 | Model                     | File Size  |Update Date | Download Link                                                                         | 
