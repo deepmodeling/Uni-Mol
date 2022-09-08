@@ -15,7 +15,11 @@ Uni-Mol is composed of two models: a molecular pretraining model trained by 209M
 
 News
 ----
-**Sep 8 2022**: Protein-ligand binding code and data are released. Finetuned models are released. Update some results in the [paper](https://chemrxiv.org/engage/chemrxiv/article-details/6318b529bada388485bc8361).
+**Sep 8 2022**: 
+
+Protein-ligand binding code and data are released. Finetuned models are released. 
+
+Updated experiment results based on our released code, more ablation studies. More discussions in the [paper](https://chemrxiv.org/engage/chemrxiv/article-details/6318b529bada388485bc8361).
 
 **Aug 17 2022**: Pretrained models are released.
 
