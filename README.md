@@ -1,7 +1,7 @@
 Uni-Mol: A Universal 3D Molecular Representation Learning Framework 
 ===================================================================
 
-[[ChemRxiv](https://chemrxiv.org/engage/chemrxiv/article-details/6318b529bada388485bc8361)]
+[[ChemRxiv](https://chemrxiv.org/engage/chemrxiv/article-details/6318b529bada388485bc8361)], [[Uni-Mol Binding Pose Colab](https://colab.research.google.com/github/dptech-corp/Uni-Mol/blob/main/notebooks/unimol_binding_pose_demo.ipynb)]
 
 Authors: Gengmo Zhou, Zhifeng Gao, Qiankun Ding, Hang Zheng, Hongteng Xu, Zhewei Wei, Linfeng Zhang, Guolin Ke 
 
@@ -15,6 +15,8 @@ Uni-Mol is composed of two models: a molecular pretraining model trained by 209M
 
 News
 ----
+**Sep 9 2022**: Add Uni-Mol binding pose demo based on Colab.
+
 **Sep 8 2022**: 
 
 Protein-ligand binding code and data are released. Finetuned models are released. 
