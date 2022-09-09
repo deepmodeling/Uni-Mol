@@ -1,7 +1,7 @@
 Uni-Mol: A Universal 3D Molecular Representation Learning Framework 
 ===================================================================
 
-[[ChemRxiv](https://chemrxiv.org/engage/chemrxiv/article-details/6318b529bada388485bc8361)], [[Uni-Mol Binding Pose Colab](https://colab.research.google.com/github/dptech-corp/Uni-Mol/blob/main/notebooks/unimol_binding_pose_demo.ipynb)]
+[[ChemRxiv](https://chemrxiv.org/engage/chemrxiv/article-details/6318b529bada388485bc8361)], [[Uni-Mol Docking Colab](https://colab.research.google.com/github/dptech-corp/Uni-Mol/blob/main/notebooks/unimol_binding_pose_demo.ipynb)]
 
 Authors: Gengmo Zhou, Zhifeng Gao, Qiankun Ding, Hang Zheng, Hongteng Xu, Zhewei Wei, Linfeng Zhang, Guolin Ke 
 
@@ -15,13 +15,13 @@ Uni-Mol is composed of two models: a molecular pretraining model trained by 209M
 
 News
 ----
-**Sep 9 2022**: Add Uni-Mol binding pose demo based on Colab.
+**Sep 9 2022**: Provide Uni-Mol binding pose prediction (docking) demo on Colab.
 
 **Sep 8 2022**: 
 
-Protein-ligand binding code and data are released. Finetuned models are released. 
-
-Updated experiment results based on our released code, more ablation studies, and more discussions in the [paper](https://chemrxiv.org/engage/chemrxiv/article-details/6318b529bada388485bc8361).
+- The code and data for protein-ligand binding pose prediction are released. 
+- Finetuned model weights of molecular conformation generation and protein-ligand binding pose prediction are released. 
+- [Paper update](https://chemrxiv.org/engage/chemrxiv/article-details/6318b529bada388485bc8361).
 
 **Aug 17 2022**: Pretrained models are released.
 
@@ -87,11 +87,11 @@ Uni-Mol's pretrained model weights
 Uni-Mol's finetuned model weights
 ----------------------------------
 
-| Model                     | File Size  |Update Date | Download Link                                                                         | 
-|--------------------------|------------| ------------|---------------------------------------------------------------------------------------|
-| molecular conformation generation (qm9)       | 181MB   | Sep 8 2022 |https://unimol.dp.tech/ckp/conformation_generation/qm9_220908.pt      |
+| Model                                           | File Size| Update Date| Download Link                                                     | 
+|-------------------------------------------------|---------| -----------|--------------------------------------------------------------------|
+| molecular conformation generation (qm9)         | 181MB   | Sep 8 2022 |https://unimol.dp.tech/ckp/conformation_generation/qm9_220908.pt    |
 | molecular conformation generation (drugs)       | 181MB   | Sep 8 2022 |https://unimol.dp.tech/ckp/conformation_generation/drugs_220908.pt  |
-| Protein-ligand binding pose prediction          | 415MB    | Sep 8 2022 |https://unimol.dp.tech/ckp/bindind_pose/binding_pose_220908.pt     |
+| Protein-ligand binding pose prediction          | 415MB   | Sep 8 2022 |https://unimol.dp.tech/ckp/bindind_pose/binding_pose_220908.pt      |
 
 
 Dependencies
@@ -449,7 +449,7 @@ We choose the checkpoint with the best metric on validation set. It is controlle
 **NOTE**: For reproduce, you can do the validation on test set while training, with `--valid-subset valid` changing to `--valid-subset valid,test`.
 
 
-Protein-ligand binding pose prediction
+Protein-ligand Binding Pose Prediction
 ------------------
 
 1. Finetune Uni-Mol pretrained model on the training set: 
