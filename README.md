@@ -19,7 +19,7 @@ News
 
 Protein-ligand binding code and data are released. Finetuned models are released. 
 
-Updated experiment results based on our released code, more ablation studies. More discussions in the [paper](https://chemrxiv.org/engage/chemrxiv/article-details/6318b529bada388485bc8361).
+Updated experiment results based on our released code, more ablation studies, and more discussions in the [paper](https://chemrxiv.org/engage/chemrxiv/article-details/6318b529bada388485bc8361).
 
 **Aug 17 2022**: Pretrained models are released.
 
@@ -31,7 +31,7 @@ Updated experiment results based on our released code, more ablation studies. Mo
 Uni-Mol's 3D conformation data 
 ------------------------------
 
-For the details of datasets, please refer to Appendix A and B in our [paper](https://chemrxiv.org/engage/chemrxiv/article-details/6294500fcd6c1c16be204e28).
+For the details of datasets, please refer to Appendix A and B in our [paper](https://chemrxiv.org/engage/chemrxiv/article-details/6318b529bada388485bc8361).
 
 There are total 6 datasets:
 
@@ -521,7 +521,7 @@ predict_file="./infer_pose/save_pose_test.out.pkl"  # Your inference file dir
 reference_file="./protein_ligand_binding_pose_prediction/test.lmdb"  # Your reference file dir
 output_path="./protein_ligand_binding_pose_prediction"  # Docking results path
 
-python ./unimol/utils/docking.py --nthreads $nthreads --predict-file $predict_file --reference-file reference_file --output-path $output_path
+python ./unimol/utils/docking.py --nthreads $nthreads --predict-file $predict_file --reference-file $reference_file --output-path $output_path
 ```
 
 
