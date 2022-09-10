@@ -24,7 +24,6 @@ from unimol.data import (
     ConformerSampleDockingPoseDataset,
     DistanceDataset,
     EdgeTypeDataset,
-    RemoveHydrogenDataset,
     NormalizeDataset,
     RightPadDatasetCoord,
     LMDBDataset,
@@ -202,9 +201,6 @@ class DockingPose(UnicoreTask):
             distance_pocket_dataset, 0.0
         )
 
-        holo_dataset = RemoveHydrogenDataset(
-            dataset, "atoms", "holo_coordinates", True, True
-        )
         holo_dataset = NormalizeDockingPoseDataset(
             dataset,
             "holo_coordinates",
