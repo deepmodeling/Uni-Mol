@@ -264,8 +264,8 @@ class ConformerSampleDockingPoseDataset(BaseWrapperDataset):
             holo_coordinates = coordinates
             holo_pocket_coordinates = pocket_coordinates
 
-        smi = self.dataset[sample_idx]["smi"]
-        pocket = self.dataset[sample_idx]["pocket"]
+        smi = self.dataset[index]["smi"]
+        pocket = self.dataset[index]["pocket"]
 
         return {
             "atoms": atoms,
