@@ -15,6 +15,8 @@ Uni-Mol is composed of two models: a molecular pretraining model trained by 209M
 
 News
 ----
+**Sep 20 2022**: Provide Uni-Mol based IFD scoring function baseline for [AIAC 2022 Competition Prediction of protein binding ability of drug molecules](http://www.aiinnovation.com.cn/#/aiaeDetail?id=560). 
+
 **Sep 9 2022**: Provide Uni-Mol binding pose prediction (docking) demo on Colab.
 
 **Sep 8 2022**: 
@@ -526,6 +528,18 @@ output_path="./protein_ligand_binding_pose_prediction"  # Docking results path
 python ./unimol/utils/docking.py --nthreads $nthreads --predict-file $predict_file --reference-file $reference_file --output-path $output_path
 ```
 
+AIAC 2022 Competition Prediction of protein binding ability of drug molecules
+------------------
+- Competition Link: [AIAC 2022 Competition Prediction of protein binding ability of drug molecules](http://www.aiinnovation.com.cn/#/aiaeDetail?id=560). 
+- Entry and final submission deadline: 2022-09-26
+- Run this command
+```bash
+git checkout ifd_demo    
+### download data from competition website and decompress it to ./examples/ifd_docking
+sh train_ifd.sh
+sh infer_ifd.sh
+cd ./examples/ifd_scoring && python generate_submit.py 
+```
 
 Citation
 --------
