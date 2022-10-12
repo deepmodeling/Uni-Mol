@@ -16,6 +16,7 @@ from unicore.data import (
     TokenizeDataset,
     RightPadDataset2D,
     FromNumpyDataset,
+    RawArrayDataset,
 )
 from unimol.data import (
     KeyDataset,
@@ -106,6 +107,12 @@ class UniMolTask(UnicoreTask):
             type=int,
             help="1: only polar hydrogen ; -1: all hydrogen ; 0: remove all hydrogen ",
         )
+        parser.add_argument(
+            "--mode",
+            type=str,
+            default="train",
+            choices=["train", "infer"],
+        )
 
     def __init__(self, args, dictionary):
         super().__init__(args)
@@ -136,9 +143,11 @@ class UniMolTask(UnicoreTask):
         raw_dataset = LMDBDataset(split_path)
 
         def one_dataset(raw_dataset, coord_seed, mask_seed):
-            raw_dataset = Add2DConformerDataset(
-                raw_dataset, "smi", "atoms", "coordinates"
-            )
+            if self.args.mode =='train':
+                raw_dataset = Add2DConformerDataset(
+                    raw_dataset, "smi", "atoms", "coordinates"
+                )
+            smi_dataset = KeyDataset(raw_dataset, "smi")
             dataset = ConformerSampleDataset(
                 raw_dataset, coord_seed, "atoms", "coordinates"
             )
@@ -217,6 +226,7 @@ class UniMolTask(UnicoreTask):
                 ),
                 "distance_target": RightPadDataset2D(distance_dataset, pad_idx=0),
                 "coord_target": RightPadDatasetCoord(coord_dataset, pad_idx=0),
+                "smi_name": RawArrayDataset(smi_dataset),
             }
 
         net_input, target = one_dataset(raw_dataset, self.args.seed, self.args.seed)
