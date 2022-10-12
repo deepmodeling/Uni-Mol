@@ -15,6 +15,8 @@ Uni-Mol is composed of two models: a molecular pretraining model trained by 209M
 
 News
 ----
+**Oct 12 2022**: Provide a demo to get Uni-Mol molecular representation.
+
 **Sep 20 2022**: Provide Uni-Mol based IFD scoring function baseline for [AIAC 2022 Competition Prediction of protein binding ability of drug molecules](http://www.aiinnovation.com.cn/#/aiaeDetail?id=560). 
 
 **Sep 9 2022**: Provide Uni-Mol binding pose prediction (docking) demo on Colab.
