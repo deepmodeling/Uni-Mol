@@ -174,3 +174,37 @@ class UniMolLoss(UnicoreLoss):
             beta=1.0,
         )
         return masked_dist_loss
+
+
+@register_loss("unimol_infer")
+class UniMolInferLoss(UnicoreLoss):
+    def __init__(self, task):
+        super().__init__(task)
+        self.padding_idx = task.dictionary.pad()
+
+    def forward(self, model, sample, reduce=True):
+        """Compute the loss for the given sample.
+
+        Returns a tuple with three elements:
+        1) the loss
+        2) the sample size, which is used as the denominator for the gradient
+        3) logging outputs to display while training
+        """
+        input_key = "net_input"
+        target_key = "target"
+        src_tokens = sample[input_key]["src_tokens"].ne(self.padding_idx)
+        (
+            encoder_rep,
+            encoder_pair_rep,
+        ) = model(**sample[input_key], features_only=True)
+        sample_size = sample[input_key]["src_tokens"].size(0)
+        encoder_pair_rep_list = []
+        for i in range(sample_size):  # rm padding token
+            encoder_pair_rep_list.append(encoder_pair_rep[i][src_tokens[i], :][:, src_tokens[i]].data.cpu().numpy())
+        logging_output = {
+                "mol_repr_cls": encoder_rep[:, 0, :].data.cpu().numpy(),  # get cls token
+                "pair_repr": encoder_pair_rep_list,
+                "smi_name": sample[target_key]["smi_name"],
+                "bsz": sample[input_key]["src_tokens"].size(0),
+            }
+        return 0, sample_size, logging_output

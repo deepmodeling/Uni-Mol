@@ -238,14 +238,16 @@ class UniMolModel(BaseUnicoreModel):
 
         if classification_head_name is not None:
             logits = self.classification_heads[classification_head_name](encoder_rep)
-
-        return (
-            logits,
-            encoder_distance,
-            encoder_coord,
-            x_norm,
-            delta_encoder_pair_rep_norm,
-        )
+        if self.args.mode == 'infer':
+            return encoder_rep, encoder_pair_rep
+        else:
+            return (
+                logits,
+                encoder_distance,
+                encoder_coord,
+                x_norm,
+                delta_encoder_pair_rep_norm,
+            )         
 
     def register_classification_head(
         self, name, num_classes=None, inner_dim=None, **kwargs
