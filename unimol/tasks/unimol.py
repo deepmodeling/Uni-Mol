@@ -107,12 +107,6 @@ class UniMolTask(UnicoreTask):
             type=int,
             help="1: only polar hydrogen ; -1: all hydrogen ; 0: remove all hydrogen ",
         )
-        parser.add_argument(
-            "--mode",
-            type=str,
-            default="train",
-            choices=["train", "infer"],
-        )
 
     def __init__(self, args, dictionary):
         super().__init__(args)
