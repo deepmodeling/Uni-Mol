@@ -121,6 +121,12 @@ class UniMolModel(BaseUnicoreModel):
             metavar="D",
             help="masked coord dist loss ratio",
         )
+        parser.add_argument(
+            "--mode",
+            type=str,
+            default="train",
+            choices=["train", "infer"],
+        )
 
     def __init__(self, args, dictionary):
         super().__init__()
