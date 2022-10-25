@@ -351,7 +351,7 @@ python -m torch.distributed.launch --nproc_per_node=$n_gpu --master_port=$MASTER
 mode="gen_data"
 nthreads=20  # Num of threads
 reference_file="./conformation_generation/qm9/test_data_200.pkl"  # Your reference file dir
-output_path="./conformation_generation/qm9"  # Generated initial data dir
+output_dir="./conformation_generation/qm9"  # Generated initial data dir
 
 python ./unimol/utils/conf_gen_cal_metrics.py --mode $mode --nthreads $nthreads --reference-file $reference_file --output-dir $output_dir
 
