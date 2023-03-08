@@ -548,13 +548,13 @@ Citation
 
 Please kindly cite this paper if you use the data/code/model.
 ```
-@article{zhou2022uni,
+@inproceedings{
+  zhou2023unimol,
   title={Uni-Mol: A Universal 3D Molecular Representation Learning Framework},
-  author={Zhou, Gengmo and Gao, Zhifeng and Ding, Qiankun and Zheng, Hang and Xu, Hongteng and Wei, Zhewei and Zhang, Linfeng and Ke, Guolin},
-  journal={ChemRxiv},
-  publisher={Cambridge Open Engage},
-  DOI={10.26434/chemrxiv-2022-jjm0j-v2},
-  year={2022}
+  author={Gengmo Zhou and Zhifeng Gao and Qiankun Ding and Hang Zheng and Hongteng Xu and Zhewei Wei and Linfeng Zhang and Guolin Ke},
+  booktitle={The Eleventh International Conference on Learning Representations },
+  year={2023},
+  url={https://openreview.net/forum?id=6K2RM6wVqKu}
 }
 ```
 
