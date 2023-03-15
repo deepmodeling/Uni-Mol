@@ -10,7 +10,7 @@ Uni-Mol is a universal 3D molecular pretraining framework that significantly enl
 <p align="center"><img src="figure/overview.png" width=80%></p>
 <p align="center"><b>Schematic illustration of the Uni-Mol framework</b></p>
 
-Uni-Mol is composed of two models: a molecular pretraining model trained by 209M molecular 3D conformations; a pocket pretraining model trained by 3M candidate protein pocket data. The two models are used independently for separate tasks, and are combined when used in protein-ligand binding tasks. Uni-Mol outperforms SOTA in 14/15 molecular property prediction tasks. Moreover, Uni-Mol achieves superior performance in 3D spatial tasks, including protein-ligand binding pose prediction, molecular conformation generation, etc. 
+Uni-Mol comprises two models: a molecular pretraining model that has been trained using 209M molecular 3D conformations, and a pocket pretraining model that has been trained using 3M candidate protein pocket data. These two models can be used independently for different tasks and are combined for protein-ligand binding tasks. Uni-Mol has demonstrated superior performance compared to the state-of-the-art (SOTA) in 14 out of 15 molecular property prediction tasks. Moreover, Uni-Mol has achieved exceptional accuracy in 3D spatial tasks, such as protein-ligand binding pose prediction and molecular conformation generation.
 
 
 Uni-Mol's 3D conformation data 
