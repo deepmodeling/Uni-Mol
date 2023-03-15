@@ -1,4 +1,4 @@
-Official repositories for the Uni-Mol series methods
+Official Repositories for the Uni-Mol Series Methods
 ====================================================
 
 
@@ -9,7 +9,7 @@ Uni-Mol: A Universal 3D Molecular Representation Learning Framework
 
 Authors: Gengmo Zhou, Zhifeng Gao, Qiankun Ding, Hang Zheng, Hongteng Xu, Zhewei Wei, Linfeng Zhang, Guolin Ke 
 
-<p align="center"><img src="unimol/figure/overview.png" width=50%></p>
+<p align="center"><img src="unimol/figure/overview.png" width=60%></p>
 <p align="center"><b>Schematic illustration of the Uni-Mol framework</b></p>
 
 Uni-Mol is a universal 3D molecular pretraining framework that offers a significant expansion of representation capacity and application scope in drug design. The framework comprises two models: a molecular pretraining model that has been trained using 209M molecular 3D conformations, 
