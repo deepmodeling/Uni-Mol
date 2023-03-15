@@ -28,6 +28,6 @@ jobs:
         name: Build and push
         uses: docker/build-push-action@v3
         with:
-          context: ./docker/
+          context: ./unimol/docker/
           push: true
           tags: dptechnology/unimol:latest-pytorch1.11.0-cuda11.3
