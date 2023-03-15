@@ -1,6 +1,6 @@
 Highly Accurate Quantum Chemical Property Prediction with Uni-Mol+
 ==================================================================
-
+[Paper](./paper/unimol_plus_preprint.pdf)
 
 <p align="center"><img src="figure/overview.png" width=80%></p>
 <p align="center"><b>Schematic illustration of the Uni-Mol+ framework</b></p>
@@ -31,7 +31,7 @@ cd scripts
 bash download.sh
 ```
 
-Second, covert the 3D SDF to lmdb file:
+Second, covert the 3D SDF (training set only) to lmdb file:
 
 ```bash
 python get_label3d_lmdb.py
