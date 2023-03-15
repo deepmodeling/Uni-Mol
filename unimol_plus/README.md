@@ -11,8 +11,8 @@ In the PCQM4MV2 bencmark, Uni-Mol+ outperforms previous SOTA methods by a large 
 
 | Model Settings   | # Layers   | # Param.    | Validation MAE   | Model Checkpoint | 
 |------------------|------------| ----------- |------------------|------------------|
-| Uni-Mol+         |     12     |   52.4 M    | 0.0708           |                  |
-| Uni-Mol+ Large   |     18     |   77 M      | 0.0701           |                  |
+| Uni-Mol+         |     12     |   52.4 M    | 0.0708           | [link](https://github.com/dptech-corp/Uni-Mol/releases/download/v0.1/unimol_plus_base.pt)          |
+| Uni-Mol+ Large   |     18     |   77 M      | 0.0701           | [link](https://github.com/dptech-corp/Uni-Mol/releases/download/v0.1/unimol_plus_large.pt)         |
 
 
 Dependencies
