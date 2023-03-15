@@ -18,6 +18,16 @@ and a pocket pretraining model that has been trained using 3M candidate protein 
 Check this [subfolder](./unimol/) for more detalis.
 
 
+Highly Accurate Quantum Chemical Property Prediction with Uni-Mol+
+-------------------------------------------------------------------
+
+<p align="center"><img src="unimol_plus/figure/overview.png" width=80%></p>
+<p align="center"><b>Schematic illustration of the Uni-Mol+ framework</b></p>
+
+Uni-Mol+ is a model for quantum chemical property prediction. Firstly, given a 2D molecular graph, Uni-Mol+ generates an initial 3D conformation from inexpensive methods such as RDKit. Then, the initial conformation is iteratively optimized to its equilibrium conformation, and the optimized conformation is further used to predict the QC properties. In the PCQM4MV2 bencmark, Uni-Mol+ outperforms previous SOTA methods by a large margin.
+
+Check this [subfolder](./unimol_plus/) for more detalis.
+
 News
 ----
 **Jan 21 2023**: Uni-Mol is accepted by ICLR 2023.
