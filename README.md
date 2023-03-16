@@ -1,5 +1,14 @@
-Official Repositories for the Uni-Mol Series Methods
-====================================================
+Official Repository for the Uni-Mol Series Methods
+==================================================
+
+Shortcuts
+---------
+
+- [Uni-Mol](./unimol/)
+- [Uni-Mol+](./unimol_plus/)
+
+
+**Note**: if you want to install or run our codes, please `cd` to subfolders first.
 
 
 Uni-Mol: A Universal 3D Molecular Representation Learning Framework
@@ -30,6 +39,8 @@ Check this [subfolder](./unimol_plus/) for more detalis.
 
 News
 ----
+**Mar 16 2023**: We release Uni-Mol+, a model for quantum chemical property prediction.
+
 **Jan 21 2023**: Uni-Mol is accepted by ICLR 2023.
 
 **Oct 12 2022**: Provide a demo to get Uni-Mol molecular representation.
