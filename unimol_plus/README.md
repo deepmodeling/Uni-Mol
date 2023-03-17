@@ -7,7 +7,7 @@ Highly Accurate Quantum Chemical Property Prediction with Uni-Mol+
 
 Uni-Mol+ is a model for quantum chemical property prediction. Firstly, given a 2D molecular graph, Uni-Mol+ generates an initial 3D conformation from inexpensive methods such as RDKit. Then, the initial conformation is iteratively optimized to its equilibrium conformation, and the optimized conformation is further used to predict the QC properties.
 
-In the PCQM4MV2 bencmark, Uni-Mol+ outperforms previous SOTA methods by a large margin.
+In the [PCQM4MV2](https://ogb.stanford.edu/docs/lsc/leaderboards/#pcqm4mv2) bencmark, Uni-Mol+ outperforms previous SOTA methods by a large margin.
 
 | Model Settings   | # Layers   | # Param.    | Validation MAE   | Model Checkpoint | 
 |------------------|------------| ----------- |------------------|------------------|
