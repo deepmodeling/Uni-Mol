@@ -1,6 +1,6 @@
 Highly Accurate Quantum Chemical Property Prediction with Uni-Mol+
 ==================================================================
-[Paper](./paper/unimol_plus_preprint.pdf)
+[[Paper](https://arxiv.org/abs/2303.16982)]
 
 <p align="center"><img src="figure/overview.png" width=80%></p>
 <p align="center"><b>Schematic illustration of the Uni-Mol+ framework</b></p>
@@ -67,6 +67,20 @@ export arch="unimol_plus_large" # or "unimol_plus_base" if you use 12-layer mode
 bash train_pcq.sh $data_path $save_dir $lr $batch_size
 ```
 
+Citation
+--------
+
+Please kindly cite this paper if you use the data/code/model.
+```
+@misc{lu2023highly,
+      title={Highly Accurate Quantum Chemical Property Prediction with Uni-Mol+}, 
+      author={Shuqi Lu and Zhifeng Gao and Di He and Linfeng Zhang and Guolin Ke},
+      year={2023},
+      eprint={2303.16982},
+      archivePrefix={arXiv},
+      primaryClass={physics.chem-ph}
+}
+```
 
 License
 -------

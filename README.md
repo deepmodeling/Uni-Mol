@@ -29,6 +29,7 @@ Check this [subfolder](./unimol/) for more detalis.
 
 Highly Accurate Quantum Chemical Property Prediction with Uni-Mol+
 -------------------------------------------------------------------
+[[Paper](https://arxiv.org/abs/2303.16982)]
 
 <p align="center"><img src="unimol_plus/figure/overview.png" width=80%></p>
 <p align="center"><b>Schematic illustration of the Uni-Mol+ framework</b></p>
@@ -65,7 +66,7 @@ News
 Citation
 --------
 
-Please kindly cite this paper if you use the data/code/model.
+Please kindly cite our papers if you use the data/code/model.
 ```
 @inproceedings{
   zhou2023unimol,
@@ -74,6 +75,14 @@ Please kindly cite this paper if you use the data/code/model.
   booktitle={The Eleventh International Conference on Learning Representations },
   year={2023},
   url={https://openreview.net/forum?id=6K2RM6wVqKu}
+}
+@misc{lu2023highly,
+      title={Highly Accurate Quantum Chemical Property Prediction with Uni-Mol+}, 
+      author={Shuqi Lu and Zhifeng Gao and Di He and Linfeng Zhang and Guolin Ke},
+      year={2023},
+      eprint={2303.16982},
+      archivePrefix={arXiv},
+      primaryClass={physics.chem-ph}
 }
 ```
 
