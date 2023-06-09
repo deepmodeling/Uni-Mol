@@ -6,6 +6,7 @@ Shortcuts
 
 - [Uni-Mol](./unimol/)
 - [Uni-Mol+](./unimol_plus/)
+- [Uni-Mol Tools](./unimol_tools/)
 
 
 **Note**: if you want to install or run our codes, please `cd` to subfolders first.
@@ -38,8 +39,19 @@ Uni-Mol+ is a model for quantum chemical property prediction. Firstly, given a 2
 
 Check this [subfolder](./unimol_plus/) for more detalis.
 
+Uni-Mol tools for property prediction, representation and downstreams
+--------------------------------------------------------------------
+Uni-Mol tools is a easy-use wrappers for property prediction,representation and downstreams with Uni-Mol. It includes the following tools:
+* molecular property prediction with Uni-Mol.
+* molecular representation with Uni-Mol.
+* other downstreams with Uni-Mol.
+
+Check this [subfolder](./unimol_tools/) for more detalis.
+
 News
 ----
+**Jun 9 2023**: We release Uni-Mol tools for property prediction, representation and downstreams.
+
 **Mar 16 2023**: We release Uni-Mol+, a model for quantum chemical property prediction.
 
 **Jan 21 2023**: Uni-Mol is accepted by ICLR 2023.
