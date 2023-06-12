@@ -35,7 +35,7 @@ from unimol.data import (
 
 from unimol.data.tta_dataset import TTADataset
 from unicore.tasks import UnicoreTask, register_task
-
+from ast import literal_eval
 
 logger = logging.getLogger(__name__)
 
@@ -163,6 +163,28 @@ class UniMolFinetuneTask(UnicoreTask):
             type=int,
             help="1: only reserve polar hydrogen; 0: no hydrogen; -1: all hydrogen ",
         )
+        
+        parser.add_argument(
+            "--customized-regression",
+            action="store_true",
+            help=("turn on customized-regression mode. "
+                  "use with `--mean` and `--std`"),)
+        
+        parser.add_argument(
+            "--mean",
+            default=0.0,
+            type=literal_eval,
+            help=("customized mean value for `finetune_mse` loss."
+                "list / float / int acceptable")
+        )
+        
+        parser.add_argument(
+            "--std",
+            default=1.0,
+            type=literal_eval,
+            help=("customized standard deviation for `finetune_mse` loss."
+                  "list / float / int acceptable"),
+        )
 
     def __init__(self, args, dictionary):
         super().__init__(args)
@@ -176,10 +198,17 @@ class UniMolFinetuneTask(UnicoreTask):
             self.args.remove_polar_hydrogen = False
         else:
             self.args.remove_hydrogen = True
+            
         if self.args.task_name in task_metainfo:
             # for regression task, pre-compute mean and std
             self.mean = task_metainfo[self.args.task_name]["mean"]
             self.std = task_metainfo[self.args.task_name]["std"]
+        elif self.args.customized_regression:
+            self.mean = self.args.mean
+            self.std = self.args.std
+        else:
+            self.mean = 0
+            self.std = 1
 
     @classmethod
     def setup_task(cls, args, **kwargs):
