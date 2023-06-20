@@ -78,7 +78,6 @@ class NNModel(object):
         self.save_path = self.trainer.save_path
         self.trainer.set_seed(self.trainer.seed)
         self.model = self._init_model(**self.model_params)
-        self.is_success = True
     
     def _init_model(self, model_name, **params):
         if model_name in NNMODEL_REGISTER:
@@ -113,12 +112,7 @@ class NNModel(object):
             if fold > 0:
                 ### need to initalize model for next fold training
                 self.model = self._init_model(**self.model_params)
-            try:
-                _y_pred = self.trainer.fit_predict(self.model, traindataset, validdataset, self.loss_func, self.activation_fn, self.save_path, fold, self.target_scaler)
-            except:
-                logger.info("Uni-Mol {0} failed...".format(self.model_name))
-                self.is_success = False
-                return
+            _y_pred = self.trainer.fit_predict(self.model, traindataset, validdataset, self.loss_func, self.activation_fn, self.save_path, fold, self.target_scaler)
             y_pred[te_idx] = _y_pred
             logger.info ("fold {0}, result {1}".format(
                     fold,
