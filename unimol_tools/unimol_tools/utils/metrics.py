@@ -105,7 +105,7 @@ METRICS_REGISTER = {
 }
 
 DEFAULT_METRICS = {
-    'regression': ['mse', 'mae', 'r2', 'spearmanr', 'perasonr'],
+    'regression': ['mse', 'mae', 'r2', 'spearmanr', 'pearsonr'],
     'classification': ['log_loss', 'auc', 'f1_score', 'mcc', 'acc', 'precision', 'recall'],
     'multiclass': ['log_loss', 'acc'],
     "multilabel_classification": ['log_loss', 'auc', 'auprc'],
