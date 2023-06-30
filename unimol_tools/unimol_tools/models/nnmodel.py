@@ -26,25 +26,29 @@ LOSS_RREGISTER = {
     'classification': myCrossEntropyLoss,
     'multiclass': myCrossEntropyLoss,
     'regression': nn.MSELoss(),
-    'multilabel_classification': { 
-                'bce': nn.BCEWithLogitsLoss(),
-                'ghm': GHMC_Loss(bins=10, alpha=0.5), 
-                'focal': FocalLossWithLogits,
-                },
+    'multilabel_classification': {
+        'bce': nn.BCEWithLogitsLoss(),
+        'ghm': GHMC_Loss(bins=10, alpha=0.5),
+        'focal': FocalLossWithLogits,
+    },
     'multilabel_regression': nn.MSELoss(),
 }
 ACTIVATION_FN = {
-    ### predict prob shape should be (N, K), especially for binary classification, K equals to 1.
+    # predict prob shape should be (N, K), especially for binary classification, K equals to 1.
     'classification': lambda x: F.softmax(x, dim=-1)[:, 1:],
-    'multiclass': lambda x: F.softmax(x, dim=-1),   ### softmax is used for multiclass classification
+    # softmax is used for multiclass classification
+    'multiclass': lambda x: F.softmax(x, dim=-1),
     'regression': lambda x: x,
-    'multilabel_classification': lambda x: F.sigmoid(x),   ### sigmoid is used for multilabel classification
-    'multilabel_regression': lambda x: x,   #### no activation function is used for multilabel regression
+    # sigmoid is used for multilabel classification
+    'multilabel_classification': lambda x: F.sigmoid(x),
+    # no activation function is used for multilabel regression
+    'multilabel_regression': lambda x: x,
 }
 OUTPUT_DIM = {
     'classification': 2,
     'regression': 1,
 }
+
 
 class NNModel(object):
     def __init__(self, data, trainer, **params):
@@ -78,7 +82,7 @@ class NNModel(object):
         self.save_path = self.trainer.save_path
         self.trainer.set_seed(self.trainer.seed)
         self.model = self._init_model(**self.model_params)
-    
+
     def _init_model(self, model_name, **params):
         if model_name in NNMODEL_REGISTER:
             model = NNMODEL_REGISTER[model_name](**params)
@@ -94,14 +98,15 @@ class NNModel(object):
             return {k: v[idx] for k, v in X.items()}, torch.from_numpy(y[idx])
         else:
             raise ValueError('X must be numpy array or dict')
-    
+
     def run(self):
         logger.info("start training Uni-Mol:{}".format(self.model_name))
         X = np.asarray(self.features)
         y = np.asarray(self.data['target'])
         scaffold = np.asarray(self.data['scaffolds'])
         if self.task == 'classification':
-            y_pred = np.zeros_like(y.reshape(y.shape[0], self.num_classes)).astype(float)
+            y_pred = np.zeros_like(
+                y.reshape(y.shape[0], self.num_classes)).astype(float)
         else:
             y_pred = np.zeros((y.shape[0], self.model_params['output_dim']))
         for fold, (tr_idx, te_idx) in enumerate(self.splitter.split(X, y, scaffold)):
@@ -110,20 +115,30 @@ class NNModel(object):
             traindataset = NNDataset(X_train, y_train)
             validdataset = NNDataset(X_valid, y_valid)
             if fold > 0:
-                ### need to initalize model for next fold training
+                # need to initalize model for next fold training
                 self.model = self._init_model(**self.model_params)
-            _y_pred = self.trainer.fit_predict(self.model, traindataset, validdataset, self.loss_func, self.activation_fn, self.save_path, fold, self.target_scaler)
+            _y_pred = self.trainer.fit_predict(
+                self.model, traindataset, validdataset, self.loss_func, self.activation_fn, self.save_path, fold, self.target_scaler)
             y_pred[te_idx] = _y_pred
-            logger.info ("fold {0}, result {1}".format(
-                    fold,
-                    self.metrics.cal_metric(
-                        self.data['target_scaler'].inverse_transform(y_valid), self.data['target_scaler'].inverse_transform(_y_pred)
-                    )
-                )
+
+            if 'multiclass_cnt' in self.data:
+                label_cnt = self.data['multiclass_cnt']
+            else:
+                label_cnt = None
+
+            logger.info("fold {0}, result {1}".format(
+                fold,
+                self.metrics.cal_metric(
+                        self.data['target_scaler'].inverse_transform(y_valid),
+                        self.data['target_scaler'].inverse_transform(_y_pred),
+                        label_cnt=label_cnt
+                        )
+            )
             )
 
         self.cv['pred'] = y_pred
-        self.cv['metric'] = self.metrics.cal_metric(self.data['target_scaler'].inverse_transform(y), self.data['target_scaler'].inverse_transform(self.cv['pred']))
+        self.cv['metric'] = self.metrics.cal_metric(self.data['target_scaler'].inverse_transform(
+            y), self.data['target_scaler'].inverse_transform(self.cv['pred']))
         self.dump(self.cv['pred'], self.save_path, 'cv.data')
         self.dump(self.cv['metric'], self.save_path, 'metric.result')
         logger.info("Uni-Mol metrics score: \n{}".format(self.cv['metric']))
@@ -135,25 +150,28 @@ class NNModel(object):
             os.makedirs(dir)
         joblib.dump(data, path)
 
-    def evaluate(self, trainer = None,  checkpoints_path = None):
+    def evaluate(self, trainer=None,  checkpoints_path=None):
         logger.info("start predict NNModel:{}".format(self.model_name))
         testdataset = NNDataset(self.features, np.asarray(self.data['target']))
         for fold in range(self.splitter.n_splits):
             model_path = os.path.join(checkpoints_path, f'model_{fold}.pth')
-            self.model.load_state_dict(torch.load(model_path, map_location=self.trainer.device)['model_state_dict'])
-            _y_pred, _, __ = trainer.predict(self.model, testdataset, self.loss_func, self.activation_fn, self.save_path, fold, self.target_scaler, epoch=1, load_model=True)
+            self.model.load_state_dict(torch.load(
+                model_path, map_location=self.trainer.device)['model_state_dict'])
+            _y_pred, _, __ = trainer.predict(self.model, testdataset, self.loss_func, self.activation_fn,
+                                             self.save_path, fold, self.target_scaler, epoch=1, load_model=True)
             if fold == 0:
                 y_pred = np.zeros_like(_y_pred)
             y_pred += _y_pred
         y_pred /= self.splitter.n_splits
         self.cv['test_pred'] = y_pred
-        
+
     def count_parameters(self, model):
         return sum(p.numel() for p in model.parameters() if p.requires_grad)
 
 
 def NNDataset(data, label=None):
     return TorchDataset(data, label)
+
 
 class TorchDataset(Dataset):
     def __init__(self, data, label=None):

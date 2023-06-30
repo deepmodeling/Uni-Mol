@@ -26,8 +26,6 @@ class DataHub(object):
         self.target_cols = params.get('target_cols', None)
         self.multiclass_cnt = params.get('multiclass_cnt', None)
         self.ss_method = params.get('target_normalize', 'none')
-
-
         self._init_data(**params)
     
     def _init_data(self, **params):

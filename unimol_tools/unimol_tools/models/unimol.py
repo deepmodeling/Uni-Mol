@@ -29,7 +29,7 @@ BACKBONE = {
 WEIGHT_DIR = os.path.join(pathlib.Path(__file__).resolve().parents[1], 'weights')
 
 class UniMolModel(BaseUnicoreModel):
-    def __init__(self, output_dim=2, data_type='molecule', **kwargs):
+    def __init__(self, output_dim=2, data_type='molecule', **params):
         super().__init__()
         if data_type == 'molecule':
             self.args = molecule_architecture()
@@ -43,8 +43,15 @@ class UniMolModel(BaseUnicoreModel):
             raise ValueError('Current not support data type: {}'.format(data_type))
         self.output_dim = output_dim
         self.data_type = data_type
-        self.pretrain_path = os.path.join(WEIGHT_DIR, MODEL_CONFIG['weight'][data_type])
-        self.dictionary = Dictionary.load(os.path.join(WEIGHT_DIR, MODEL_CONFIG['dict'][data_type]))
+        self.remove_hs = params.get('remove_hs', False)
+        if data_type == 'molecule':
+            name = "no_h" if self.remove_hs else "all_h" 
+            name = data_type + '_' + name
+            self.pretrain_path = os.path.join(WEIGHT_DIR, MODEL_CONFIG['weight'][name])
+            self.dictionary = Dictionary.load(os.path.join(WEIGHT_DIR, MODEL_CONFIG['dict'][name]))
+        else:
+            self.pretrain_path = os.path.join(WEIGHT_DIR, MODEL_CONFIG['weight'][data_type])
+            self.dictionary = Dictionary.load(os.path.join(WEIGHT_DIR, MODEL_CONFIG['dict'][data_type]))
         self.mask_idx = self.dictionary.add_symbol("[MASK]", is_special=True)
         self.padding_idx = self.dictionary.pad()
         self.embed_tokens = nn.Embedding(
@@ -124,6 +131,7 @@ class UniMolModel(BaseUnicoreModel):
         pressure=None,
         temperature=None,
         return_repr=False,
+
         **kwargs
     ):
         padding_mask = src_tokens.eq(self.padding_idx)
@@ -146,10 +154,25 @@ class UniMolModel(BaseUnicoreModel):
             _,
             _,
         ) = self.encoder(x, padding_mask=padding_mask, attn_mask=graph_attn_bias)
-
         cls_repr = encoder_rep[:, 0, :]  # CLS token repr
+        all_repr = encoder_rep[:, :, :]  # all token repr
+
+        filtered_tensors = []
+        for tokens in src_tokens:
+            filtered_tensor = tokens[(tokens != 0) & (tokens != 1) & (tokens != 2)] # filter out BOS(0), EOS(1), PAD(2)
+            filtered_tensors.append(filtered_tensor)
+
+        lengths = [len(filtered_tensor) for filtered_tensor in filtered_tensors] # Compute the lengths of the filtered tensors
+
+        cls_atomic_reprs = [] 
+        for i in range(len(all_repr)):
+            atomic_repr = encoder_rep[i, 1:lengths[i]+1, :]
+            cls_atomic_reprs.append(atomic_repr)
+
+        repr_dict = {'cls_repr': cls_repr, 'atomic_reprs': cls_atomic_reprs}        
         if return_repr:
-            return cls_repr
+            return repr_dict      
+
         if self.data_type == 'mof':
             gas_embed = self.gas_embed(gas_id, gas_attr) # shape of gas_embed is [batch_size, gas_dim*2]
             env_embed = self.env_embed(pressure, temperature) # shape of gas_embed is [batch_size, env_dim*3]

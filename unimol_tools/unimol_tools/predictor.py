@@ -16,6 +16,7 @@ from torch.utils.data import DataLoader, Dataset
 from .data import MOFReader, DataHub
 from .models import UniMolModel
 from .tasks import Trainer
+from rdkit import Chem
 
 class MolDataset(Dataset):
     def __init__(self, data, label=None):
@@ -29,11 +30,11 @@ class MolDataset(Dataset):
         return len(self.data)
     
 class UniMolRepr(object):
-    def __init__(self, data_type='molecule', use_gpu=True):
+    def __init__(self, data_type='molecule', remove_hs=False, use_gpu=True):
         self.device = torch.device("cuda:0" if torch.cuda.is_available() and use_gpu else "cpu")
-        self.model = UniMolModel(output_dim=1, data_type=data_type).to(self.device)
+        self.model = UniMolModel(output_dim=1, data_type=data_type, remove_hs=remove_hs).to(self.device)
         self.model.eval()
-        self.params = {'data_type':data_type}
+        self.params = {'data_type':data_type, 'remove_hs': remove_hs}
     
     def get_repr(self, smiles_list):
         if isinstance(smiles_list, str):
@@ -45,8 +46,8 @@ class UniMolRepr(object):
                         )
         dataset = MolDataset(datahub.data['unimol_input'])
         self.trainer = Trainer(task='repr')
-        cls_repr = self.trainer.inference(self.model, dataset=dataset)
-        return cls_repr
+        repr_output = self.trainer.inference(self.model, dataset=dataset)
+        return repr_output
 
 scaler = {'CoRE_MAP': [1.318703908155812, 1.657051374039756,'log1p_standardization']}
 

@@ -32,23 +32,29 @@ class ConformerGen(object):
         self.seed = params.get('seed', 42)
         self.max_atoms = params.get('max_atoms', 256)
         self.data_type = params.get('data_type', 'molecule')
-        self.dict_name = MODEL_CONFIG['dict'][self.data_type]
         self.method = params.get('method', 'rdkit_random')
         self.mode = params.get('mode', 'fast')
+        self.remove_hs = params.get('remove_hs', False)
+        if self.data_type == 'molecule':
+            name = "no_h" if self.remove_hs else "all_h" 
+            name = self.data_type + '_' + name
+            self.dict_name = MODEL_CONFIG['dict'][name]
+        else:
+            self.dict_name = MODEL_CONFIG['dict'][self.data_type]
         self.dictionary = Dictionary.load(os.path.join(WEIGHT_DIR, self.dict_name))
         self.dictionary.add_symbol("[MASK]", is_special=True)
 
     def single_process(self, smiles):
         if self.method == 'rdkit_random':
-            atoms_no_h, coordinates_no_h = inner_smi2coords(smiles, seed=self.seed, mode=self.mode)
-            return coords2unimol(atoms_no_h, coordinates_no_h, self.dictionary, self.max_atoms)
+            atoms, coordinates = inner_smi2coords(smiles, seed=self.seed, mode=self.mode, remove_hs=self.remove_hs)
+            return coords2unimol(atoms, coordinates, self.dictionary, self.max_atoms)
         else:
             raise ValueError('Unknown conformer generation method: {}'.format(self.method))
         
     def transform_raw(self, atoms_list, coordinates_list):
         inputs = []
         for atoms, coordinates in zip(atoms_list, coordinates_list):
-            inputs.append(coords2unimol(atoms, coordinates, self.dictionary, self.max_atoms))
+            inputs.append(coords2unimol(atoms, coordinates, self.dictionary, self.max_atoms, remove_hs=self.remove_hs))
         return inputs
 
     def transform(self, smiles_list):
@@ -62,7 +68,7 @@ class ConformerGen(object):
         logger.info('Failed to generate 3d conformers for {:.2f}% of molecules.'.format(failed_3d_cnt*100))
         return inputs
 
-def inner_smi2coords(smi, seed=42, mode='fast'):
+def inner_smi2coords(smi, seed=42, mode='fast', remove_hs=True):
     mol = Chem.MolFromSmiles(smi)
     mol = AllChem.AddHs(mol)
     atoms = [atom.GetSymbol() for atom in mol.GetAtoms()]
@@ -96,23 +102,28 @@ def inner_smi2coords(smi, seed=42, mode='fast'):
         print("Failed to generate conformer, replace with zeros.")
         coordinates = np.zeros((len(atoms),3))
     assert len(atoms) == len(coordinates), "coordinates shape is not align with {}".format(smi)
-    idx = [i for i, atom in enumerate(atoms) if atom != 'H']
-    atoms_no_h = [atom for atom in atoms if atom != 'H']
-    coordinates_no_h = coordinates[idx]
-    assert len(atoms_no_h) == len(coordinates_no_h), "coordinates shape is not align with {}".format(smi)
-    return atoms_no_h, coordinates_no_h
+    if remove_hs:
+        idx = [i for i, atom in enumerate(atoms) if atom != 'H']
+        atoms_no_h = [atom for atom in atoms if atom != 'H']
+        coordinates_no_h = coordinates[idx]
+        assert len(atoms_no_h) == len(coordinates_no_h), "coordinates shape is not align with {}".format(smi)
+        return atoms_no_h, coordinates_no_h
+    else:
+        return atoms, coordinates
 
-def inner_coords(atoms, coordinates):
+def inner_coords(atoms, coordinates, remove_hs=True):
     assert len(atoms) == len(coordinates), "coordinates shape is not align atoms"
     coordinates = np.array(coordinates).astype(np.float32)
-    idx = [i for i, atom in enumerate(atoms) if atom != 'H']
-    atoms_no_h = [atom for atom in atoms if atom != 'H']
-    coordinates_no_h = coordinates[idx]
-    assert len(atoms_no_h) == len(coordinates_no_h), "coordinates shape is not align with atoms"
-    return atoms_no_h, coordinates_no_h
+    if remove_hs:
+        idx = [i for i, atom in enumerate(atoms) if atom != 'H']
+        atoms_no_h = [atom for atom in atoms if atom != 'H']
+        coordinates_no_h = coordinates[idx]
+        assert len(atoms_no_h) == len(coordinates_no_h), "coordinates shape is not align with atoms"
+        return atoms_no_h, coordinates_no_h
+    else:
+        return atoms, coordinates
 
-
-def coords2unimol(atoms, coordinates, dictionary, max_atoms=256):
+def coords2unimol(atoms, coordinates, dictionary, max_atoms=256, **params):
     atoms = np.array(atoms)
     coordinates = np.array(coordinates).astype(np.float32)
     ### cropping atoms and coordinates
