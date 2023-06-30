@@ -29,6 +29,7 @@ class MolTrain(object):
                 metrics= "none",
                 split='random',
                 save_path='./exp',
+                remove_hs=False,
                 ):
         config_path = os.path.join(os.path.dirname(__file__), 'config/default.yaml')
         self.yamlhandler = YamlHandler(config_path)
@@ -41,6 +42,7 @@ class MolTrain(object):
         config.early_stopping = early_stopping
         config.metrics = metrics
         config.split = split
+        config.remove_hs = remove_hs
         self.save_path = save_path
         self.config = config
 
