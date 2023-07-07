@@ -1,5 +1,3 @@
-import math
-
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -7,6 +5,7 @@ import torch.nn.functional as F
 from unicore import utils
 from unicore.modules import softmax_dropout, LayerNorm
 
+from torch.utils.checkpoint import checkpoint
 from unicore.utils import (
     permute_final_dims,
 )
@@ -101,7 +100,6 @@ class Embedding(nn.Embedding):
 
 class Transition(nn.Module):
     def __init__(self, d_in, n, dropout=0.0):
-
         super(Transition, self).__init__()
 
         self.d_in = d_in
@@ -123,7 +121,6 @@ class Transition(nn.Module):
         self,
         x: torch.Tensor,
     ) -> torch.Tensor:
-
         x = self._transition(x=x)
         return x
 
@@ -208,6 +205,7 @@ class OuterProduct(nn.Module):
         self.linear_in = nn.Linear(d_atom, d_hid * 2)
         self.linear_out = nn.Linear(d_hid**2, d_pair)
         self.act = nn.GELU()
+        self._memory_efficient = False
 
     def _opm(self, a, b):
         bsz, n, d = a.shape
@@ -219,17 +217,22 @@ class OuterProduct(nn.Module):
         outer = self.linear_out(outer)
         return outer
 
+    def apply_memory_efficient(self):
+        self._memory_efficient = True
+
     def forward(
         self,
         m: torch.Tensor,
         op_mask: Optional[torch.Tensor] = None,
         op_norm: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
-
         ab = self.linear_in(m)
         ab = ab * op_mask
         a, b = ab.chunk(2, dim=-1)
-        z = self._opm(a, b)
+        if self._memory_efficient and torch.is_grad_enabled():
+            z = checkpoint(self._opm, a, b)
+        else:
+            z = self._opm(a, b)
         z *= op_norm
         return z
 
@@ -304,6 +307,51 @@ class EdgeFeature(nn.Module):
         return graph_attn_bias
 
 
+class SimpleEdgeFeature(nn.Module):
+    """
+    Compute attention bias for each head.
+    """
+
+    def __init__(
+        self,
+        pair_dim,
+        num_atom_type,
+        num_tag_type,
+        num_main_cell_type,
+    ):
+        super(SimpleEdgeFeature, self).__init__()
+        self.pair_dim = pair_dim
+        self.num_atom_type = num_atom_type
+        self.num_tag_type = num_tag_type
+        self.num_main_cell_type = num_main_cell_type
+        self.atom_pair_encoder = Embedding(num_atom_type * num_atom_type, pair_dim)
+        self.tag_pair_encoder = Embedding(num_tag_type * num_tag_type, pair_dim)
+        self.main_cell_encoder = Embedding(
+            num_main_cell_type * num_main_cell_type, pair_dim
+        )
+        self.vnode_virtual_distance = Embedding(1, pair_dim)
+
+    def forward(self, atom, tag, main_cell, graph_attn_bias):
+        atom_pair = atom.unsqueeze(-1) * self.num_atom_type + atom.unsqueeze(1)
+        tag_pair = tag.unsqueeze(-1) * self.num_tag_type + tag.unsqueeze(1)
+        main_cell_pair = main_cell.unsqueeze(
+            -1
+        ) * self.num_main_cell_type + main_cell.unsqueeze(1)
+
+        graph_attn_bias[:, 1:, 1:, :] = (
+            self.atom_pair_encoder(atom_pair)
+            + self.tag_pair_encoder(tag_pair)
+            + self.main_cell_encoder(main_cell_pair)
+        )
+
+        # reset spatial pos here
+        t = self.vnode_virtual_distance.weight.view(1, 1, self.pair_dim)
+        graph_attn_bias[:, 1:, 0, :] = t
+        graph_attn_bias[:, 0, :, :] = t
+
+        return graph_attn_bias
+
+
 class SE3InvariantKernel(nn.Module):
     """
     Compute 3D attention bias according to the position information for each head.
@@ -355,8 +403,9 @@ class GaussianKernel(nn.Module):
         start = start
         stop = stop
         mean = torch.linspace(start, stop, K)
-        self.std = (std_width * (mean[1] - mean[0])).item()
+        std = std_width * (mean[1] - mean[0])
         self.register_buffer("mean", mean)
+        self.register_buffer("std", std)
         self.mul = Embedding(num_pair, 1, padding_idx=0)
         self.bias = Embedding(num_pair, 1, padding_idx=0)
         nn.init.constant_(self.bias.weight, 0)
@@ -516,7 +565,6 @@ class TriangleMultiplication(nn.Module):
         z: torch.Tensor,
         mask: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
-
         mask = mask.unsqueeze(-1)
         mask = mask * (mask.shape[-2] ** -0.5)
 
@@ -656,7 +704,6 @@ class UnimolPlusEncoderLayer(nn.Module):
         x = residual + x
         x = self.final_layer_norm(x)
 
-        # outer product
         pair = pair + self.dropout_module(self.opm(x, op_mask, op_norm))
         pair = self.pair_layer_norm_opm(pair)
 

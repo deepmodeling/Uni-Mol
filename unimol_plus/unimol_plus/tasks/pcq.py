@@ -16,15 +16,15 @@ from unimol_plus.data import (
     LMDBDataset,
     ConformationSampleDataset,
     ConformationExpandDataset,
-    UnimolPlusFeatureDataset,
+    PCQDataset,
 )
 from unicore.tasks import UnicoreTask, register_task
 
 logger = logging.getLogger(__name__)
 
 
-@register_task("unimol_plus")
-class UnimolPlusTask(UnicoreTask):
+@register_task("pcq")
+class PCQTask(UnicoreTask):
     """Task for training transformer auto-encoder models."""
 
     @staticmethod
@@ -41,10 +41,6 @@ class UnimolPlusTask(UnicoreTask):
         return cls(args)
 
     def load_dataset(self, split, force_valid=False, **kwargs):
-        """Load a given dataset split.
-        Args:
-            split (str): name of the data scoure (e.g., bppp)
-        """
         split_path = os.path.join(self.args.data, split + ".lmdb")
         dataset = LMDBDataset(split_path)
         is_train = (split == "train") and not force_valid
@@ -64,10 +60,10 @@ class UnimolPlusTask(UnicoreTask):
             )
         raw_coord_dataset = KeyDataset(sample_dataset, "coordinates")
         tgt_coord_dataset = KeyDataset(sample_dataset, "target_coordinates")
-        graph_features = UnimolPlusFeatureDataset(
+        graph_features = PCQDataset(
             sample_dataset,
             raw_coord_dataset,
-            tgt_coord_dataset if split in ["train", "valid_our"] else None,
+            tgt_coord_dataset if split in ["train"] else None,
             is_train=is_train,
             label_prob=self.args.label_prob,
             mid_prob=self.args.mid_prob,
@@ -86,6 +82,7 @@ class UnimolPlusTask(UnicoreTask):
             nest_dataset = EpochShuffleDataset(
                 nest_dataset, len(nest_dataset), self.seed
             )
+        print("| Loaded {} with {} samples".format(split, len(nest_dataset)))
         self.datasets[split] = nest_dataset
 
     def build_model(self, args):

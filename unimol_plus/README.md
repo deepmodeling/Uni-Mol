@@ -1,6 +1,7 @@
 Highly Accurate Quantum Chemical Property Prediction with Uni-Mol+
 ==================================================================
-[![arXiv](https://img.shields.io/badge/arXiv-2303.16982-00ff00.svg)](https://arxiv.org/abs/2303.16982) [![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/highly-accurate-quantum-chemical-property/graph-regression-on-pcqm4mv2-lsc)](https://paperswithcode.com/sota/graph-regression-on-pcqm4mv2-lsc?p=highly-accurate-quantum-chemical-property)
+[![arXiv](https://img.shields.io/badge/arXiv-2303.16982-00ff00.svg)](https://arxiv.org/abs/2303.16982) [![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/highly-accurate-quantum-chemical-property/graph-regression-on-pcqm4mv2-lsc)](https://paperswithcode.com/sota/graph-regression-on-pcqm4mv2-lsc?p=highly-accurate-quantum-chemical-property) [![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/highly-accurate-quantum-chemical-property/initial-structure-to-relaxed-energy-is2re)](https://paperswithcode.com/sota/initial-structure-to-relaxed-energy-is2re?p=highly-accurate-quantum-chemical-property)
+
 
 <p align="center"><img src="figure/overview.png" width=80%></p>
 <p align="center"><b>Schematic illustration of the Uni-Mol+ framework</b></p>
@@ -11,13 +12,21 @@ In the [PCQM4MV2](https://ogb.stanford.edu/docs/lsc/leaderboards/#pcqm4mv2) benc
 
 | Model Settings   | # Layers   | # Param.    | Validation MAE   | Model Checkpoint | 
 |------------------|------------| ----------- |------------------|------------------|
-| Uni-Mol+         |     12     |   52.4 M    | 0.0708           | [link](https://github.com/dptech-corp/Uni-Mol/releases/download/v0.1/unimol_plus_base.pt)          |
-| Uni-Mol+ Large   |     18     |   77 M      | 0.0701           | [link](https://github.com/dptech-corp/Uni-Mol/releases/download/v0.1/unimol_plus_large.pt)         |
+| Uni-Mol+         |     12     |   52.4 M    | 0.0696           | [link](https://github.com/dptech-corp/Uni-Mol/releases/download/v0.2/unimol_plus_pcq_base.pt)          |
+| Uni-Mol+ Large   |     18     |   77 M      | 0.0693           | [link](https://github.com/dptech-corp/Uni-Mol/releases/download/v0.2/unimol_plus_pcq_large.pt)         |
+| Uni-Mol+ Small   |      6     |   27.7 M    | 0.0714           | [link](https://github.com/dptech-corp/Uni-Mol/releases/download/v0.2/unimol_plus_pcq_small.pt)         |
+
+
+In the [OC20](https://opencatalystproject.org/leaderboard.html) IS2RE  bencmark, Uni-Mol+ outperforms previous SOTA methods by a large margin.
+
+| Model Settings   | # Layers   | # Param.    | Validation Mean MAE  | Test Mean MAE  | Model Checkpoint | 
+|------------------|------------| ----------- |----------------------|----------------|------------------|
+| Uni-Mol+         |     12     |  48.6 M     | 0.4088               | 0.4143         | [link](https://github.com/dptech-corp/Uni-Mol/releases/download/v0.2/unimol_plus_oc20_base.pt)          |
 
 
 Dependencies
 ------------
- - [Uni-Core](https://github.com/dptech-corp/Uni-Core), check its [Installation Documentation](https://github.com/dptech-corp/Uni-Core#installation).
+ - [Uni-Core](https://github.com/dptech-corp/Uni-Core) with pytorch > 2.0.0, check its [Installation Documentation](https://github.com/dptech-corp/Uni-Core#installation).
  - rdkit==2022.09.3, install via `pip install rdkit==2022.09.3`
 
 

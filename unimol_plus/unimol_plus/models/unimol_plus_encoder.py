@@ -28,7 +28,6 @@ class UnimolPLusEncoder(nn.Module):
         droppath_prob: float = 0.0,
         pair_dropout: float = 0.25,
     ) -> None:
-
         super().__init__()
         self.embedding_dim = embedding_dim
         self.num_head = num_attention_heads
@@ -72,7 +71,6 @@ class UnimolPLusEncoder(nn.Module):
         pair_mask,
         attn_mask=None,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-
         x = self.layer_norm(x)
         pair = self.pair_layer_norm(pair)
         op_mask = atom_mask.unsqueeze(-1)
