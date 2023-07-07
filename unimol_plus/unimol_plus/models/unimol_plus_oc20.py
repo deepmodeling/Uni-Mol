@@ -12,7 +12,7 @@ from unicore.models import (
 
 from .layers import (
     AtomFeature,
-    EdgeFeature,
+    SimpleEdgeFeature,
     SE3InvariantKernel,
     MovementPredictionHead,
     EnergyHead,
@@ -38,8 +38,8 @@ def init_params(module):
             module.weight.data[module.padding_idx].zero_()
 
 
-@register_model("unimol_plus")
-class UnimolPlusModel(BaseUnicoreModel):
+@register_model("unimol_plus_oc20")
+class UnimolPlusOC20Model(BaseUnicoreModel):
     """
     Class for training a Masked Language Model. It also supports an
     additional sentence level prediction if the sent-loss argument is set.
@@ -148,13 +148,13 @@ class UnimolPlusModel(BaseUnicoreModel):
         # training related parameters
         parser.add_argument(
             "--noise-scale",
-            default=0.2,
+            default=0.3,
             type=float,
             help="coordinate noise for masked atoms",
         )
         parser.add_argument(
             "--label-prob",
-            default=0.7,
+            default=0.8,
             type=float,
             help="the probability of using label conformer as input",
         )
@@ -182,6 +182,32 @@ class UnimolPlusModel(BaseUnicoreModel):
             type=float,
             help="loss weight for pos",
         )
+        parser.add_argument(
+            "--dist-loss-weight",
+            type=float,
+            default=1.0,
+        )
+        parser.add_argument(
+            "--min-pos-loss-weight",
+            default=0.2,
+            type=float,
+            help="loss weight for pos",
+        )
+        parser.add_argument(
+            "--min-dist-loss-weight",
+            type=float,
+            default=1.0,
+        )
+        parser.add_argument(
+            "--cutoff",
+            default=9,
+            type=float,
+        )
+        parser.add_argument(
+            "--atom-crop-size",
+            default=223,
+            type=int,
+        )
 
     def __init__(self, args):
         super().__init__()
@@ -200,23 +226,20 @@ class UnimolPlusModel(BaseUnicoreModel):
             activation_fn=args.activation_fn,
             droppath_prob=args.droppath_prob,
         )
-        num_atom = 512
-        num_degree = 128
-        num_edge = 64
-        num_pair = 512
-        num_spatial = 512
+        num_atom = 128
+        num_pair = 256
         embedding_dim = args.embed_dim
         num_3d_bias_kernel = args.num_3d_bias_kernel
-        self.atom_feature = AtomFeature(
-            num_atom=num_atom,
-            num_degree=num_degree,
-            hidden_dim=embedding_dim,
-        )
+        self.vnode_encoder = Embedding(1, embedding_dim)
+        self.atom_embedding = Embedding(num_atom, embedding_dim)
+        self.tag_embedding = Embedding(4, embedding_dim)
+        self.main_cell_embedding = Embedding(2, embedding_dim)
 
-        self.edge_feature = EdgeFeature(
+        self.edge_feature = SimpleEdgeFeature(
             pair_dim=args.pair_embed_dim,
-            num_edge=num_edge,
-            num_spatial=num_spatial,
+            num_atom_type=num_atom,
+            num_tag_type=4,
+            num_main_cell_type=2,
         )
 
         self.se3_invariant_kernel = SE3InvariantKernel(
@@ -235,11 +258,15 @@ class UnimolPlusModel(BaseUnicoreModel):
         self._num_updates = 0
         self.dtype = torch.float32
 
+        def set_memory_efficient(module):
+            if hasattr(module, "apply_memory_efficient"):
+                module.apply_memory_efficient()
+
+        self.apply(set_memory_efficient)
+
     def half(self):
         super().half()
         self.se3_invariant_kernel = self.se3_invariant_kernel.float()
-        self.atom_feature = self.atom_feature.float()
-        self.edge_feature = self.edge_feature.float()
         self.energy_head = self.energy_head.float()
         self.dtype = torch.half
         return self
@@ -247,8 +274,6 @@ class UnimolPlusModel(BaseUnicoreModel):
     def bfloat16(self):
         super().bfloat16()
         self.se3_invariant_kernel = self.se3_invariant_kernel.float()
-        self.atom_feature = self.atom_feature.float()
-        self.edge_feature = self.edge_feature.float()
         self.energy_head = self.energy_head.float()
         self.dtype = torch.bfloat16
         return self
@@ -259,25 +284,29 @@ class UnimolPlusModel(BaseUnicoreModel):
         return self
 
     def forward(self, batched_data):
-        data_x = batched_data["atom_feat"]
+        atom = batched_data["atomic_numbers"]
+        tag = batched_data["tags"]
+        main_cell = batched_data["main_cell"]
         atom_mask = batched_data["atom_mask"]
         pair_type = batched_data["pair_type"]
         pos = batched_data["pos"]
 
         num_block = self.args.num_block
 
-        n_mol, n_atom = data_x.shape[:2]
-        x = self.atom_feature(batched_data)
-
-        dtype = self.dtype
-
-        x = x.type(dtype)
+        n_mol, n_atom = atom.shape[:2]
+        x = (
+            self.atom_embedding(atom)
+            + self.tag_embedding(tag)
+            + self.main_cell_embedding(main_cell)
+        )
+        graph_token_feature = self.vnode_encoder.weight.unsqueeze(0).repeat(n_mol, 1, 1)
+        x = torch.cat([graph_token_feature, x], dim=1)
 
         attn_mask = batched_data["attn_bias"].clone()
         attn_bias = torch.zeros_like(attn_mask)
         attn_mask = attn_mask.unsqueeze(1).repeat(1, self.args.attention_heads, 1, 1)
         attn_bias = attn_bias.unsqueeze(-1).repeat(1, 1, 1, self.args.pair_embed_dim)
-        attn_bias = self.edge_feature(batched_data, attn_bias)
+        attn_bias = self.edge_feature(atom, tag, main_cell, attn_bias)
         attn_mask = attn_mask.type(self.dtype)
 
         atom_mask_cls = torch.cat(
@@ -290,16 +319,14 @@ class UnimolPlusModel(BaseUnicoreModel):
 
         pair_mask = atom_mask_cls.unsqueeze(-1) * atom_mask_cls.unsqueeze(-2)
 
-        def one_block(x, pos, return_x=False):
+        def one_block(x, pair, pos):
             delta_pos = pos.unsqueeze(1) - pos.unsqueeze(2)
             dist = delta_pos.norm(dim=-1)
             attn_bias_3d = self.se3_invariant_kernel(dist.detach(), pair_type)
-            new_attn_bias = attn_bias.clone()
-            new_attn_bias[:, 1:, 1:, :] = new_attn_bias[:, 1:, 1:, :] + attn_bias_3d
-            new_attn_bias = new_attn_bias.type(dtype)
+            pair[:, 1:, 1:, :] = pair[:, 1:, 1:, :] + attn_bias_3d.type(self.dtype)
             x, pair = self.molecule_encoder(
                 x,
-                new_attn_bias,
+                pair,
                 atom_mask=atom_mask_cls,
                 pair_mask=pair_mask,
                 attn_mask=attn_mask,
@@ -311,23 +338,28 @@ class UnimolPlusModel(BaseUnicoreModel):
                 delta_pos.detach(),
             )
             node_output = node_output * self.args.pos_step_size
-            if return_x:
-                return x, pos + node_output
-            else:
-                return pos + node_output
+            pos[tag > 0] = pos[tag > 0] + node_output[tag > 0]
+            return x, pair, pos
 
-        for _ in range(num_block - 1):
-            pos = one_block(x, pos)
-        x, pos = one_block(x, pos, return_x=True)
-        pred_y = self.energy_head(x[:, 0, :]).view(-1)
+        # padding mask
+        x = x * atom_mask_cls.unsqueeze(-1).type(self.dtype)
+        pair = attn_bias.type(self.dtype)
+        for _ in range(num_block):
+            x, pair, pos = one_block(x, pair, pos)
+        pred_dist = (pos.unsqueeze(1) - pos.unsqueeze(2)).norm(dim=-1)
 
-        pred_pos = pos
-        pred_dist = (pred_pos.unsqueeze(1) - pred_pos.unsqueeze(2)).norm(dim=-1)
+        pred_y = self.energy_head(x).view(n_mol, -1) * atom_mask_cls.float()
+        pred_y[:, 1:] *= (main_cell > 0).type_as(pred_y)
+        pred_y = pred_y.sum(dim=-1)
+
+        pos_target_mask = ((tag > 0) & (main_cell > 0)).type_as(pos)
 
         return (
             pred_y,
-            pred_pos,
+            pos,
+            pos_target_mask,
             pred_dist,
+            self._num_updates,
         )
 
     @classmethod
@@ -339,11 +371,11 @@ class UnimolPlusModel(BaseUnicoreModel):
         self._num_updates = num_updates
 
 
-@register_model_architecture("unimol_plus", "unimol_plus_base")
+@register_model_architecture("unimol_plus_oc20", "unimol_plus_oc20_base")
 def base_architecture(args):
     args.embed_dim = getattr(args, "embed_dim", 768)
-    args.pair_embed_dim = getattr(args, "pair_embed_dim", 256)
-    args.pair_hidden_dim = getattr(args, "pair_hidden_dim", 32)
+    args.pair_embed_dim = getattr(args, "pair_embed_dim", 128)
+    args.pair_hidden_dim = getattr(args, "pair_hidden_dim", 16)
     args.layers = getattr(args, "layers", 12)
     args.attention_heads = getattr(args, "attention_heads", 48)
     args.ffn_embed_dim = getattr(args, "ffn_embed_dim", 768)
@@ -355,19 +387,19 @@ def base_architecture(args):
     args.dropout = getattr(args, "dropout", 0.0)
     args.num_3d_bias_kernel = getattr(args, "num_3d_bias_kernel", 128)
     args.num_block = getattr(args, "num_block", 2)
-    args.pos_step_size = getattr(args, "pos_step_size", 0.01)
+    args.pos_step_size = getattr(args, "pos_step_size", 1.0)
     args.gaussian_std_width = getattr(args, "gaussian_std_width", 1.0)
     args.gaussian_mean_start = getattr(args, "gaussian_mean_start", 0.0)
     args.gaussian_mean_stop = getattr(args, "gaussian_mean_stop", 9.0)
 
 
-@register_model_architecture("unimol_plus", "unimol_plus_large")
+@register_model_architecture("unimol_plus_oc20", "unimol_plus_oc20_large")
 def large_architecture(args):
     args.layers = getattr(args, "layers", 18)
     base_architecture(args)
 
 
-@register_model_architecture("unimol_plus", "unimol_plus_small")
+@register_model_architecture("unimol_plus_oc20", "unimol_plus_oc20_small")
 def small_architecture(args):
     args.layers = getattr(args, "layers", 6)
     base_architecture(args)

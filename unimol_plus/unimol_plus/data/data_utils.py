@@ -3,6 +3,7 @@
 # LICENSE file in the root directory of this source tree.
 
 import numpy as np
+import torch
 import contextlib
 
 
@@ -37,3 +38,67 @@ def numpy_seed(seed, *addl_seeds, key=None):
         yield
     finally:
         np.random.set_state(state)
+
+
+def convert_to_single_emb(x, sizes):
+    assert x.shape[-1] == len(sizes)
+    offset = 1
+    for i in range(len(sizes)):
+        assert (x[..., i] < sizes[i]).all()
+        x[..., i] = x[..., i] + offset
+        offset += sizes[i]
+    return x
+
+
+def pad_1d(samples, pad_len, pad_value=0):
+    batch_size = len(samples)
+    tensor = torch.full([batch_size, pad_len], pad_value, dtype=samples[0].dtype)
+    for i in range(batch_size):
+        tensor[i, : samples[i].shape[0]] = samples[i]
+    return tensor
+
+
+def pad_1d_feat(samples, pad_len, pad_value=0):
+    batch_size = len(samples)
+    assert len(samples[0].shape) == 2
+    feat_size = samples[0].shape[-1]
+    tensor = torch.full(
+        [batch_size, pad_len, feat_size], pad_value, dtype=samples[0].dtype
+    )
+    for i in range(batch_size):
+        tensor[i, : samples[i].shape[0]] = samples[i]
+    return tensor
+
+
+def pad_2d(samples, pad_len, pad_value=0):
+    batch_size = len(samples)
+    tensor = torch.full(
+        [batch_size, pad_len, pad_len], pad_value, dtype=samples[0].dtype
+    )
+    for i in range(batch_size):
+        tensor[i, : samples[i].shape[0], : samples[i].shape[1]] = samples[i]
+    return tensor
+
+
+def pad_2d_feat(samples, pad_len, pad_value=0):
+    batch_size = len(samples)
+    assert len(samples[0].shape) == 3
+    feat_size = samples[0].shape[-1]
+    tensor = torch.full(
+        [batch_size, pad_len, pad_len, feat_size], pad_value, dtype=samples[0].dtype
+    )
+    for i in range(batch_size):
+        tensor[i, : samples[i].shape[0], : samples[i].shape[1]] = samples[i]
+    return tensor
+
+
+def pad_attn_bias(samples, pad_len):
+    batch_size = len(samples)
+    pad_len = pad_len + 1
+    tensor = torch.full(
+        [batch_size, pad_len, pad_len], float("-inf"), dtype=samples[0].dtype
+    )
+    for i in range(batch_size):
+        tensor[i, : samples[i].shape[0], : samples[i].shape[1]] = samples[i]
+        tensor[i, samples[i].shape[0] :, : samples[i].shape[1]] = 0
+    return tensor

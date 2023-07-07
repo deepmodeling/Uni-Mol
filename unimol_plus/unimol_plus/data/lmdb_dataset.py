@@ -15,12 +15,14 @@ logger = logging.getLogger(__name__)
 
 
 class LMDBDataset:
-    def __init__(self, db_path):
+    def __init__(self, db_path, key_to_id=True, gzip=True):
         self.db_path = db_path
         assert os.path.isfile(self.db_path), "{} not found".format(self.db_path)
         env = self.connect_db(self.db_path)
         with env.begin() as txn:
             self._keys = list(txn.cursor().iternext(values=False))
+        self.key_to_id = key_to_id
+        self.gzip = gzip
 
     def connect_db(self, lmdb_path, save_to_self=False):
         env = lmdb.open(
@@ -46,6 +48,32 @@ class LMDBDataset:
             self.connect_db(self.db_path, save_to_self=True)
         key = self._keys[idx]
         datapoint_pickled = self.env.begin().get(key)
-        data = pickle.loads(gzip.decompress(datapoint_pickled))
-        data["id"] = int.from_bytes(key, "big")
+        if self.gzip:
+            datapoint_pickled = gzip.decompress(datapoint_pickled)
+        data = pickle.loads(datapoint_pickled)
+        if self.key_to_id:
+            data["id"] = int.from_bytes(key, "big")
         return data
+
+
+class StackedLMDBDataset:
+    def __init__(self, datasets):
+        self._len = 0
+        self.datasets = []
+        self.idx_to_file = {}
+        self.idx_offset = []
+        for dataset in datasets:
+            self.datasets.append(dataset)
+            for i in range(len(dataset)):
+                self.idx_to_file[i + self._len] = len(self.datasets) - 1
+            self.idx_offset.append(self._len)
+            self._len += len(dataset)
+
+    def __len__(self):
+        return self._len
+
+    @lru_cache(maxsize=16)
+    def __getitem__(self, idx):
+        file_idx = self.idx_to_file[idx]
+        sub_idx = idx - self.idx_offset[file_idx]
+        return self.datasets[file_idx][sub_idx]

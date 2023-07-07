@@ -20,7 +20,7 @@ def get_graph_features(item):
         item["node_attr"],
     )
     N = x.shape[0]
-    atom_feat = convert_to_single_emb(x, atom_feat_sizes)
+    atom_feat = data_utils.convert_to_single_emb(x, atom_feat_sizes)
 
     # node adj matrix [N, N] bool
     adj = np.zeros([N, N], dtype=np.int32)
@@ -32,7 +32,7 @@ def get_graph_features(item):
         edge_attr = edge_attr[:, None]
     edge_feat = np.zeros([N, N, edge_attr.shape[-1]], dtype=np.int32)
     edge_feat[edge_index[0, :], edge_index[1, :]] = (
-        convert_to_single_emb(edge_attr, edge_feat_sizes) + 1
+        data_utils.convert_to_single_emb(edge_attr, edge_feat_sizes) + 1
     )
     shortest_path_result = floyd_warshall(adj)
 
@@ -54,7 +54,7 @@ def get_graph_features(item):
         ],
         dim=-1,
     )
-    feat["pair_type"] = convert_to_single_emb(pair_type, [128, 128])
+    feat["pair_type"] = data_utils.convert_to_single_emb(pair_type, [128, 128])
     feat["attn_bias"] = torch.zeros((N + 1, N + 1), dtype=torch.float32)
     return feat
 
@@ -77,7 +77,7 @@ def get_optimal_transform(src_atoms, tgt_atoms):
     return r, x
 
 
-class UnimolPlusFeatureDataset(BaseWrapperDataset):
+class PCQDataset(BaseWrapperDataset):
     def __init__(
         self,
         dataset,
@@ -168,15 +168,15 @@ class UnimolPlusFeatureDataset(BaseWrapperDataset):
         target = np.stack([x["target"] for x in items])
         id = np.stack([int(x["id"]) for x in items]).astype(np.int64)
         pad_fns = {
-            "atom_feat": pad_1d_feat,
-            "atom_mask": pad_1d,
-            "edge_feat": pad_2d_feat,
-            "shortest_path": pad_2d,
-            "degree": pad_1d,
-            "pos": pad_1d_feat,
-            "pos_target": pad_1d_feat,
-            "pair_type": pad_2d_feat,
-            "attn_bias": pad_attn_bias,
+            "atom_feat": data_utils.pad_1d_feat,
+            "atom_mask": data_utils.pad_1d,
+            "edge_feat": data_utils.pad_2d_feat,
+            "shortest_path": data_utils.pad_2d,
+            "degree": data_utils.pad_1d,
+            "pos": data_utils.pad_1d_feat,
+            "pos_target": data_utils.pad_1d_feat,
+            "pair_type": data_utils.pad_2d_feat,
+            "attn_bias": data_utils.pad_attn_bias,
         }
         max_node_num = max([item["atom_mask"].shape[0] for item in items])
         max_node_num = (max_node_num + 1 + 3) // 4 * 4 - 1
@@ -217,67 +217,3 @@ def floyd_warshall(M):
             if M[i, j] >= 510:
                 M[i, j] = 510
     return M
-
-
-def convert_to_single_emb(x, sizes):
-    assert x.shape[-1] == len(sizes)
-    offset = 1
-    for i in range(len(sizes)):
-        assert (x[..., i] < sizes[i]).all()
-        x[..., i] = x[..., i] + offset
-        offset += sizes[i]
-    return x
-
-
-def pad_1d(samples, pad_len, pad_value=0):
-    batch_size = len(samples)
-    tensor = torch.full([batch_size, pad_len], pad_value, dtype=samples[0].dtype)
-    for i in range(batch_size):
-        tensor[i, : samples[i].shape[0]] = samples[i]
-    return tensor
-
-
-def pad_1d_feat(samples, pad_len, pad_value=0):
-    batch_size = len(samples)
-    assert len(samples[0].shape) == 2
-    feat_size = samples[0].shape[-1]
-    tensor = torch.full(
-        [batch_size, pad_len, feat_size], pad_value, dtype=samples[0].dtype
-    )
-    for i in range(batch_size):
-        tensor[i, : samples[i].shape[0]] = samples[i]
-    return tensor
-
-
-def pad_2d(samples, pad_len, pad_value=0):
-    batch_size = len(samples)
-    tensor = torch.full(
-        [batch_size, pad_len, pad_len], pad_value, dtype=samples[0].dtype
-    )
-    for i in range(batch_size):
-        tensor[i, : samples[i].shape[0], : samples[i].shape[1]] = samples[i]
-    return tensor
-
-
-def pad_2d_feat(samples, pad_len, pad_value=0):
-    batch_size = len(samples)
-    assert len(samples[0].shape) == 3
-    feat_size = samples[0].shape[-1]
-    tensor = torch.full(
-        [batch_size, pad_len, pad_len, feat_size], pad_value, dtype=samples[0].dtype
-    )
-    for i in range(batch_size):
-        tensor[i, : samples[i].shape[0], : samples[i].shape[1]] = samples[i]
-    return tensor
-
-
-def pad_attn_bias(samples, pad_len):
-    batch_size = len(samples)
-    pad_len = pad_len + 1
-    tensor = torch.full(
-        [batch_size, pad_len, pad_len], float("-inf"), dtype=samples[0].dtype
-    )
-    for i in range(batch_size):
-        tensor[i, : samples[i].shape[0], : samples[i].shape[1]] = samples[i]
-        tensor[i, samples[i].shape[0] :, : samples[i].shape[1]] = 0
-    return tensor

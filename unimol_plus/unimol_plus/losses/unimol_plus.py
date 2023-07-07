@@ -20,7 +20,19 @@ class UnimolPlusLoss(UnicoreLoss):
 
     def __init__(self, task):
         super().__init__(task)
+        self.e_thresh = 0.02
         self.args = task.args
+
+        def get_loss_weight(max_loss_weight, min_loss_weight):
+            weight_range = max(0, max_loss_weight - min_loss_weight)
+            return max_loss_weight, weight_range
+
+        self.pos_loss_weight, self.pos_loss_weight_range = get_loss_weight(
+            self.args.pos_loss_weight, self.args.min_pos_loss_weight
+        )
+        self.dist_loss_weight, self.dist_loss_weight_range = get_loss_weight(
+            self.args.dist_loss_weight, self.args.min_dist_loss_weight
+        )
 
     def forward(self, model, sample, reduce=True):
         """Compute the loss for the given sample.
@@ -32,38 +44,60 @@ class UnimolPlusLoss(UnicoreLoss):
         """
 
         with torch.no_grad():
-            sample_size = sample["batched_data"]["atom_feat"].shape[0]
-            natoms = sample["batched_data"]["atom_feat"].shape[1]
+            sample_size = sample["batched_data"]["atom_mask"].shape[0]
+            natoms = sample["batched_data"]["atom_mask"].shape[1]
 
-        # add gaussian noise
         (
             graph_output,
             pos_pred,
+            pos_target_mask,
             dist_pred,
+            update_num,
         ) = model(**sample)
+        if self.training:
+            max_update = self.args.max_update
+            # print(update_num)
+            assert update_num >= 0 and max_update >= 0
+            ratio = float(update_num) / max_update
+            delta = self.pos_loss_weight_range * ratio
+            pos_loss_weight = self.pos_loss_weight - delta
+            delta = self.dist_loss_weight_range * ratio
+            dist_loss_weight = self.dist_loss_weight - delta
+        else:
+            pos_loss_weight = self.pos_loss_weight
+            dist_loss_weight = self.dist_loss_weight
         targets = sample["batched_data"]["target"].float().view(-1)
-        graph_output = graph_output.float().view(-1)
-        per_data_loss = torch.nn.L1Loss(reduction="none")(graph_output.float(), targets)
-        loss = per_data_loss.sum()
-        per_data_pred = graph_output
-        per_data_label = targets
+        per_data_loss = None
+        if graph_output is not None:
+            graph_output = graph_output.float().view(-1)
+            per_data_loss = torch.nn.L1Loss(reduction="none")(
+                graph_output.float(), targets
+            )
+            energy_within_threshold = (per_data_loss < self.e_thresh).sum()
+            loss = per_data_loss.sum()
+            per_data_pred = graph_output
+            per_data_label = targets
+        else:
+            loss = torch.tensor(0.0, device=targets.device)
 
         atom_mask = sample["batched_data"]["atom_mask"].float()
-        pos_mask = atom_mask.unsqueeze(-1)
-        pos_target = sample["batched_data"]["pos_target"].float() * pos_mask
+        if pos_target_mask is not None:
+            atom_mask = atom_mask * pos_target_mask.float()
+        pos_target = sample["batched_data"]["pos_target"].float() * atom_mask.unsqueeze(
+            -1
+        )
 
         def get_pos_loss(pos_pred):
-            pos_pred = pos_pred.float() * pos_mask
-            center_loss = pos_pred.mean(dim=-2).square().sum()
+            pos_pred = pos_pred.float() * atom_mask.unsqueeze(-1)
             pos_loss = torch.nn.L1Loss(reduction="none")(
                 pos_pred,
                 pos_target,
             ).sum(dim=(-1, -2))
-            pos_cnt = pos_mask.squeeze(-1).sum(dim=-1) + 1e-10
+            pos_cnt = atom_mask.sum(dim=-1) + 1e-10
             pos_loss = (pos_loss / pos_cnt).sum()
-            return pos_loss, center_loss
+            return pos_loss
 
-        (pos_loss, center_loss) = get_pos_loss(pos_pred)
+        pos_loss = get_pos_loss(pos_pred)
 
         pair_mask = atom_mask.unsqueeze(-1) * atom_mask.unsqueeze(-2).float()
         dist_target = (pos_target.unsqueeze(-2) - pos_target.unsqueeze(-3)).norm(dim=-1)
@@ -83,14 +117,12 @@ class UnimolPlusLoss(UnicoreLoss):
 
         dist_loss = get_dist_loss(dist_pred)
 
-        total_loss = (
-            loss + dist_loss + self.args.pos_loss_weight * (pos_loss + center_loss)
-        )
+        total_loss = loss + dist_loss_weight * dist_loss + pos_loss_weight * pos_loss
         logging_output = {
             "loss": loss.data,
+            "ewt_metric": energy_within_threshold,
             "dist_loss": dist_loss.data,
             "pos_loss": pos_loss.data,
-            "center_loss": center_loss.data,
             "total_loss": total_loss.data,
             "sample_size": sample_size,
             "nsentences": sample_size,

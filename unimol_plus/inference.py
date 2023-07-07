@@ -25,26 +25,6 @@ logging.basicConfig(
 logger = logging.getLogger("unimol.inference")
 
 
-def predicted_lddt(plddt_logits: torch.Tensor) -> torch.Tensor:
-    """Computes per-residue pLDDT from logits.
-    Args:
-        logits: [num_res, num_bins] output from the PredictedLDDTHead.
-    Returns:
-        plddt: [num_res] per-residue pLDDT.
-    """
-    num_bins = plddt_logits.shape[-1]
-    bin_probs = torch.nn.functional.softmax(plddt_logits.float(), dim=-1)
-    bin_width = 1.0 / num_bins
-    bounds = torch.arange(
-        start=0.5 * bin_width, end=1.0, step=bin_width, device=plddt_logits.device
-    )
-    plddt = torch.sum(
-        bin_probs * bounds.view(*((1,) * len(bin_probs.shape[:-1])), *bounds.shape),
-        dim=-1,
-    )
-    return plddt
-
-
 def masked_mean(mask, value, dim, eps=1e-10, keepdim=False):
     mask = mask.expand(*value.shape)
     return torch.sum(mask * value, dim=dim, keepdim=keepdim) / (
@@ -53,7 +33,6 @@ def masked_mean(mask, value, dim, eps=1e-10, keepdim=False):
 
 
 def main(args):
-
     assert (
         args.batch_size is not None
     ), "Must specify batch size either with --batch-size"
