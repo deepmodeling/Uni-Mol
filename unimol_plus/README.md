@@ -84,6 +84,8 @@ export batch_size=16
 bash inference.sh test-dev # or other splits, OC20's test files are in ["test_id", "test_ood_ads", "test_ood_both", "test_ood_cat"]
 ```
 
+After infernece, you can use the `scripts/make_pcq_test_dev_submission.py` (or `scripts/make_oc20_test_submission.py`) to generate the submission files for the leaderboard evalution.
+
 Training PCQM4MV2
 -----------------
 ```bash
