@@ -8,7 +8,7 @@ Highly Accurate Quantum Chemical Property Prediction with Uni-Mol+
 
 Uni-Mol+ is a model for quantum chemical property prediction. Firstly, given a 2D molecular graph, Uni-Mol+ generates an initial 3D conformation from inexpensive methods such as RDKit. Then, the initial conformation is iteratively optimized to its equilibrium conformation, and the optimized conformation is further used to predict the QC properties.
 
-In the [PCQM4MV2](https://ogb.stanford.edu/docs/lsc/leaderboards/#pcqm4mv2) bencmark, Uni-Mol+ outperforms previous SOTA methods by a large margin.
+In the [PCQM4MV2](https://ogb.stanford.edu/docs/lsc/leaderboards/#pcqm4mv2) benchmark, Uni-Mol+ outperforms previous SOTA methods by a large margin.
 
 | Model Settings   | # Layers   | # Param.    | Validation MAE   | Model Checkpoint | 
 |------------------|------------| ----------- |------------------|------------------|
@@ -17,7 +17,7 @@ In the [PCQM4MV2](https://ogb.stanford.edu/docs/lsc/leaderboards/#pcqm4mv2) benc
 | Uni-Mol+ Small   |      6     |   27.7 M    | 0.0714           | [link](https://github.com/dptech-corp/Uni-Mol/releases/download/v0.2/unimol_plus_pcq_small.pt)         |
 
 
-In the [OC20](https://opencatalystproject.org/leaderboard.html) IS2RE  bencmark, Uni-Mol+ outperforms previous SOTA methods by a large margin.
+In the [OC20](https://opencatalystproject.org/leaderboard.html) IS2RE  benchmark, Uni-Mol+ outperforms previous SOTA methods by a large margin.
 
 | Model Settings   | # Layers   | # Param.    | Validation Mean MAE  | Test Mean MAE  | Model Checkpoint | 
 |------------------|------------| ----------- |----------------------|----------------|------------------|
@@ -32,6 +32,9 @@ Dependencies
 
 Data Preparation
 ----------------
+
+#### PCQM4MV2
+
 
 First, download the data:
 
@@ -55,25 +58,52 @@ python get_3d_lmdb.py test-dev
 python get_3d_lmdb.py test-challenge
 ```
 
+#### OC20
+
+First, follow [this page](https://github.com/Open-Catalyst-Project/ocp/blob/main/DATASET.md) to download the OC20 IS2RE data.
+
+Second, clean the download lmdb files by the following commands:
+
+```bash
+input_path="your_input_path" # The path to the original OC20 dataset
+output_path="your_output_path"
+python scripts/oc20_preprocess.py --input-path $input_path --out-path $output_path --split train
+python scripts/oc20_preprocess.py --input-path $input_path --out-path $output_path --split valid
+python scripts/oc20_preprocess.py --input-path $input_path --out-path $output_path --split test 
+```
+
 Inference
 ---------
 ```bash
 export data_path="your_data_path"
 export results_path="your_result_path"
 export weight_path="your_ckp_path"
-export arch="unimol_plus_large" # or "unimol_plus_base" if you use 12-layer model
-bash inference.sh test-dev # or other splits
+export task=pcq # or "oc20" for oc20 task
+export arch="unimol_plus_pcq_large" # or "unimol_plus_oc20_base" for oc20 arch
+export batch_size=16
+bash inference.sh test-dev # or other splits, OC20's test files are in ["test_id", "test_ood_ads", "test_ood_both", "test_ood_cat"]
 ```
 
-Training
---------
+Training PCQM4MV2
+-----------------
 ```bash
 data_path="your_data_path"
 save_dir="your_save_path"
 lr=2e-4
 batch_size=128 # per gpu batch size 128, we default use 8 GPUs
-export arch="unimol_plus_large" # or "unimol_plus_base" if you use 12-layer model
+export arch="unimol_plus_pcq_large" # or "unimol_plus_pcq_base" if you use 12-layer model
 bash train_pcq.sh $data_path $save_dir $lr $batch_size
+```
+
+Training OC20
+-------------
+```bash
+data_path="your_data_path"
+save_dir="your_save_path"
+lr=2e-4
+batch_size=8 # per gpu batch size 8, we default use 8 GPUs
+export arch="unimol_plus_oc20_base"
+bash train_oc20.sh $data_path $save_dir $lr $batch_size
 ```
 
 Citation
