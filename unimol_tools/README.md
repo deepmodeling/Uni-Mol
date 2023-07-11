@@ -10,7 +10,7 @@
 ```python
 ## clone repo
 git clone https://github.com/dptech-corp/Uni-Mol.git
-cd unimol_tools
+cd Uni-Mol/unimol_tools/unimol_tools
 
 ## download pretrained weights
 wget https://github.com/dptech-corp/Uni-Mol/releases/download/v0.1/mol_pre_all_h_220816.pt
@@ -18,10 +18,12 @@ wget https://github.com/dptech-corp/Uni-Mol/releases/download/v0.1/mol_pre_no_h_
 wget https://github.com/dptech-corp/Uni-Mol/releases/download/v0.1/pocket_pre_220816.pt
 wget https://github.com/dptech-corp/Uni-Mol/releases/download/v0.1/mof_pre_no_h_CORE_MAP_20230505.pt
 wget https://github.com/dptech-corp/Uni-Mol/releases/download/v0.1/mp_all_h_230313.pt
+mkdir -p weights
 mv *.pt weights/
 
 ## install
-pip install -r requirement.txt
+cd ..
+pip install -r requirements.txt
 python setup.py install
 ```
 ## finetune
@@ -42,11 +44,19 @@ res = clf.predict(data = data)
 ```
 ## unimol repr
 ```python
+import torch as th
 from unimol_tools import UniMolRepr
 clf = UniMolRepr(data_type='molecule')
 smiles = ['CCO', 'CCC', 'CCCC']
 reprs = clf.get_repr(smiles)
-print(reprs.shape)
+(
+    # dict_keys(['cls_repr', 'atomic_reprs'])
+    reprs.keys(),  
+    # torch.Size([3, 512])
+    th.tensor(reprs["cls_repr"]).shape,  
+    # [torch.Size([9, 512]), torch.Size([11, 512]), torch.Size([14, 512])])
+    [th.tensor(x).shape for x in reprs["atomic_reprs"]]  
+) 
 ```
 
 ## unimol mof absorption prediction
