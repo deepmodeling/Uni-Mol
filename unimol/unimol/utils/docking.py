@@ -61,13 +61,21 @@ if __name__ == "__main__":
         default="./protein_ligand_binding_pose_prediction",
         help="Location of the docking output path",
     )
+    parser.add_argument(
+        "--optimization-model",
+        type=str,
+        default="coordinate",
+        help="Optimize coordinates ('coordinate') or ligand internal torsions ('conformer')",
+        choices=["coordinate", "conformer"],
+    )
     args = parser.parse_args()
 
-    raw_data_path, predict_path, dir_path, nthreads = (
+    raw_data_path, predict_path, dir_path, nthreads, model_choice = (
         args.reference_file,
         args.predict_file,
         args.output_path,
         args.nthreads,
+        args.optimization_model,
     )
     tta_times = 10
     (
@@ -106,6 +114,7 @@ if __name__ == "__main__":
         pd.to_pickle(content, output_name)
         return True
 
+    # skip step if repeat
     with Pool(nthreads) as pool:
         for inner_output in tqdm(pool.imap(dump, iterations), total=sz):
             if not inner_output:
@@ -125,11 +134,13 @@ if __name__ == "__main__":
             os.remove(output_ligand_name)
         except:
             pass
-        cmd = "python ./unimol/utils/coordinate_model.py --input {} --output {} --output-ligand {}".format(
-            input_name, output_name, output_ligand_name
+
+        cmd = "python ./unimol/utils/{}_model.py --input {} --output {} --output-ligand {}".format(
+            model_choice, input_name, output_name, output_ligand_name
         )
         os.system(cmd)
         return True
+
 
     with Pool(nthreads) as pool:
         for inner_output in tqdm(
