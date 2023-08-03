@@ -19,18 +19,6 @@ warnings.filterwarnings(action="ignore")
 
 # Utils
 
-def get_coordinates(mol: Chem.Mol, conf_id: int = 0) -> th.Tensor:
-    """ Gets coordinates from a molecule. Shape: (N, 3) """
-    return th.tensor(mol.GetConformer(conf_id).GetPositions(), dtype=th.float32)
-
-def update_coordinates(coords: th.Tensor, mol: Chem.Mol, conf_id: int = 0) -> Chem.Mol:
-    """ Sets the coordinates for a molecule. In-place. Coords is shape (N, 3). """
-    conf = mol.GetConformer(conf_id)
-    positions = coords.detach().cpu().tolist()
-    for i in range(mol.GetNumAtoms()):
-        conf.SetAtomPosition(i, positions[i])
-    return mol
-
 def rot_from_axis_angle(axis: th.Tensor, angle: th.Tensor) -> th.Tensor:
     """ ((...), 3), ((...),) -> ((...), 3, 3) """
     # ((...), D) -> ((...),)
@@ -329,7 +317,7 @@ def single_dock_with_gradient(
     trans.requires_grad = True
     torsions.requires_grad = True
 
-    optimizer = th.optim.LBFGS(params=[euler, trans, torsions], lr=1.0)
+    optimizer = th.optim.LBFGS(params=[euler, trans, torsions], lr=0.3)
     bst_loss, times = 10000.0, 0
     for i in range(iterations):
         def closure():
@@ -397,7 +385,7 @@ def add_coord(mol, xyz):
     return mol
 
 
-def single_docking(input_path: str, output_path: str, output_ligand_path: str, sym_rmsd: bool = False):
+def single_docking(input_path: str, output_path: str, output_ligand_path: str):
     """ Performs docking based on UniMol predictions.
 
     Args:
@@ -441,19 +429,7 @@ def single_docking(input_path: str, output_path: str, output_ligand_path: str, s
             bst_predict_coords = predict_coords
             bst_meta_info = meta_info
 
-    if sym_rmsd:
-        # get
-        base_perms = th.tensor(mol.GetSubstructMatches(mol, uniquify=False))
-        # filter out invalid stereochems, naive symmetry (doesn't consider unsymmetric rdkit substructs like "-C(=O)O"
-        chem_order = th.tensor(Chem.rdmolfiles.CanonicalRankAtoms(mol, breakTies=False))
-        perm_mask = (chem_order[base_perms] == chem_order[None]).prod(dim=-1)
-        # (P, N)
-        base_perms = base_perms[perm_mask].numpy()
-        # get min rmsd of permutations: (N, 3), (P, N, 3) -> (P,)
-        _rmsd = round(rmsd_func(holo_coords, bst_predict_coords[base_perms]).amin(), 4)
-    else:
-        _rmsd = round(rmsd_func(holo_coords, bst_predict_coords), 4)
-
+    _rmsd = round(rmsd_func(holo_coords, bst_predict_coords), 4)
     _cross_score = round(float(bst_meta_info[0]), 4)
     _self_score = round(float(bst_meta_info[1]), 4)
     print(f"{pocket}-{smi}-RMSD:{_rmsd}-CROSSSCORE:{_cross_score}-SELFSCORE:{_self_score}")
