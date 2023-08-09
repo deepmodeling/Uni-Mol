@@ -64,7 +64,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--optimization-model",
         type=str,
-        default="coordinate",
+        default="conformer",
         help="Optimize coordinates ('coordinate') or ligand internal torsions ('conformer')",
         choices=["coordinate", "conformer"],
     )
