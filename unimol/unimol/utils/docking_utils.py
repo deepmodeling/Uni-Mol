@@ -202,7 +202,7 @@ def ensemble_iterations(
 def rmsd_func(holo_coords, predict_coords):
     if predict_coords is not np.nan:
         sz = holo_coords.shape
-        rmsd = np.sqrt(np.sum((predict_coords - holo_coords) ** 2) / sz[0])
+        rmsd = np.sqrt(np.sum((predict_coords - holo_coords) ** 2) / sz[-2])
         return rmsd
     return 1000.0
 
