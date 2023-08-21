@@ -18,8 +18,7 @@ import lmdb
 import pickle
 import pandas as pd
 from typing import Dict, List, Optional
-from conf_gen_cal_metrics import clustering
-
+from conf_gen_cal_metrics import clustering, single_conf_gen
 
 
 def add_all_conformers_to_mol(mol: Chem.Mol, conformers: List[np.ndarray]) -> Chem.Mol:
@@ -75,23 +74,6 @@ def get_torsions(m: Chem.Mol, removeHs=True) -> List:
     return torsionList
 
 
-def SetDihedral(conf, atom_idx, new_vale):
-    rdMolTransforms.SetDihedralRad(
-        conf, atom_idx[0], atom_idx[1], atom_idx[2], atom_idx[3], new_vale
-    )
-
-
-def single_conf_gen_bonds(tgt_mol, num_confs=1000, seed=42, removeHs=True):
-    mol = copy.deepcopy(tgt_mol)
-    mol = Chem.AddHs(mol)
-    AllChem.EmbedMultipleConfs(
-        mol, numConfs=num_confs, randomSeed=seed, clearConfs=True
-    )
-    if removeHs:
-        mol = Chem.RemoveHs(mol)
-    return mol
-
-
 def load_lmdb_data(lmdb_path, key):
     env = lmdb.open(
         lmdb_path,
@@ -111,7 +93,8 @@ def load_lmdb_data(lmdb_path, key):
         collects.append(data[key])
     return collects
 
-def reprocess_content(content: Dict, base_mol: Optional[Chem.Mol] = None, M: int = 2000, N: int = 10, mmff: bool = False, seed: int = 42) -> Dict:
+
+def reprocess_content(content: Dict, base_mol: Optional[Chem.Mol] = None, M: int = 2000, N: int = 10, mmff: bool = False, seed: int = 42, stereo_from3d: bool = True) -> Dict:
     """ Reprocess a data point in the LMDB schema for Docking usage. Ensures correct stereochemistry.
     Basic principle is to perceive stereochem from label molecule's 3D and keep it intact.
     Use default values for best results
@@ -119,6 +102,11 @@ def reprocess_content(content: Dict, base_mol: Optional[Chem.Mol] = None, M: int
     Args:
         content: A dictionary of the LMDB schema. (atoms, holo_mol, mol_list, cooredinates, etc.)
         base_mol: The molecule to replace the holo_mol with, if passed
+        M: The number of conformers to generate
+        N: The number of clusters to group conformers and pick a representative from
+        mmff: Whether to use MMFF minimization after conformer generation
+        seed: The random seed to use for conformer generation
+        stereo_from3d: Whether to perceive stereochemistry from the 3D coordinates of the label molecule
 
     Returns:
         A copy of the original, with the holo_mol replaced with the base_mol, and coordinates added.
@@ -130,7 +118,8 @@ def reprocess_content(content: Dict, base_mol: Optional[Chem.Mol] = None, M: int
     base_mol = copy.deepcopy(base_mol)
     base_mol = Chem.AddHs(base_mol, addCoords=True)
     # assign stereochem from 3d
-    Chem.AssignStereochemistryFrom3D(base_mol)
+    if stereo_from3d and base_mol.GetNumConformers() > 0:
+        Chem.AssignStereochemistryFrom3D(base_mol)
     ori_smiles = Chem.MolToSmiles(base_mol)
     # create new, clean molecule
     remol = Chem.MolFromSmiles(ori_smiles)
@@ -148,8 +137,8 @@ def reprocess_content(content: Dict, base_mol: Optional[Chem.Mol] = None, M: int
     content["atoms"] = [a.GetSymbol() for a in base_mol.GetAtoms()]
     return content
 
-def docking_data_pre(raw_data_path, predict_path):
 
+def docking_data_pre(raw_data_path, predict_path):
     mol_list = load_lmdb_data(raw_data_path, "mol_list")
     mol_list = [Chem.RemoveHs(mol) for items in mol_list for mol in items]
     predict = pd.read_pickle(predict_path)
@@ -223,7 +212,7 @@ def ensemble_iterations(
         holo_distance_predict_tta = holo_distance_predict_list[start_idx:end_idx]
 
         mol = copy.deepcopy(mol_list[start_idx])
-        rdkit_mol = single_conf_gen_bonds(
+        rdkit_mol = single_conf_gen(
             mol, num_confs=tta_times, seed=42, removeHs=True
         )
         sz = len(rdkit_mol.GetConformers())
