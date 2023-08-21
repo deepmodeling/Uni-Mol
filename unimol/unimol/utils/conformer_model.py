@@ -199,6 +199,7 @@ def single_SF_loss(
     return cross_dist_score.detach().numpy(), dist_score.detach().numpy(), clash_pl_score.detach().numpy(), loss
 
 
+
 def dock_with_gradient(
     coords: np.ndarray,
     pocket_coords: np.ndarray,

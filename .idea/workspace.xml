@@ -5,13 +5,9 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="f32c22c6-1311-4314-935f-cfc5953bdba5" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/Uni-Mol.iml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/inspectionProfiles/profiles_settings.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/vcs.xml" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/unimol/unimol/utils/conf_gen_cal_metrics.py" beforeDir="false" afterPath="$PROJECT_DIR$/unimol/unimol/utils/conf_gen_cal_metrics.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/unimol/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/unimol/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/unimol/unimol/utils/conformer_model.py" beforeDir="false" afterPath="$PROJECT_DIR$/unimol/unimol/utils/conformer_model.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/unimol/unimol/utils/docking_utils.py" beforeDir="false" afterPath="$PROJECT_DIR$/unimol/unimol/utils/docking_utils.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
