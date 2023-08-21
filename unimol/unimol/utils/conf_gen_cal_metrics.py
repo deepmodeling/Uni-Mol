@@ -108,6 +108,7 @@ def clustering(
     mol: Chem.Mol,
     M: int = 1000,
     N: int = 100,
+    mmff: bool = True,
     randomized_angles: bool = False,
     kmeans: bool = False,
     seed: int = 42,
@@ -118,12 +119,13 @@ def clustering(
     Follows principles outlined in: https://arxiv.org/abs/2302.07061
     - For paper reproduction, call with: M=1000, N=100, randomized_angles=True, kmeans=True
     - For best UniMol inference: M=1300, N=10, randomized_angles=False, kmeans=False (adjust M>10 for speed)
-    - WARNING! randomized_angles = True might change the molecule stereochemistry
+    - WARNING! randomized_angles = True might change the molecule stereochemistry! Ex: PDB: 2ZCR
 
     Args:
         mol (Chem.Mol): rdkit molecule
         M (int): Number of conformers to generate.
         N (int): Number of conformers to return.
+        mmff (bool): Whether to use MMFF forcefield relaxation.
         randomized_angles (bool, optional): Whether to use an additional M/4 conformers  with randomized torsion angles.
             WARNING! might change the molecule stereochemistry
         kmeans (bool): Whether to use kmeans or kmedoids.
@@ -134,14 +136,19 @@ def clustering(
     Returns:
         List[np.ndarray]: List of conformer coordinates
     """
-    # add forcefield optimized conformers
-    rdkit_mol = single_conf_gen(mol, num_confs=M, mmff=True, seed=seed, threads=threads)
-    rdkit_mol = Chem.RemoveHs(rdkit_mol)
+    # to support ref paper by default but not be too expensive
+    if not mmff:
+        M = M*4
+
     total_sz = 0
+    rdkit_coords_list = []
+
+    # add no-MMFF-optimized conformers (ETKDG v3)
+    rdkit_mol = single_conf_gen(mol, num_confs=int(M // 4), seed=seed, threads=threads)
+    rdkit_mol = Chem.RemoveHs(rdkit_mol)
     sz = len(rdkit_mol.GetConformers())
     tgt_coords = rdkit_mol.GetConformers()[0].GetPositions().astype(np.float32)
     tgt_coords = tgt_coords - np.mean(tgt_coords, axis=0)
-    rdkit_coords_list = []
     for i in range(sz):
         _coords = rdkit_mol.GetConformers()[i].GetPositions().astype(np.float32)
         _coords = _coords - _coords.mean(axis=0)  # need to normalize first
@@ -149,16 +156,17 @@ def clustering(
         rdkit_coords_list.append(np.dot(_coords, _R.as_matrix()))
     total_sz += sz
 
-    # add no-MMFF-optimized conformers
-    rdkit_mol = single_conf_gen(mol, num_confs=int(M // 4), seed=seed+1, threads=threads)
-    rdkit_mol = Chem.RemoveHs(rdkit_mol)
-    sz = len(rdkit_mol.GetConformers())
-    for i in range(sz):
-        _coords = rdkit_mol.GetConformers()[i].GetPositions().astype(np.float32)
-        _coords = _coords - _coords.mean(axis=0)  # need to normalize first
-        _R, _score = Rotation.align_vectors(_coords, tgt_coords)
-        rdkit_coords_list.append(np.dot(_coords, _R.as_matrix()))
-    total_sz += sz
+    # add forcefield optimized conformers
+    if mmff:
+        rdkit_mol = single_conf_gen(mol, num_confs=M, mmff=True, seed=seed+1, threads=threads)
+        rdkit_mol = Chem.RemoveHs(rdkit_mol)
+        sz = len(rdkit_mol.GetConformers())
+        for i in range(sz):
+            _coords = rdkit_mol.GetConformers()[i].GetPositions().astype(np.float32)
+            _coords = _coords - _coords.mean(axis=0)  # need to normalize first
+            _R, _score = Rotation.align_vectors(_coords, tgt_coords)
+            rdkit_coords_list.append(np.dot(_coords, _R.as_matrix()))
+        total_sz += sz
 
     # add uniform rotation bonds conformers - WARNING! - might alter stereochemistry. Ex: PDB-2ZCR
     if randomized_angles:

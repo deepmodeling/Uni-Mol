@@ -114,6 +114,7 @@ def load_lmdb_data(lmdb_path, key):
 def reprocess_content(content: Dict, base_mol: Optional[Chem.Mol] = None, M: int = 2000, N: int = 10, mmff: bool = False, seed: int = 42) -> Dict:
     """ Reprocess a data point in the LMDB schema for Docking usage. Ensures correct stereochemistry.
     Basic principle is to perceive stereochem from label molecule's 3D and keep it intact.
+    Use default values for best results
 
     Args:
         content: A dictionary of the LMDB schema. (atoms, holo_mol, mol_list, cooredinates, etc.)
@@ -146,7 +147,6 @@ def reprocess_content(content: Dict, base_mol: Optional[Chem.Mol] = None, M: int
     content["holo_mol"] = copy.deepcopy(base_mol)
     content["atoms"] = [a.GetSymbol() for a in base_mol.GetAtoms()]
     return content
-
 
 def docking_data_pre(raw_data_path, predict_path):
 
