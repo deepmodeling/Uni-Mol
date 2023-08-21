@@ -17,9 +17,26 @@ import copy
 import lmdb
 import pickle
 import pandas as pd
+from typing import Optional, Dict, Tuple, List, Optional
+from conf_gen_cal_metrics import clustering
 
 
-def get_torsions(m, removeHs=True):
+
+def add_all_conformers_to_mol(mol: Chem.Mol, conformers: List[np.ndarray]) -> Chem.Mol:
+    mol = copy.deepcopy(mol)
+    mol.RemoveAllConformers()
+    for i, conf_pos in enumerate(conformers):
+        conf = Chem.Conformer(mol.GetNumAtoms())
+        mol.AddConformer(conf, assignId=True)
+
+        conf = mol.GetConformer(i)
+        positions = conf_pos.tolist()
+        for j in range(mol.GetNumAtoms()):
+            conf.SetAtomPosition(j, positions[j])
+    return mol
+
+
+def get_torsions(m: Chem.Mol, removeHs=True) -> List:
     if removeHs:
         m = Chem.RemoveHs(m)
     torsionList = []
@@ -67,18 +84,11 @@ def SetDihedral(conf, atom_idx, new_vale):
 def single_conf_gen_bonds(tgt_mol, num_confs=1000, seed=42, removeHs=True):
     mol = copy.deepcopy(tgt_mol)
     mol = Chem.AddHs(mol)
-    allconformers = AllChem.EmbedMultipleConfs(
+    AllChem.EmbedMultipleConfs(
         mol, numConfs=num_confs, randomSeed=seed, clearConfs=True
     )
     if removeHs:
         mol = Chem.RemoveHs(mol)
-    rotable_bonds = get_torsions(mol, removeHs=removeHs)
-    for i in range(len(allconformers)):
-        np.random.seed(i)
-        values = 3.1415926 * 2 * np.random.rand(len(rotable_bonds))
-        for idx in range(len(rotable_bonds)):
-            SetDihedral(mol.GetConformers()[i], rotable_bonds[idx], values[idx])
-        Chem.rdMolTransforms.CanonicalizeConformer(mol.GetConformers()[i])
     return mol
 
 
@@ -100,6 +110,42 @@ def load_lmdb_data(lmdb_path, key):
         data = pickle.loads(datapoint_pickled)
         collects.append(data[key])
     return collects
+
+def reprocess_content(content: Dict, base_mol: Optional[Chem.Mol] = None, M: int = 2000, N: int = 10, mmff: bool = False, seed: int = 42) -> Dict:
+    """ Reprocess a data point in the LMDB schema for Docking usage. Ensures correct stereochemistry.
+    Basic principle is to perceive stereochem from label molecule's 3D and keep it intact.
+
+    Args:
+        content: A dictionary of the LMDB schema. (atoms, holo_mol, mol_list, cooredinates, etc.)
+        base_mol: The molecule to replace the holo_mol with, if passed
+
+    Returns:
+        A copy of the original, with the holo_mol replaced with the base_mol, and coordinates added.
+    """
+    if base_mol is None:
+        base_mol = content["holo_mol"]
+    # Copy so we don't change inputs
+    content = copy.deepcopy(content)
+    base_mol = copy.deepcopy(base_mol)
+    base_mol = Chem.AddHs(base_mol, addCoords=True)
+    # assign stereochem from 3d
+    Chem.AssignStereochemistryFrom3D(base_mol)
+    ori_smiles = Chem.MolToSmiles(base_mol)
+    # create new, clean molecule
+    remol = Chem.MolFromSmiles(ori_smiles)
+    # reorder to match and add Hs
+    idxs = remol.GetSubstructMatches(Chem.RemoveHs(base_mol))
+    if isinstance(idxs[0], tuple):
+        idxs = idxs[0]
+    idxs = list(map(int, idxs))
+    remol = Chem.RenumberAtoms(remol, idxs)
+    remol = Chem.AddHs(remol, addCoords=True)
+    # overwrite - write the diverse conformer set for potential later reuse
+    content["coordinates"] = [x for x in clustering(remol, M=M, N=N, seed=seed, removeHs=False, mmff=mmff)]
+    content["mol_list"] = [copy.deepcopy(add_all_conformers_to_mol(remol, content["coordinates"])) for i in range(N)]
+    content["holo_mol"] = copy.deepcopy(base_mol)
+    content["atoms"] = [a.GetSymbol() for a in base_mol.GetAtoms()]
+    return content
 
 
 def docking_data_pre(raw_data_path, predict_path):
@@ -199,10 +245,28 @@ def ensemble_iterations(
         ]
 
 
-def rmsd_func(holo_coords, predict_coords):
+def rmsd_func(holo_coords: np.ndarray, predict_coords: np.ndarray, mol: Optional[Chem.Mol] = None) -> float:
+    """ Symmetric RMSD for molecules. """
     if predict_coords is not np.nan:
         sz = holo_coords.shape
-        rmsd = np.sqrt(np.sum((predict_coords - holo_coords) ** 2) / sz[-2])
+        if mol is not None:
+            # get stereochem-unaware permutations: (P, N)
+            base_perms = np.array(mol.GetSubstructMatches(mol, uniquify=False))
+            # filter for valid stereochem only
+            chem_order = np.array(list(Chem.rdmolfiles.CanonicalRankAtoms(mol, breakTies=False)))
+            perms_mask = (chem_order[base_perms] == chem_order[None]).sum(-1) == mol.GetNumAtoms()
+            base_perms = base_perms[perms_mask]
+            noh_mask = np.array([a.GetAtomicNum() != 1 for a in mol.GetAtoms()])
+            # (N, 3), (N, 3) -> (P, N, 3), ((), N, 3) -> (P,) -> min((P,))
+            best_rmsd = np.inf
+            for perm in base_perms:
+                rmsd = np.sqrt(np.sum((predict_coords[perm[noh_mask]] - holo_coords) ** 2) / sz[-2])
+                if rmsd < best_rmsd:
+                    best_rmsd = rmsd
+
+            rmsd = best_rmsd
+        else:
+            rmsd = np.sqrt(np.sum((predict_coords - holo_coords) ** 2) / sz[-2])
         return rmsd
     return 1000.0
 

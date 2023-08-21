@@ -19,7 +19,9 @@ from rdkit.Chem import rdMolAlign as MA
 from scipy.spatial.transform import Rotation
 from multiprocessing import Pool
 from sklearn.cluster import KMeans
+from sklearn_extra.cluster import KMedoids
 import argparse
+from typing import List
 
 
 def get_torsions(m):
@@ -72,51 +74,68 @@ def GetDihedral(conf, atom_idx):
     )
 
 
-def single_conf_gen_bonds(tgt_mol, num_confs=1000, seed=42):
+def single_conf_gen(tgt_mol: Chem.Mol, num_confs: int = 1000, seed: int = 42, mmff: bool = False, randomize_angles: bool = False, threads: int = 0) -> Chem.Mol:
+    """ Generates conformers for a molecule. Functionality to support: https://arxiv.org/abs/2302.07061 """
     mol = copy.deepcopy(tgt_mol)
     mol = Chem.AddHs(mol)
     allconformers = AllChem.EmbedMultipleConfs(
-        mol, numConfs=num_confs, randomSeed=seed, clearConfs=True
+        mol, numConfs=num_confs, randomSeed=seed, clearConfs=True, numThreads=threads
     )
-    mol = Chem.RemoveHs(mol)
-    rotable_bonds = get_torsions(mol)
-    for i in range(len(allconformers)):
-        np.random.seed(i)
-        values = 3.1415926 * 2 * np.random.rand(len(rotable_bonds))
-        for idx in range(len(rotable_bonds)):
-            SetDihedral(mol.GetConformers()[i], rotable_bonds[idx], values[idx])
-        Chem.rdMolTransforms.CanonicalizeConformer(mol.GetConformers()[i])
-    return mol
 
+    # WARNING! this might change the molecule stereochemistry
+    if randomize_angles:
+        rotable_bonds = get_torsions(mol)
+        for i in range(len(allconformers)):
+            np.random.seed(i)
+            values = 3.1415926 * 2 * np.random.rand(len(rotable_bonds))
+            for idx in range(len(rotable_bonds)):
+                SetDihedral(mol.GetConformers()[i], rotable_bonds[idx], values[idx])
+            Chem.rdMolTransforms.CanonicalizeConformer(mol.GetConformers()[i])
 
-def single_conf_gen(tgt_mol, num_confs=1000, seed=42):
-    mol = copy.deepcopy(tgt_mol)
-    mol = Chem.AddHs(mol)
-    allconformers = AllChem.EmbedMultipleConfs(
-        mol, numConfs=num_confs, randomSeed=seed, clearConfs=True
-    )
-    sz = len(allconformers)
-    for i in range(sz):
-        try:
-            AllChem.MMFFOptimizeMolecule(mol, confId=i)
-        except:
-            continue
+    # Forcefield relaxation improves conformer diversity
+    if mmff:
+        sz = len(allconformers)
+        for i in range(sz):
+            try:
+                AllChem.MMFFOptimizeMolecule(mol, confId=i)
+            except:
+                continue
     mol = Chem.RemoveHs(mol)
     return mol
 
 
-def single_conf_gen_no_MMFF(tgt_mol, num_confs=1000, seed=42):
-    mol = copy.deepcopy(tgt_mol)
-    mol = Chem.AddHs(mol)
-    allconformers = AllChem.EmbedMultipleConfs(
-        mol, numConfs=num_confs, randomSeed=seed, clearConfs=True
-    )
-    mol = Chem.RemoveHs(mol)
-    return mol
+def clustering(
+    mol: Chem.Mol,
+    M: int = 1000,
+    N: int = 100,
+    randomized_angles: bool = False,
+    kmeans: bool = False,
+    seed: int = 42,
+    threads: int = 0,
+) -> List[np.ndarray]:
+    """ Creates a diverse set of conformers for a given molecule by
+    procedurally generating candidates with various rdkit methods and clustering.
+    Follows principles outlined in: https://arxiv.org/abs/2302.07061
+    - For paper reproduction, call with: M=1000, N=100, randomized_angles=True, kmeans=True
+    - For best UniMol inference: M=1300, N=10, randomized_angles=False, kmeans=False (adjust M>10 for speed)
+    - WARNING! randomized_angles = True might change the molecule stereochemistry
 
+    Args:
+        mol (Chem.Mol): rdkit molecule
+        M (int): Number of conformers to generate.
+        N (int): Number of conformers to return.
+        randomized_angles (bool, optional): Whether to use an additional M/4 conformers  with randomized torsion angles.
+            WARNING! might change the molecule stereochemistry
+        kmeans (bool): Whether to use kmeans or kmedoids.
+            Kmeans picks random example of cluster, Kmedoids picks cluster centroid.
+        seed (int): Random seed for conformer generation.
+        threads (int): Number of threads to use for conformer generation. If 0, uses all available threads.
 
-def clustering(mol, M=1000, N=100):
-    rdkit_mol = single_conf_gen(mol, num_confs=M)
+    Returns:
+        List[np.ndarray]: List of conformer coordinates
+    """
+    # add forcefield optimized conformers
+    rdkit_mol = single_conf_gen(mol, num_confs=M, mmff=True, seed=seed, threads=threads)
     rdkit_mol = Chem.RemoveHs(rdkit_mol)
     total_sz = 0
     sz = len(rdkit_mol.GetConformers())
@@ -130,8 +149,8 @@ def clustering(mol, M=1000, N=100):
         rdkit_coords_list.append(np.dot(_coords, _R.as_matrix()))
     total_sz += sz
 
-    ### add no MMFF optimize conformers
-    rdkit_mol = single_conf_gen_no_MMFF(mol, num_confs=int(M // 4), seed=43)
+    # add no-MMFF-optimized conformers
+    rdkit_mol = single_conf_gen(mol, num_confs=int(M // 4), seed=seed+1, threads=threads)
     rdkit_mol = Chem.RemoveHs(rdkit_mol)
     sz = len(rdkit_mol.GetConformers())
     for i in range(sz):
@@ -141,29 +160,36 @@ def clustering(mol, M=1000, N=100):
         rdkit_coords_list.append(np.dot(_coords, _R.as_matrix()))
     total_sz += sz
 
-    ### add uniform rotation bonds conformers
-    rdkit_mol = single_conf_gen_bonds(mol, num_confs=int(M // 4), seed=43)
-    rdkit_mol = Chem.RemoveHs(rdkit_mol)
-    sz = len(rdkit_mol.GetConformers())
-    for i in range(sz):
-        _coords = rdkit_mol.GetConformers()[i].GetPositions().astype(np.float32)
-        _coords = _coords - _coords.mean(axis=0)  # need to normalize first
-        _R, _score = Rotation.align_vectors(_coords, tgt_coords)
-        rdkit_coords_list.append(np.dot(_coords, _R.as_matrix()))
-    total_sz += sz
+    # add uniform rotation bonds conformers - WARNING! - might alter stereochemistry. Ex: PDB-2ZCR
+    if randomized_angles:
+        rdkit_mol = single_conf_gen(mol, num_confs=int(M // 4), seed=seed+2, threads=threads, randomize_angles=True)
+        rdkit_mol = Chem.RemoveHs(rdkit_mol)
+        sz = len(rdkit_mol.GetConformers())
+        for i in range(sz):
+            _coords = rdkit_mol.GetConformers()[i].GetPositions().astype(np.float32)
+            _coords = _coords - _coords.mean(axis=0)  # need to normalize first
+            _R, _score = Rotation.align_vectors(_coords, tgt_coords)
+            rdkit_coords_list.append(np.dot(_coords, _R.as_matrix()))
+        total_sz += sz
 
     rdkit_coords_flatten = np.array(rdkit_coords_list).reshape(total_sz, -1)
-    cluster_size = N
-    ids = (
-        KMeans(n_clusters=cluster_size, random_state=42)
-        .fit_predict(rdkit_coords_flatten)
-        .tolist()
-    )
-    coords_list = [rdkit_coords_list[ids.index(i)] for i in range(cluster_size)]
+    if kmeans:
+        ids = (
+            KMeans(n_clusters=N, random_state=42)
+            .fit_predict(rdkit_coords_flatten)
+            .tolist()
+        )
+        coords_list = [rdkit_coords_list[ids.index(i)] for i in range(N)]
+    else:
+        clust = KMedoids(n_clusters=N, random_state=seed, )
+        clust.fit(rdkit_coords_flatten)
+        idxs = clust.medoid_indices_.tolist()
+        coords_list = [rdkit_coords_list[idx] for idx in idxs]
+
     return coords_list
 
 
-def single_process_data(content):
+def single_process_data(content) -> List:
     smi, tgt_mol_list = content[0], content[1]
     M = min(20 * len(tgt_mol_list), 2000)
     N = 2 * len(tgt_mol_list)

@@ -49,10 +49,11 @@ def main(args):
     model.load_state_dict(state["model"], strict=False)
 
     # Move models to GPU
-    if use_fp16:
-        model.half()
     if use_cuda:
         model.cuda()
+        # fp16 only supported on CUDA for fused kernels
+        if use_fp16:
+            model.half()
 
     # Print args
     logger.info(args)

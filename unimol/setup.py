@@ -17,6 +17,7 @@ setup(
     install_requires=[
         "numpy",
         "pandas",
+        "scikit-learn-extra",
     ],
     classifiers=[
         "Development Status :: 5 - Production/Stable",

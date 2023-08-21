@@ -27,6 +27,7 @@ def result_log(dir_path):
     rmsd_results = []
     for path in glob.glob(os.path.join(output_dir, "*.docking.pkl")):
         (
+            mol,
             bst_predict_coords,
             holo_coords,
             bst_loss,
@@ -34,7 +35,7 @@ def result_log(dir_path):
             pocket,
             pocket_coords,
         ) = pd.read_pickle(path)
-        rmsd = rmsd_func(holo_coords, bst_predict_coords)
+        rmsd = rmsd_func(holo_coords, bst_predict_coords, mol=mol)
         rmsd_results.append(rmsd)
     rmsd_results = np.array(rmsd_results)
     print_results(rmsd_results)
@@ -116,7 +117,7 @@ if __name__ == "__main__":
 
     # skip step if repeat
     with Pool(nthreads) as pool:
-        for inner_output in tqdm(pool.imap(dump, iterations), total=sz):
+        for inner_output in tqdm(pool.imap_unordered(dump, iterations), total=sz):
             if not inner_output:
                 print("fail to dump")
 
@@ -144,7 +145,7 @@ if __name__ == "__main__":
 
     with Pool(nthreads) as pool:
         for inner_output in tqdm(
-            pool.imap(single_docking, new_pocket_list), total=len(new_pocket_list)
+            pool.imap_unordered(single_docking, new_pocket_list), total=len(new_pocket_list)
         ):
             if not inner_output:
                 print("fail to docking")

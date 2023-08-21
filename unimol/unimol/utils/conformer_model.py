@@ -91,15 +91,17 @@ def get_flexible_torsions(mol: Chem.Mol) -> th.Tensor:
     """ Gets a unique set of ligand torsions which are rotatable. Shape: (T, 4) """
     # get 3-hop connected atoms, directionally so no repeats
     dist_mat = th.from_numpy(Chem.GetDistanceMatrix(mol))
-    i_, j_ = (dist_mat.triu() == 3).bool().nonzero().T.tolist()
-    # Shortest path, where rotatable bond is not in ring, defines torsion -> find rings
-    bonds_in_ring = {
-        (bond.GetBeginAtomIdx(), bond.GetEndAtomIdx()) for bond in mol.GetBonds() if bond.IsInRing()
-    }
+    # get rotatable bonds
+    torsionSmarts = "[!$(*#*)&!D1]-&!@[!$(*#*)&!D1]"
+    torsionQuery = Chem.MolFromSmarts(torsionSmarts)
+    matches = set(mol.GetSubstructMatches(torsionQuery))
+    # get 3-hop connected atoms, directionally so no repeats
+    i_, l_ = (dist_mat.triu() == 3).bool().nonzero().T.tolist()
+    # Shortest path, where rotatable bond in the middle is a torsion
     flex_unique_torsions = []
-    for i, l in zip(i_, j_):
+    for i, l in zip(i_, l_):
         i, j, k, l = Chem.GetShortestPath(mol, i, l)
-        if (j, k) not in bonds_in_ring and (k, j) not in bonds_in_ring:
+        if {(j, k), (k, j)}.intersection(matches):
             # torsion in the direction that leaves lesser atoms to later rotate: towards the periphery
             if (dist_mat[j] < dist_mat[k]).sum() > (dist_mat[j] > dist_mat[k]).sum():
                 flex_unique_torsions.append([i, j, k, l])
@@ -175,6 +177,7 @@ def single_SF_loss(
     Returns:
         cross_dist_score: cross distance score. scalar. numpy
         dist_score: distance score. scalar. numpy
+        clash_score. clash score. informative. scalar. numpy.
         loss: loss value. scalar. has gradients
     """
     # ((...), N, 1, 3) - ((...), 1, P, 3) -> ((...), N, P)
@@ -183,15 +186,17 @@ def single_SF_loss(
     self_dist = (predict_coords[..., None, :] - predict_coords[..., None, :, :]).norm(dim=-1)
     # only consider local molecule-pocket interactions
     dist_mask = cross_distance_predict < dist_threshold
-    # cross_dist_score = ((cross_dist[dist_mask] - cross_distance_predict[dist_mask]) ** 2).mean(dim=(-1, -2))
-    # dist_score = ((self_dist - self_distance_predict) ** 2).mean(dim=(-1, -2))
+    # ((...), N, N) -> ((...),)
     cross_dist_score = ((cross_dist - cross_distance_predict)**2 * dist_mask).sum() / dist_mask.sum(dim=(-1, -2))
     dist_score = ((self_dist - self_distance_predict) ** 2).mean(dim=(-1, -2))
     # weight different loss terms
     loss = cross_dist_score * cross_dist_weight + dist_score * self_dist_weight
+    # penalize clashes - informative
+    clash_pl_score = ((cross_dist - 3.).clamp(max=0) * 5.).square()
+    clash_pl_score = clash_pl_score.sum(dim=(-1, -2)) / dist_mask.sum(dim=(-1, -2))
     if reduce_batch:
-        return cross_dist_score.detach().mean().numpy(), dist_score.detach().mean().numpy(), loss.mean()
-    return cross_dist_score.detach().numpy(), dist_score.detach().numpy(), loss
+        return cross_dist_score.detach().mean().numpy(), dist_score.detach().mean().numpy(), 0., loss.mean()
+    return cross_dist_score.detach().numpy(), dist_score.detach().numpy(), clash_pl_score.detach().numpy(), loss
 
 
 def dock_with_gradient(
@@ -202,9 +207,9 @@ def dock_with_gradient(
     mol: Chem.Mol,
     conf_coords: np.ndarray,
     loss_func=single_SF_loss,
-    holo_coords=None,
-    iterations=400,
-    early_stoping=5,
+    holo_coords: np.ndarray = None,
+    iterations: int =400,
+    early_stoping: int = 5,
 ):
     """ Docking with gradient descent, optimizing the conformer.
 
@@ -317,7 +322,7 @@ def single_dock_with_gradient(
     trans.requires_grad = True
     torsions.requires_grad = True
 
-    optimizer = th.optim.LBFGS(params=[euler, trans, torsions], lr=0.25)
+    optimizer = th.optim.LBFGS(params=[euler, trans, torsions], lr=0.1)
     bst_loss, times = 10000.0, 0
     for i in range(iterations):
         def closure():
@@ -332,7 +337,7 @@ def single_dock_with_gradient(
             for t, vals in zip(torsion_idxs, torsions.unbind(dim=-1)):
                 aux_coords = update_dihedral(coords=aux_coords, idxs=t.tolist(), value=vals, dist_mat=graph_dist_mat)
 
-            _, _, loss = loss_func(
+            _, _, _, loss = loss_func(
                 aux_coords, pocket_coords, distance_predict, holo_distance_predict
             )
             loss.backward()
@@ -358,11 +363,13 @@ def single_dock_with_gradient(
     for t, vals in zip(torsion_idxs, torsions.unbind(dim=-1)):
         aux_coords = update_dihedral(coords=aux_coords, idxs=t.tolist(), value=vals, dist_mat=graph_dist_mat)
 
-    cross_score, self_score, loss = loss_func(
+    cross_score, self_score, clash_score, loss = loss_func(
         aux_coords, pocket_coords, distance_predict, holo_distance_predict, reduce_batch=False
     )
     best_idx = loss.argmax(dim=-1).item()
-    return aux_coords[best_idx].detach().numpy(), loss[best_idx].detach().numpy(), (cross_score[best_idx], self_score[best_idx])
+    return aux_coords[best_idx].detach().numpy(), loss[best_idx].detach().numpy(), (
+        cross_score[best_idx], self_score[best_idx], clash_score[best_idx]
+    )
 
 
 def set_coord(mol, coords):
@@ -429,17 +436,18 @@ def single_docking(input_path: str, output_path: str, output_ligand_path: str):
             bst_predict_coords = predict_coords
             bst_meta_info = meta_info
 
-    _rmsd = round(rmsd_func(holo_coords, bst_predict_coords), 4)
+    _rmsd = round(rmsd_func(holo_coords, bst_predict_coords, mol=mol), 4)
     _cross_score = round(float(bst_meta_info[0]), 4)
     _self_score = round(float(bst_meta_info[1]), 4)
-    print(f"{pocket}-{smi}-RMSD:{_rmsd}-CROSSSCORE:{_cross_score}-SELFSCORE:{_self_score}")
+    _clash_score = round(float(bst_meta_info[2]), 4)
+    print(f"{pocket}-{smi}-RMSD:{_rmsd}-CROSSSCORE:{_cross_score}-SELFSCORE:{_self_score}-CLASHSCORE:{_clash_score}")
     mol = Chem.RemoveHs(mol)
     mol = set_coord(mol, bst_predict_coords)
 
     if output_path is not None:
         with open(output_path, "wb") as f:
             pickle.dump(
-                [bst_predict_coords, holo_coords, bst_loss, smi, pocket, pocket_coords],
+                [mol, bst_predict_coords, holo_coords, bst_loss, smi, pocket, pocket_coords],
                 f,
             )
     if output_ligand_path is not None:
