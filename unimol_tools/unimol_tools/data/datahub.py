@@ -22,7 +22,7 @@ class DataHub(object):
         self.data = data
         self.is_train = is_train
         self.save_path = save_path
-        self.task = params.get('task', None)
+        self.task = params.get('task', None) 
         self.target_cols = params.get('target_cols', None)
         self.multiclass_cnt = params.get('multiclass_cnt', None)
         self.ss_method = params.get('target_normalize', 'none')
@@ -31,33 +31,30 @@ class DataHub(object):
     def _init_data(self, **params):
         self.data = MolDataReader().read_data(self.data, self.is_train, **params)
         self.data['target_scaler'] = TargetScaler(self.ss_method, self.task, self.save_path)
-        
-        if self.task == 'regression': 
-            target = np.array(self.data['target']).reshape(-1,1).astype(np.float32)
-            if self.is_train:
+        if self.is_train:
+            if self.task == 'regression': 
+                target = np.array(self.data['target']).reshape(-1,1).astype(np.float32)
                 self.data['target_scaler'].fit(target, self.save_path)
-            self.data['target'] = self.data['target_scaler'].transform(target)
-        elif self.task == 'classification':
-            target = np.array(self.data['target']).reshape(-1,1).astype(np.int32)
-            self.data['target'] = target
+                self.data['target'] = self.data['target_scaler'].transform(target)
+            elif self.task == 'classification':
+                target = np.array(self.data['target']).reshape(-1,1).astype(np.int32)
+                self.data['target'] = target
+            elif self.task =='multiclass':
+                target = np.array(self.data['target']).reshape(-1,1).astype(np.int32)
+                self.data['target'] = target
+            elif self.task == 'multilabel_regression':
+                target = np.array(self.data['target']).reshape(-1,self.data['num_classes']).astype(np.float32)
+                self.data['target_scaler'].fit(target, self.save_path)
+                self.data['target'] = self.data['target_scaler'].transform(target)
+            elif self.task == 'multilabel_classification':
+                target = np.array(self.data['target']).reshape(-1,self.data['num_classes']).astype(np.int32)
+                self.data['target'] = target
+            elif self.task == 'repr':
+                pass
+            else:
+                raise ValueError('Unknown task: {}'.format(self.task))
         elif self.task =='multiclass':
-            target = np.array(self.data['target']).reshape(-1,1).astype(np.int32)
-            self.data['target'] = target
-            if not self.is_train:
-                self.data['multiclass_cnt'] = self.multiclass_cnt
-        elif self.task == 'multilabel_regression':
-            target = np.array(self.data['target']).reshape(-1,self.data['num_classes']).astype(np.float32)
-            if self.is_train:
-                self.data['target_scaler'].fit(target, self.save_path)
-            self.data['target'] = self.data['target_scaler'].transform(target)
-        elif self.task == 'multilabel_classification':
-            target = np.array(self.data['target']).reshape(-1,self.data['num_classes']).astype(np.int32)
-            self.data['target'] = target
-        elif self.task == 'repr':
-            pass
-        else:
-            raise ValueError('Unknown task: {}'.format(self.task))
-
+            self.data['multiclass_cnt'] = self.multiclass_cnt 
         if 'atoms' in self.data and 'coordinates' in self.data:
             no_h_list = ConformerGen(**params).transform_raw(self.data['atoms'], self.data['coordinates'])
         else:
