@@ -19,6 +19,7 @@ from unicore.data import (
     TokenizeDataset,
     RightPadDataset2D,
     FromNumpyDataset,
+    RawArrayDataset,
 )
 from unimol.data import (
     KeyDataset,
@@ -125,6 +126,7 @@ class UniMolPocketTask(UnicoreTask):
         raw_dataset = LMDBDataset(split_path)
 
         def one_dataset(raw_dataset, coord_seed, mask_seed):
+            pdb_id_dataset = KeyDataset(raw_dataset, "pdbid")
             dataset = ConformerSamplePocketDataset(
                 raw_dataset, coord_seed, "atoms", "coordinates", self.dict_name
             )
@@ -198,6 +200,7 @@ class UniMolPocketTask(UnicoreTask):
                 ),
                 "distance_target": RightPadDataset2D(distance_dataset, pad_idx=0),
                 "coord_target": RightPadDatasetCoord(coord_dataset, pad_idx=0),
+                "pdb_id": RawArrayDataset(pdb_id_dataset),
             }
 
         net_input, target = one_dataset(raw_dataset, self.args.seed, self.args.seed)

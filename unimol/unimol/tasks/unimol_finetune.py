@@ -128,7 +128,6 @@ class UniMolFinetuneTask(UnicoreTask):
             type=int,
             help="finetune downstream task classes numbers",
         )
-        parser.add_argument("--reg", action="store_true", help="regression task")
         parser.add_argument("--no-shuffle", action="store_true", help="shuffle data")
         parser.add_argument(
             "--conf-size",

@@ -64,12 +64,10 @@ class ConformerSamplePocketDataset(BaseWrapperDataset):
             sample_idx = np.random.randint(size)
         coordinates = self.dataset[index][self.coordinates][sample_idx]
         residue = np.array(self.dataset[index]["residue"])
-        score = np.float(self.dataset[index]["meta_info"]["fpocket"]["Score"])
         return {
             "atoms": atoms,
             "coordinates": coordinates.astype(np.float32),
             "residue": residue,
-            "score": score,
         }
 
     def __getitem__(self, index: int):

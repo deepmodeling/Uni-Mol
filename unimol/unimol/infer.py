@@ -70,7 +70,10 @@ def main(args):
 
         if not os.path.exists(args.results_path):
             os.makedirs(args.results_path)
-        fname = (args.path).split("/")[-2]
+        try:
+            fname = (args.path).split("/")[-2]
+        except:
+            fname = 'infer'
         save_path = os.path.join(args.results_path, fname + "_" + subset + ".out.pkl")
         # Initialize data iterator
         itr = task.get_batch_iterator(

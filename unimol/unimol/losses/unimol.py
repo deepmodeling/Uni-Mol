@@ -199,12 +199,19 @@ class UniMolInferLoss(UnicoreLoss):
         ) = model(**sample[input_key], features_only=True)
         sample_size = sample[input_key]["src_tokens"].size(0)
         encoder_pair_rep_list = []
+        if 'pdb_id' in sample[target_key].keys():
+            name_key = 'pdb_id'
+        elif 'smi_name' in sample[target_key].keys():
+            name_key = 'smi_name'
+        else:
+            raise NotImplementedError("No name key in the original data")
+
         for i in range(sample_size):  # rm padding token
             encoder_pair_rep_list.append(encoder_pair_rep[i][src_tokens[i], :][:, src_tokens[i]].data.cpu().numpy())
         logging_output = {
                 "mol_repr_cls": encoder_rep[:, 0, :].data.cpu().numpy(),  # get cls token
                 "pair_repr": encoder_pair_rep_list,
-                "smi_name": sample[target_key]["smi_name"],
+                "data_name": sample[target_key][name_key],
                 "bsz": sample[input_key]["src_tokens"].size(0),
             }
         return 0, sample_size, logging_output
