@@ -113,6 +113,7 @@ def clustering(
     kmeans: bool = False,
     seed: int = 42,
     threads: int = 0,
+    removeHs: bool = True,
 ) -> List[np.ndarray]:
     """ Creates a diverse set of conformers for a given molecule by
     procedurally generating candidates with various rdkit methods and clustering.
@@ -132,6 +133,7 @@ def clustering(
             Kmeans picks random example of cluster, Kmedoids picks cluster centroid.
         seed (int): Random seed for conformer generation.
         threads (int): Number of threads to use for conformer generation. If 0, uses all available threads.
+        removeHs (bool): Whether to remove hydrogens from the final conformers.
 
     Returns:
         List[np.ndarray]: List of conformer coordinates
@@ -145,7 +147,8 @@ def clustering(
 
     # add no-MMFF-optimized conformers (ETKDG v3)
     rdkit_mol = single_conf_gen(mol, num_confs=int(M // 4), seed=seed, threads=threads)
-    rdkit_mol = Chem.RemoveHs(rdkit_mol)
+    if removeHs:
+        rdkit_mol = Chem.RemoveHs(rdkit_mol)
     sz = len(rdkit_mol.GetConformers())
     tgt_coords = rdkit_mol.GetConformers()[0].GetPositions().astype(np.float32)
     tgt_coords = tgt_coords - np.mean(tgt_coords, axis=0)
@@ -159,7 +162,8 @@ def clustering(
     # add forcefield optimized conformers
     if mmff:
         rdkit_mol = single_conf_gen(mol, num_confs=M, mmff=True, seed=seed+1, threads=threads)
-        rdkit_mol = Chem.RemoveHs(rdkit_mol)
+        if removeHs:
+            rdkit_mol = Chem.RemoveHs(rdkit_mol)
         sz = len(rdkit_mol.GetConformers())
         for i in range(sz):
             _coords = rdkit_mol.GetConformers()[i].GetPositions().astype(np.float32)
@@ -171,7 +175,8 @@ def clustering(
     # add uniform rotation bonds conformers - WARNING! - might alter stereochemistry. Ex: PDB-2ZCR
     if randomized_angles:
         rdkit_mol = single_conf_gen(mol, num_confs=int(M // 4), seed=seed+2, threads=threads, randomize_angles=True)
-        rdkit_mol = Chem.RemoveHs(rdkit_mol)
+        if removeHs:
+            rdkit_mol = Chem.RemoveHs(rdkit_mol)
         sz = len(rdkit_mol.GetConformers())
         for i in range(sz):
             _coords = rdkit_mol.GetConformers()[i].GetPositions().astype(np.float32)

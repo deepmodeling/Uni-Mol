@@ -18,7 +18,7 @@ import lmdb
 import pickle
 import pandas as pd
 from typing import Dict, List, Optional
-from conf_gen_cal_metrics import clustering, single_conf_gen
+from unimol.utils.conf_gen_cal_metrics import clustering, single_conf_gen
 
 
 def add_all_conformers_to_mol(mol: Chem.Mol, conformers: List[np.ndarray]) -> Chem.Mol:
@@ -132,7 +132,13 @@ def reprocess_content(content: Dict, base_mol: Optional[Chem.Mol] = None, M: int
     remol = Chem.AddHs(remol, addCoords=True)
     # overwrite - write the diverse conformer set for potential later reuse
     content["coordinates"] = [x for x in clustering(remol, M=M, N=N, seed=seed, removeHs=False, mmff=mmff)]
-    content["mol_list"] = [copy.deepcopy(add_all_conformers_to_mol(remol, content["coordinates"])) for i in range(N)]
+    content["mol_list"] = [
+        Chem.AddHs(
+            copy.deepcopy(add_all_conformers_to_mol(
+                Chem.RemoveHs(remol), content["coordinates"]
+            )), addCoords=True
+        ) for i in range(N)
+    ]
     content["holo_mol"] = copy.deepcopy(base_mol)
     content["atoms"] = [a.GetSymbol() for a in base_mol.GetAtoms()]
     return content
