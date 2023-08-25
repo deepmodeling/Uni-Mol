@@ -85,6 +85,7 @@ def single_conf_gen(tgt_mol: Chem.Mol, num_confs: int = 1000, seed: int = 42, mm
     # WARNING! this might change the molecule stereochemistry
     if randomize_angles:
         rotable_bonds = get_torsions(mol)
+        # TODO: if stereochem preservation is wanted, apply same torsion delta to all `i,j,k,l` sharing the same `{j,k}` rotatable bond
         for i in range(len(allconformers)):
             np.random.seed(i)
             values = 3.1415926 * 2 * np.random.rand(len(rotable_bonds))
