@@ -226,16 +226,13 @@ python -m torch.distributed.launch --nproc_per_node=$n_gpu --master_port=$MASTER
        --validate-interval 1 \
        --finetune-from-model $weight_path \
        --best-checkpoint-metric $metric --patience 20 \
-       --save-dir $save_dir --only-polar $only_polar \
-       --reg
+       --save-dir $save_dir --only-polar $only_polar
 
-# --reg, for regression task
 # --maximize-best-checkpoint-metric, for classification task
 
 ```
 
 To speed up finetune, we set `n_gpu=4` for QM9, MUV, PCBA and HIV, and `n_gpu=1` for others, and the batch size is `n_gpu * local_batch_size * update_freq`.
-For regression task, we set `--reg`. 
 For classification task, we set `--maximize-best-checkpoint-metric`.
 
 Each task will be run by 3 different seeds. We choose the checkpoint with the best metric on validation set and report the mean and standard deviation of the three results on the test set.
