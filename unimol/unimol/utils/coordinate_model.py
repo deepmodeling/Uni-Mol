@@ -181,7 +181,7 @@ def single_docking(input_path, output_path, output_ligand_path):
             bst_predict_coords = predict_coords
             bst_meta_info = meta_info
 
-    _rmsd = round(rmsd_func(holo_coords, bst_predict_coords), 4)
+    _rmsd = round(rmsd_func(holo_coords, bst_predict_coords, mol), 4)
     _cross_score = round(float(bst_meta_info[0]), 4)
     _self_score = round(float(bst_meta_info[1]), 4)
     print(f"{pocket}-{smi}-RMSD:{_rmsd}-{_cross_score}-{_self_score}")
@@ -191,7 +191,7 @@ def single_docking(input_path, output_path, output_ligand_path):
     if output_path is not None:
         with open(output_path, "wb") as f:
             pickle.dump(
-                [bst_predict_coords, holo_coords, bst_loss, smi, pocket, pocket_coords],
+                [mol, bst_predict_coords, holo_coords, bst_loss, smi, pocket, pocket_coords],
                 f,
             )
     if output_ligand_path is not None:
