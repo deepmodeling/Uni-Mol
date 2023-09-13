@@ -255,6 +255,38 @@ def dock_with_gradient(
     return bst_coords, bst_loss, bst_meta_info
 
 
+def kabsch(x: th.Tensor, y: th.Tensor, weight: Optional[th.Tensor] = None) -> th.Tensor:
+    """ Aligns x onto y. x, y are ((...), N, 3) tensors. Weights is ((...), N)
+    If rotation fails, at least bring to X to Y's COM
+    """
+    if weight is None:
+        weight = th.ones_like(x[..., 0])
+
+    weight = weight / weight.sum(dim=-1, keepdim=True)
+    x_mean = (x * weight[..., None]).sum(dim=-2, keepdim=True)
+    y_mean = (y * weight[..., None]).sum(dim=-2, keepdim=True)
+    x = x - x_mean
+    y = y - y_mean
+
+    # if rotation fails (SVD might fail if matrix is ill-behaved), just bring to same COM
+    try:
+        # ((...), N, 3) -> ((...), 1, 3, 3)
+        cov = th.einsum("...ni,...nj->...ij", x, y * weight[..., None])[..., None, :, :]
+        u, s, v = th.linalg.svd(cov)
+        # Flip the sign of bottom row of each matrix if det product < 0
+        det = th.det(v) * th.det(u)
+        u_flip = th.ones_like(u)
+        u_flip[det < 0, :, -1] = -1.0
+        u = u * u_flip
+        rot = u @ v
+        # align to rotation
+        x = rot @ x
+    except:
+        pass
+    return x + y_mean
+
+
+
 def single_dock_with_gradient(
     coords: np.ndarray,
     pocket_coords: np.ndarray,
@@ -323,7 +355,7 @@ def single_dock_with_gradient(
     trans.requires_grad = True
     torsions.requires_grad = True
 
-    optimizer = th.optim.LBFGS(params=[euler, trans, torsions], lr=0.1)
+    optimizer = th.optim.LBFGS(params=[euler, trans, torsions], lr=0.5)
     bst_loss, times = 10000.0, 0
     for i in range(iterations):
         def closure():
@@ -334,9 +366,11 @@ def single_dock_with_gradient(
             com = aux_coords.mean(dim=-2, keepdim=True)
             rot = rot_from_euler(euler)
             aux_coords = th.einsum('...rc,...nc->...nr', rot, aux_coords - com) + com
-            # torsion update + kabsch so it's orthogonal to rotation and translation
+            pre_aux_coords = aux_coords.clone()
+            # torsion update + kabsch -> makes 6 & T orthogonal in the tangent space
             for t, vals in zip(torsion_idxs, torsions.unbind(dim=-1)):
                 aux_coords = update_dihedral(coords=aux_coords, idxs=t.tolist(), value=vals, dist_mat=graph_dist_mat)
+            aux_coords = kabsch(aux_coords, pre_aux_coords)
 
             _, _, _, loss = loss_func(
                 aux_coords, pocket_coords, distance_predict, holo_distance_predict
@@ -360,9 +394,11 @@ def single_dock_with_gradient(
     com = aux_coords.mean(dim=-2, keepdim=True)
     rot = rot_from_euler(euler)
     aux_coords = th.einsum('...rc,...nc->...nr', rot, aux_coords - com) + com
-    # torsion update + kabsch so it's orthogonal to rotation and translation
+    pre_aux_coords = aux_coords.clone()
+    # torsion update + kabsch -> makes 6 & T orthogonal in the tangent space
     for t, vals in zip(torsion_idxs, torsions.unbind(dim=-1)):
         aux_coords = update_dihedral(coords=aux_coords, idxs=t.tolist(), value=vals, dist_mat=graph_dist_mat)
+    aux_coords = kabsch(aux_coords, pre_aux_coords)
 
     cross_score, self_score, clash_score, loss = loss_func(
         aux_coords, pocket_coords, distance_predict, holo_distance_predict, reduce_batch=False
