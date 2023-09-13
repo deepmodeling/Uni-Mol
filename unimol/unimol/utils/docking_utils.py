@@ -210,6 +210,7 @@ def ensemble_iterations(
     holo_coords_list,
     holo_center_coords_list,
     tta_times=10,
+    seed=42,
 ):
     sz = len(mol_list)
     for i in range(sz // tta_times):
@@ -218,9 +219,7 @@ def ensemble_iterations(
         holo_distance_predict_tta = holo_distance_predict_list[start_idx:end_idx]
 
         mol = copy.deepcopy(mol_list[start_idx])
-        rdkit_mol = single_conf_gen(
-            mol, num_confs=tta_times, seed=42, removeHs=True
-        )
+        rdkit_mol = single_conf_gen(mol, num_confs=tta_times, seed=seed)
         sz = len(rdkit_mol.GetConformers())
         initial_coords_list = [
             rdkit_mol.GetConformers()[i].GetPositions().astype(np.float32)
