@@ -355,7 +355,7 @@ def single_dock_with_gradient(
     trans.requires_grad = True
     torsions.requires_grad = True
 
-    optimizer = th.optim.LBFGS(params=[euler, trans, torsions], lr=0.1)
+    optimizer = th.optim.LBFGS(params=[euler, trans, torsions], lr=0.5)
     bst_loss, times = 10000.0, 0
     for i in range(iterations):
         def closure():
