@@ -39,7 +39,7 @@ class MolTrain(object):
         config.epochs = epochs
         config.learning_rate = learning_rate
         config.batch_size = batch_size
-        config.early_stopping = early_stopping
+        config.patience = early_stopping
         config.metrics = metrics
         config.split = split
         config.remove_hs = remove_hs
