@@ -76,9 +76,9 @@ class MolTrain(object):
             self.config['multiclass_cnt'] = self.data['multiclass_cnt']
 
         if self.config['split'] == 'random':
-            self.config['split'] = 'random_5fold'
+            self.config['split_method'] = '5fold_random'
         else:
-            self.config['split'] = 'scaffold_5fold'
+            self.config['split_method'] = '5fold_scaffold'
 
         if self.save_path is not None:
             if not os.path.exists(self.save_path):
