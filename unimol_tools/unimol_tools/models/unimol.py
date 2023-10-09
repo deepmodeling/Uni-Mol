@@ -33,6 +33,8 @@ class UniMolModel(BaseUnicoreModel):
         super().__init__()
         if data_type == 'molecule':
             self.args = molecule_architecture()
+        elif data_type == 'oled':
+            self.args = oled_architecture()
         elif data_type == 'protein':
             self.args = protein_architecture()
         elif data_type == 'crystal':
@@ -453,4 +455,24 @@ def mof_architecture():
     args.hidden_dim = getattr(args, "hidden_dim", 128)
     args.pooler_activation_fn = getattr(args, "pooler_activation_fn", "tanh")
     args.bins = getattr(args, "bins", 32)
+    return args
+
+def oled_architecture():
+    args = argparse.ArgumentParser()
+    args.encoder_layers = getattr(args, "encoder_layers", 8)
+    args.encoder_embed_dim = getattr(args, "encoder_embed_dim", 512)
+    args.encoder_ffn_embed_dim = getattr(args, "encoder_ffn_embed_dim", 2048)
+    args.encoder_attention_heads = getattr(args, "encoder_attention_heads", 64)
+    args.dropout = getattr(args, "dropout", 0.1)
+    args.emb_dropout = getattr(args, "emb_dropout", 0.1)
+    args.attention_dropout = getattr(args, "attention_dropout", 0.1)
+    args.activation_dropout = getattr(args, "activation_dropout", 0.0)
+    args.pooler_dropout = getattr(args, "pooler_dropout", 0.0)
+    args.max_seq_len = getattr(args, "max_seq_len", 1024)
+    args.activation_fn = getattr(args, "activation_fn", "gelu")
+    args.pooler_activation_fn = getattr(args, "pooler_activation_fn", "tanh")
+    args.post_ln = getattr(args, "post_ln", False)
+    args.backbone = getattr(args, "backbone", "transformer")
+    args.kernel = getattr(args, "kernel", "linear")
+    args.delta_pair_repr_norm_loss = getattr(args, "delta_pair_repr_norm_loss", -1.0)
     return args
