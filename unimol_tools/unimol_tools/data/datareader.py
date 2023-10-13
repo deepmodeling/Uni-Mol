@@ -19,6 +19,7 @@ from rdkit import Chem
 from ..utils import logger
 from ..config import MODEL_CONFIG
 import pathlib
+from rdkit.Chem.Scaffolds import MurckoScaffold
 WEIGHT_DIR = os.path.join(pathlib.Path(__file__).resolve().parents[1], 'weights')
 
 class MolDataReader(object):
@@ -87,7 +88,7 @@ class MolDataReader(object):
         
         dd = {
             'raw_data': data,
-            'target': targets,
+            'raw_target': targets,
             'num_classes': num_classes,
             'target_cols': target_cols,
             'multiclass_cnt': multiclass_cnt if task == 'multiclass' and is_train else None
