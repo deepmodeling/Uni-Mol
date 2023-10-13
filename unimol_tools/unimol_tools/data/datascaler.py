@@ -27,15 +27,14 @@ from ..utils import logger
 
 
 SCALER_MODE = {
-    'minmax': MinMaxScaler(),
-    'standard': StandardScaler(),
-    'robust': RobustScaler(),
-    'maxabs': MaxAbsScaler(),
-    'quantile': QuantileTransformer(),
-    'power_box': PowerTransformer(method='box-cox'),
-    'power_yeo': PowerTransformer(method='yeo-johnson'),
-    'normalizer': Normalizer(),
-    'log1p': FunctionTransformer(np.log1p),
+    'minmax': MinMaxScaler,
+    'standard': StandardScaler,
+    'robust': RobustScaler,
+    'maxabs': MaxAbsScaler,
+    'quantile': QuantileTransformer,
+    'power_trans': PowerTransformer,
+    'normalizer': Normalizer,
+    'log1p': FunctionTransformer,
 }
 
 class TargetScaler(object):
@@ -71,10 +70,10 @@ class TargetScaler(object):
         elif self.ss_method == 'auto':
             if self.task == 'regression':
                 if self.is_skewed(target):
-                    self.scaler = SCALER_MODE['power_box'] if min(target) > 0 else SCALER_MODE['power_yeo']
+                    self.scaler = SCALER_MODE['power_trans'](method='box-cox') if min(target) > 0 else SCALER_MODE['power_trans'](method='yeo-johnson')
                     logger.info('Auto select power transformer.')
                 else:
-                    self.scaler = SCALER_MODE['standard']
+                    self.scaler = SCALER_MODE['standard']()
                 self.scaler.fit(target)
             elif self.task == 'multilabel_regression':
                 self.scaler = []
@@ -83,16 +82,16 @@ class TargetScaler(object):
                         self.scaler.append(SCALER_MODE['power_box'] if min(target[:, i]) > 0 else SCALER_MODE['power_yeo'])
                         logger.info('Auto select power transformer.')
                     else:
-                        self.scaler.append(SCALER_MODE['standard'])
+                        self.scaler.append(SCALER_MODE['standard']())
                     self.scaler[-1].fit(target[:, i:i+1])
         else:
             if self.task == 'regression':
-                self.scaler = SCALER_MODE[self.ss_method]
+                self.scaler = self.scaler_choose(self.ss_method, target)
                 self.scaler.fit(target)
             elif self.task == 'multilabel_regression':
                 self.scaler = []
                 for i in range(target.shape[1]):
-                    self.scaler.append(SCALER_MODE[self.ss_method])
+                    self.scaler.append(self.scaler_choose(self.ss_method, target[:, i:i+1]))
                     self.scaler[-1].fit(target[:, i:i+1])
         try:
             os.remove(os.path.join(dump_dir, 'target_scaler.ss'))
@@ -100,6 +99,15 @@ class TargetScaler(object):
             pass
         os.makedirs(dump_dir, exist_ok=True)
         joblib.dump(self.scaler, os.path.join(dump_dir, 'target_scaler.ss'))
+    
+    def scaler_choose(self, method, target):
+        if method=='power_trans':
+            scaler = SCALER_MODE[method](method='box-cox') if min(target) > 0 else SCALER_MODE[method](method='yeo-johnson')
+        elif method=='log1p':
+            scaler = SCALER_MODE[method](np.log1p)              
+        else:
+            scaler = SCALER_MODE[method]()
+        return scaler
 
     def inverse_transform(self, target):
         if self.task in ['classification', 'multiclass', 'multilabel_classification']:
