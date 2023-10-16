@@ -56,6 +56,7 @@ class DataHub(object):
             self.data['target'] = self.data['raw_target']
         else:
             raise ValueError('Unknown task: {}'.format(self.task))
+        
         if 'atoms' in self.data and 'coordinates' in self.data:
             no_h_list = ConformerGen(**params).transform_raw(self.data['atoms'], self.data['coordinates'])
         else:
