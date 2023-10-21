@@ -17,7 +17,7 @@ split_key = sys.argv[1]
 split = torch.load("split_dict.pt")
 valid_index = split[split_key]
 
-lines = gzip.open("data.csv.gz", "r").readlines()
+lines = gzip.open("raw/data.csv.gz", "r").readlines()
 
 target = []
 smiles = []
