@@ -4,4 +4,4 @@ tar -xf pcqm4m-v2-train.sdf.tar.gz # extracted pcqm4m-v2-train.sdf
 
 wget 'https://dgl-data.s3-accelerate.amazonaws.com/dataset/OGB-LSC/pcqm4m-v2.zip'
 unzip pcqm4m-v2.zip
-
+mv pcqm4m-v2-train.sdf pcqm4m-v2
