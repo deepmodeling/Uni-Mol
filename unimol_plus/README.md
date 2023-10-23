@@ -46,16 +46,17 @@ bash download.sh
 Second, covert the 3D SDF (training set only) to lmdb file:
 
 ```bash
-python get_label3d_lmdb.py
+cd pcqm4m-v2
+python ../get_label3d_lmdb.py
 ```
 
 Finally, generate the training, validation and test datasets:
 
 ```bash
-python get_3d_lmdb.py train
-python get_3d_lmdb.py valid
-python get_3d_lmdb.py test-dev
-python get_3d_lmdb.py test-challenge
+python ../get_3d_lmdb.py train
+python ../get_3d_lmdb.py valid
+python ../get_3d_lmdb.py test-dev
+python ../get_3d_lmdb.py test-challenge
 ```
 
 #### OC20
