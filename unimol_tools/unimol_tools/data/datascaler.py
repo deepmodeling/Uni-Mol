@@ -79,7 +79,7 @@ class TargetScaler(object):
                 self.scaler = []
                 for i in range(target.shape[1]):
                     if self.is_skewed(target[:, i]):
-                        self.scaler.append(SCALER_MODE['power_box'] if min(target[:, i]) > 0 else SCALER_MODE['power_yeo'])
+                        self.scaler.append(SCALER_MODE['power_trans'](method='box-cox') if min(target[:, i]) > 0 else SCALER_MODE['power_trans'](method='yeo-johnson'))
                         logger.info('Auto select power transformer.')
                     else:
                         self.scaler.append(SCALER_MODE['standard']())
