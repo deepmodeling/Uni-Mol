@@ -35,7 +35,9 @@ class DataHub(object):
             target = np.array(self.data['raw_target']).reshape(-1,1).astype(np.float32)
             if self.is_train:
                 self.data['target_scaler'].fit(target, self.save_path)
-            self.data['target'] = self.data['target_scaler'].transform(target)
+                self.data['target'] = self.data['target_scaler'].transform(target)
+            else:
+                self.data['target'] = target
         elif self.task == 'classification':
             target = np.array(self.data['raw_target']).reshape(-1,1).astype(np.int32)
             self.data['target'] = target
@@ -48,7 +50,9 @@ class DataHub(object):
             target = np.array(self.data['raw_target']).reshape(-1,self.data['num_classes']).astype(np.float32)
             if self.is_train:
                 self.data['target_scaler'].fit(target, self.save_path)
-            self.data['target'] = self.data['target_scaler'].transform(target)
+                self.data['target'] = self.data['target_scaler'].transform(target)
+            else:
+                self.data['target'] = target
         elif self.task == 'multilabel_classification':
             target = np.array(self.data['raw_target']).reshape(-1,self.data['num_classes']).astype(np.int32)
             self.data['target'] = target
