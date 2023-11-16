@@ -35,6 +35,7 @@ class MolDataReader(object):
         target_col_prefix = params.get('target_col_prefix', 'TARGET')
         anomaly_clean = params.get('anomaly_clean', False)
         smi_strict = params.get('smi_strict', False)
+        split_group_col = params.get('split_group_col', 'scaffold')
 
         if isinstance(data, str):
             # load from file
@@ -99,8 +100,15 @@ class MolDataReader(object):
             dd['smiles'] = data[smiles_col].tolist()
             dd['scaffolds'] = data[smiles_col].map(self.smi2scaffold).tolist()
         else:
-            dd['smiles'] = np.arange(data.shape[0]).tolist()
-            dd['scaffolds'] = np.arange(data.shape[0]).tolist()
+            dd['smiles'] = None
+            dd['scaffolds'] = None
+
+        if split_group_col in data.columns:
+            dd['group'] = data[split_group_col].tolist()
+        elif split_group_col == 'scaffold':
+            dd['group'] = dd['scaffolds']
+        else:
+            dd['group'] = None
 
         if 'atoms' in data.columns and 'coordinates' in data.columns:
             dd['atoms'] = data['atoms'].tolist()

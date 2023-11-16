@@ -11,32 +11,33 @@ import pandas as pd
 import numpy as np
 import csv
 from typing import List, Optional
-from sklearn.model_selection import GroupKFold, KFold, StratifiedKFold
+from sklearn.model_selection import (
+    GroupKFold, 
+    KFold, 
+    StratifiedKFold,
+)
 
 
 class Splitter(object):
     def __init__(self, split_method='5fold_random', seed=42):
-        self.split_method = split_method
+        self.n_splits, self.method = int(split_method.split('fold')[0]), split_method.split('_')[-1]    # Nfold_xxxx
         self.seed = seed
-        self.splitter = self._init_split(self.split_method, self.seed)
-        self.n_splits = 5
-        self.skf = None
+        self.splitter = self._init_split()
 
-    def _init_split(self, split_method, seed=42):
-        if split_method == '5fold_random':
-            splitter = KFold(n_splits=5, shuffle=True, random_state=seed)
-        elif split_method == '5fold_scaffold':
-            splitter = GroupKFold(n_splits=5)
+    def _init_split(self):
+        if self.method == 'random':
+            splitter = KFold(n_splits=self.n_splits, shuffle=True, random_state=self.seed)
+        elif self.method == 'scaffold' or self.method == 'group':
+            splitter = GroupKFold(n_splits=self.n_splits)
+        elif self.method == 'stratified':
+            splitter = StratifiedKFold(n_splits=self.n_splits, shuffle=True, random_state=self.seed)
         else:
-            raise ValueError('Unknown splitter method: {}'.format(split_method))
+            raise ValueError('Unknown splitter method: {}fold - {}'.format(self.n_splits, self.method))
 
         return splitter
 
     def split(self, data, target=None, group=None):
-        if self.split_method in ['5fold_random']:
-            self.skf = self.splitter.split(data)
-        elif self.split_method in ['5fold_scaffold']:
-            self.skf = self.splitter.split(data, target, group)
-        else:
-            raise ValueError('Unknown splitter method: {}'.format(self.split_method))
-        return self.skf
+        try:
+            return self.splitter.split(data, target, group)
+        except:
+            raise ValueError('Unknown splitter method: {}fold - {}'.format(self.n_splits, self.method))

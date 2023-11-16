@@ -55,6 +55,7 @@ class TargetScaler(object):
             return self.scaler.transform(target)
         elif self.task == 'multilabel_regression':
             assert isinstance(self.scaler, list) and len(self.scaler) == target.shape[1]
+            target = np.ma.masked_invalid(target)  # mask NaN value
             new_target = np.zeros_like(target)
             for i in range(target.shape[1]):
                 new_target[:, i] = self.scaler[i].transform(target[:, i:i+1]).reshape(-1,)
@@ -70,17 +71,18 @@ class TargetScaler(object):
         elif self.ss_method == 'auto':
             if self.task == 'regression':
                 if self.is_skewed(target):
-                    self.scaler = SCALER_MODE['power_trans'](method='box-cox') if min(target) > 0 else SCALER_MODE['power_trans'](method='yeo-johnson')
-                    logger.info('Auto select power transformer.')
+                    self.scaler = SCALER_MODE['robust']()
+                    logger.info('Auto select robust transformer.')
                 else:
                     self.scaler = SCALER_MODE['standard']()
                 self.scaler.fit(target)
             elif self.task == 'multilabel_regression':
                 self.scaler = []
+                target = np.ma.masked_invalid(target)  # mask NaN value
                 for i in range(target.shape[1]):
                     if self.is_skewed(target[:, i]):
-                        self.scaler.append(SCALER_MODE['power_trans'](method='box-cox') if min(target[:, i]) > 0 else SCALER_MODE['power_trans'](method='yeo-johnson'))
-                        logger.info('Auto select power transformer.')
+                        self.scaler.append(SCALER_MODE['robust']())
+                        logger.info('Auto select robust transformer.')
                     else:
                         self.scaler.append(SCALER_MODE['standard']())
                     self.scaler[-1].fit(target[:, i:i+1])
