@@ -259,7 +259,7 @@ class Trainer(object):
         batch_bar.close()
         return y_preds, val_loss, metric_score
 
-    def inference(self, model, dataset, feature_name=None, return_repr=True):
+    def inference(self, model, dataset, return_repr=False, return_atomic_reprs=False, feature_name=None):
         model = model.to(self.device)
         dataloader = NNDataLoader(
             feature_name=feature_name,
@@ -269,21 +269,20 @@ class Trainer(object):
             collate_fn=model.batch_collate_fn,
         )
         model = model.eval()
-        batch_bar = tqdm(total=len(dataloader), dynamic_ncols=True,
-                         position=0, leave=False, desc='val', ncols=5)
-        repr_dict = {"cls_repr": [], "atomic_reprs": []}
-        for i, batch in enumerate(dataloader):
+        repr_dict = {"cls_repr": [], "atomic_coords": [], "atomic_reprs": [], "atomic_symbol": []}
+        for batch in tqdm(dataloader):
             net_input, _ = self.decorate_batch(batch, feature_name)
             with torch.no_grad():
-                outputs = model(return_repr=return_repr, **net_input)
+                outputs = model(**net_input,
+                                return_repr=return_repr,
+                                return_atomic_reprs=return_atomic_reprs)
                 assert isinstance(outputs, dict)
-                for key, value in outputs.items():
-                    if isinstance(value, list):
-                        value_list = [item.cpu().numpy() for item in value]
-                        repr_dict[key].extend(value_list)
-                    else:
-                        repr_dict[key].extend([value.cpu().numpy()])
-        repr_dict["cls_repr"] = np.concatenate(repr_dict["cls_repr"]).tolist()
+                repr_dict["cls_repr"].extend(item.cpu().numpy() for item in outputs["cls_repr"])
+                if return_atomic_reprs:
+                    repr_dict["atomic_symbol"].extend(outputs["atomic_symbol"])
+                    repr_dict['atomic_coords'].extend(item.cpu().numpy() for item in outputs['atomic_coords'])
+                    repr_dict['atomic_reprs'].extend(item.cpu().numpy() for item in outputs['atomic_reprs'])
+                    
         return repr_dict
 
     def set_seed(self, seed):

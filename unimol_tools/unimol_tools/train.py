@@ -27,9 +27,20 @@ class MolTrain(object):
                 batch_size=16,
                 early_stopping=5,
                 metrics= "none",
-                split='random',
+                split='random',                   # random, scaffold, group, stratified
+                split_group_col='scaffold',       # only active with group split
+                kfold=5,
                 save_path='./exp',
                 remove_hs=False,
+                smiles_col='SMILES',
+                target_col_prefix='TARGET',
+                target_anomaly_check="filter",
+                smiles_check="filter",
+                target_normalize="auto",
+                max_norm=5.0,
+                use_cuda=True,
+                use_amp=True,
+                **params,
                 ):
         config_path = os.path.join(os.path.dirname(__file__), 'config/default.yaml')
         self.yamlhandler = YamlHandler(config_path)
@@ -42,7 +53,17 @@ class MolTrain(object):
         config.patience = early_stopping
         config.metrics = metrics
         config.split = split
+        config.split_group_col = split_group_col
+        config.kfold = kfold
         config.remove_hs = remove_hs
+        config.smiles_col = smiles_col
+        config.target_col_prefix = target_col_prefix
+        config.anomaly_clean = target_anomaly_check in ['filter']
+        config.smi_strict = smiles_check in ['filter']
+        config.target_normalize = target_normalize
+        config.max_norm = max_norm
+        config.use_cuda = use_cuda
+        config.use_amp = use_amp
         self.save_path = save_path
         self.config = config
 
@@ -75,11 +96,7 @@ class MolTrain(object):
         if self.config['task'] == 'multiclass':
             self.config['multiclass_cnt'] = self.data['multiclass_cnt']
 
-        if self.config['split'] == 'random':
-            self.config['split_method'] = '5fold_random'
-        else:
-            self.config['split_method'] = '5fold_scaffold'
-
+        self.config['split_method'] = f"{self.config['kfold']}fold_{self.config['split']}"
         if self.save_path is not None:
             if not os.path.exists(self.save_path):
                 logger.info('Create output directory: {}'.format(self.save_path))

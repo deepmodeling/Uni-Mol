@@ -133,7 +133,7 @@ class UniMolModel(BaseUnicoreModel):
         pressure=None,
         temperature=None,
         return_repr=False,
-
+        return_atomic_reprs=False,
         **kwargs
     ):
         padding_mask = src_tokens.eq(self.padding_idx)
@@ -160,20 +160,30 @@ class UniMolModel(BaseUnicoreModel):
         all_repr = encoder_rep[:, :, :]  # all token repr
 
         filtered_tensors = []
-        for tokens in src_tokens:
+        filtered_coords = []
+        for tokens, coord in zip(src_tokens, src_coord):
             filtered_tensor = tokens[(tokens != 0) & (tokens != 1) & (tokens != 2)] # filter out BOS(0), EOS(1), PAD(2)
+            filtered_coord = coord[(tokens != 0) & (tokens != 1) & (tokens != 2)]
             filtered_tensors.append(filtered_tensor)
+            filtered_coords.append(filtered_coord)
 
         lengths = [len(filtered_tensor) for filtered_tensor in filtered_tensors] # Compute the lengths of the filtered tensors
-
-        cls_atomic_reprs = [] 
-        for i in range(len(all_repr)):
-            atomic_repr = encoder_rep[i, 1:lengths[i]+1, :]
-            cls_atomic_reprs.append(atomic_repr)
-
-        repr_dict = {'cls_repr': cls_repr, 'atomic_reprs': cls_atomic_reprs}        
-        if return_repr:
-            return repr_dict      
+        if return_repr and return_atomic_reprs:
+            cls_atomic_reprs = [] 
+            atomic_symbols = []
+            for i in range(len(all_repr)):
+                atomic_reprs = encoder_rep[i, 1:lengths[i]+1, :]
+                atomic_symbol = []
+                for atomic_num in filtered_tensors[i]:
+                    atomic_symbol.append(self.dictionary.symbols[atomic_num])
+                atomic_symbols.append(atomic_symbol)
+                cls_atomic_reprs.append(atomic_reprs)
+            return {'cls_repr': cls_repr, 
+                    'atomic_symbol': atomic_symbols, 
+                    'atomic_coords': filtered_coords, 
+                    'atomic_reprs': cls_atomic_reprs}        
+        if return_repr and not return_atomic_reprs:
+            return {'cls_repr': cls_repr}  
 
         if self.data_type == 'mof':
             gas_embed = self.gas_embed(gas_id, gas_attr) # shape of gas_embed is [batch_size, gas_dim*2]

@@ -18,6 +18,7 @@ from .models import UniMolModel
 from .tasks import Trainer
 from rdkit import Chem
 
+
 class MolDataset(Dataset):
     def __init__(self, data, label=None):
         self.data = data
@@ -29,28 +30,45 @@ class MolDataset(Dataset):
     def __len__(self):
         return len(self.data)
     
+
 class UniMolRepr(object):
-    def __init__(self, data_type='molecule', remove_hs=False, use_gpu=True):
+    def __init__(self, data_type='molecule', 
+                 remove_hs=False, 
+                 use_gpu=True):
         self.device = torch.device("cuda:0" if torch.cuda.is_available() and use_gpu else "cpu")
         self.model = UniMolModel(output_dim=1, data_type=data_type, remove_hs=remove_hs).to(self.device)
         self.model.eval()
-        self.params = {'data_type':data_type, 'remove_hs': remove_hs}
-    
-    def get_repr(self, smiles_list):
-        if isinstance(smiles_list, str):
-            smiles_list = [smiles_list]
-        datahub = DataHub(data = smiles_list, 
-                         task = 'repr', 
-                         is_train = False, 
+        self.params = {'data_type': data_type, 'remove_hs': remove_hs}
+   
+    def get_repr(self, data=None, return_atomic_reprs=False):
+
+        if isinstance(data, str):
+            # single smiles string.
+            data = [data]
+        elif isinstance(data, dict):
+            # custom conformers, should take atoms and coordinates as input.
+            assert 'atoms' in data and 'coordinates' in data
+        elif isinstance(data, list):
+            # list of smiles strings.
+            assert isinstance(data[-1], str)
+        else:
+            raise ValueError('Unknown data type: {}'.format(type(data)))
+        datahub = DataHub(data=data, 
+                         task='repr', 
+                         is_train=False, 
                          **self.params,
                         )
         dataset = MolDataset(datahub.data['unimol_input'])
         self.trainer = Trainer(task='repr')
-        repr_output = self.trainer.inference(self.model, dataset=dataset)
+        repr_output = self.trainer.inference(self.model, 
+                                             return_repr=True, 
+                                             return_atomic_reprs=return_atomic_reprs, 
+                                             dataset=dataset)
         return repr_output
 
-scaler = {'CoRE_MAP': [1.318703908155812, 1.657051374039756,'log1p_standardization']}
 
+
+scaler = {'CoRE_MAP': [1.318703908155812, 1.657051374039756,'log1p_standardization']}
 class MOFDataset(Dataset):
     def __init__(self, mof_data, aux_data):
         self.mof_data = mof_data
@@ -65,12 +83,12 @@ class MOFDataset(Dataset):
             d[k] = self.aux_data[idx][k]
         return d
 
+
 class MOFPredictor(object):
     def __init__(self, use_gpu=True):
         self.device = torch.device("cuda:0" if torch.cuda.is_available() and use_gpu else "cpu")
         self.model = UniMolModel(output_dim=1, data_type='mof').to(self.device).half()
         self.model.eval()
-
 
     def single_predict(self, cif_path='1.cif', gas='CH4', pressure=10000, temperature=100):
         d = MOFReader().read_with_gas(cif_path=cif_path, gas=gas)

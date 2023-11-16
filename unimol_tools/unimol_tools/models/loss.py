@@ -88,6 +88,14 @@ class GHMR_Loss(GHM_Loss):
         d = x - target
         mu = self._mu
         return d / torch.sqrt(d * d + mu * mu)
+    
+def MAEwithNan(y_pred, y_true):
+    mask = ~torch.isnan(y_true)
+    y_pred = y_pred[mask]
+    y_true = y_true[mask]
+    mae_loss = nn.L1Loss()
+    loss = mae_loss(y_pred, y_true)
+    return loss
 
 def FocalLoss(y_pred, y_true, alpha=0.25, gamma=2):
     if y_pred.shape != y_true.shape:
@@ -105,7 +113,11 @@ def FocalLoss(y_pred, y_true, alpha=0.25, gamma=2):
 
 def FocalLossWithLogits(y_pred, y_true, alpha=0.25, gamma=2.0):
     y_pred = torch.sigmoid(y_pred)
-    return FocalLoss(y_pred, y_true, alpha, gamma)
+    mask = ~torch.isnan(y_true)
+    y_pred = y_pred[mask]
+    y_true = y_true[mask]
+    loss = FocalLoss(y_pred, y_true)
+    return loss
 
 def myCrossEntropyLoss(y_pred, y_true):
     if y_pred.shape != y_true.shape:

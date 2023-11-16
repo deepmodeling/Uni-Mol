@@ -22,7 +22,7 @@ class DataHub(object):
         self.data = data
         self.is_train = is_train
         self.save_path = save_path
-        self.task = params.get('task', None) 
+        self.task = params.get('task', None)
         self.target_cols = params.get('target_cols', None)
         self.multiclass_cnt = params.get('multiclass_cnt', None)
         self.ss_method = params.get('target_normalize', 'none')
@@ -50,7 +50,7 @@ class DataHub(object):
             target = np.array(self.data['raw_target']).reshape(-1,self.data['num_classes']).astype(np.float32)
             if self.is_train:
                 self.data['target_scaler'].fit(target, self.save_path)
-                self.data['target'] = self.data['target_scaler'].transform(target)
+                self.data['target'] = self.data['target_scaler'].transform(target)                
             else:
                 self.data['target'] = target
         elif self.task == 'multilabel_classification':
@@ -60,7 +60,7 @@ class DataHub(object):
             self.data['target'] = self.data['raw_target']
         else:
             raise ValueError('Unknown task: {}'.format(self.task))
-        
+
         if 'atoms' in self.data and 'coordinates' in self.data:
             no_h_list = ConformerGen(**params).transform_raw(self.data['atoms'], self.data['coordinates'])
         else:
