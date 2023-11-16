@@ -15,7 +15,7 @@ from torch.utils.data import Dataset
 import numpy as np
 from ..utils import logger
 from .unimol import UniMolModel
-from .loss import GHMC_Loss, FocalLossWithLogits, myCrossEntropyLoss
+from .loss import GHMC_Loss, FocalLossWithLogits, myCrossEntropyLoss, MAEwithNan
 
 
 NNMODEL_REGISTER = {
@@ -31,7 +31,7 @@ LOSS_RREGISTER = {
         'ghm': GHMC_Loss(bins=10, alpha=0.5),
         'focal': FocalLossWithLogits,
     },
-    'multilabel_regression': nn.MSELoss(),
+    'multilabel_regression': MAEwithNan,
 }
 ACTIVATION_FN = {
     # predict prob shape should be (N, K), especially for binary classification, K equals to 1.
@@ -103,13 +103,13 @@ class NNModel(object):
         logger.info("start training Uni-Mol:{}".format(self.model_name))
         X = np.asarray(self.features)
         y = np.asarray(self.data['target'])
-        scaffold = np.asarray(self.data['scaffolds'])
+        group = np.asarray(self.data['group']) if self.data['group'] is not None else None
         if self.task == 'classification':
             y_pred = np.zeros_like(
                 y.reshape(y.shape[0], self.num_classes)).astype(float)
         else:
             y_pred = np.zeros((y.shape[0], self.model_params['output_dim']))
-        for fold, (tr_idx, te_idx) in enumerate(self.splitter.split(X, y, scaffold)):
+        for fold, (tr_idx, te_idx) in enumerate(self.splitter.split(X, y, group)):
             X_train, y_train = X[tr_idx], y[tr_idx]
             X_valid, y_valid = X[te_idx], y[te_idx]
             traindataset = NNDataset(X_train, y_train)

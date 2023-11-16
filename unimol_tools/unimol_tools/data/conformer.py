@@ -123,7 +123,8 @@ def inner_coords(atoms, coordinates, remove_hs=True):
     else:
         return atoms, coordinates
 
-def coords2unimol(atoms, coordinates, dictionary, max_atoms=256, **params):
+def coords2unimol(atoms, coordinates, dictionary, max_atoms=256, remove_hs=True, **params):
+    atoms, coordinates = inner_coords(atoms, coordinates, remove_hs=remove_hs)
     atoms = np.array(atoms)
     coordinates = np.array(coordinates).astype(np.float32)
     ### cropping atoms and coordinates
