@@ -3,3 +3,23 @@
 sphinx
 
 sphinx_rtd_theme==2.0.0rc2
+sphinx-tabs
+sphinx-intl
+sphinx-design
+sphinx-multiproject
+
+# RTD deps :)
+readthedocs-sphinx-search
+sphinx-hoverxref
+sphinx-notfound-page
+
+# Docs
+sphinxemoji
+sphinxcontrib-httpdomain
+sphinx-prompt
+sphinx-autobuild
+sphinxext-opengraph
+sphinx-copybutton
+
+# Markdown
+myst_parser

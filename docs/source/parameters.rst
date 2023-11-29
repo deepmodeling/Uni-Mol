@@ -1,7 +1,0 @@
-.. _parameters:
-
-Parameters
-============
-
-XXX
---------
