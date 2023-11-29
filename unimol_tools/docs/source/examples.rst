@@ -1,0 +1,7 @@
+.. _examples:
+
+Examples
+============
+
+XXX
+--------
