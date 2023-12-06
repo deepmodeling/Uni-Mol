@@ -1,13 +1,14 @@
 # unimol tools for various prediction and downstreams.
 
 ## details can be found in bohrium notebook
-* [unimol_property_predict](https://bohrium.dp.tech/notebook/298bcead4f614971bb62fbeef2e9db16)
+* [unimol property predict](https://bohrium.dp.tech/notebook/298bcead4f614971bb62fbeef2e9db16)
 * [unimol representation](https://bohrium.dp.tech/notebook/f39a7a8836134cca8e22c099dc9654f8)
-* [unimol docking](https://bohrium.dp.tech/notebook/80c6893e315641e6bd05567c9a6adbbb)
-* [unimol for mof absorption prediction](https://bohrium.dp.tech/notebook/cca98b584a624753981dfd5f8bb79674)
 
 ## install
+ - Notice: [Uni-Core](https://github.com/dptech-corp/Uni-Core) is needed, please install it first. Current Uni-Core requires torch>=2.0.0 by default, if you want to install other version, please check its [Installation Documentation](https://github.com/dptech-corp/Uni-Core#installation).
 ```python
+## unicore and other dependencies installation
+pip install -r requirements.txt
 ## clone repo
 git clone https://github.com/dptech-corp/Uni-Mol.git
 cd Uni-Mol/unimol_tools/unimol_tools
@@ -25,10 +26,13 @@ mv *.pt weights/
 
 ## install
 cd ..
-pip install -r requirements.txt
 python setup.py install
 ```
-## finetune
+
+## News
+- unimol_tools documents is coming soon.
+
+## molecule property prediction
 ```python
 from unimol_tools import MolTrain, MolPredict
 clf = MolTrain(task='classification', 
@@ -44,48 +48,19 @@ pred = clf.fit(data = data)
 clf = MolPredict(load_model='../exp')
 res = clf.predict(data = data)
 ```
-## unimol repr
+## unimol molecule and atoms level representation
 ```python
-import torch as th
 from unimol_tools import UniMolRepr
-clf = UniMolRepr(data_type='molecule')
-smiles = ['CCO', 'CCC', 'CCCC']
-reprs = clf.get_repr(smiles)
-(
-    # dict_keys(['cls_repr', 'atomic_reprs'])
-    reprs.keys(),  
-    # torch.Size([3, 512])
-    th.tensor(reprs["cls_repr"]).shape,  
-    # [torch.Size([9, 512]), torch.Size([11, 512]), torch.Size([14, 512])])
-    [th.tensor(x).shape for x in reprs["atomic_reprs"]]  
-) 
+# single smiles unimol representation
+clf = UniMolRepr(data_type='molecule', remove_hs=False)
+smiles = 'c1ccc(cc1)C2=NCC(=O)Nc3c2cc(cc3)[N+](=O)[O]'
+smiles_list = [smiles]
+unimol_repr = clf.get_repr(smiles_list, return_atomic_reprs=True)
+# CLS token repr
+print(np.array(unimol_repr['cls_repr']).shape)
+# atomic level repr, align with rdkit mol.GetAtoms()
+print(np.array(unimol_repr['atomic_reprs']).shape)
 ```
-
-## unimol mof absorption prediction
-```python
-from unimol_tools import MOFPredictor
-clf = MOFPredictor()
-GAS2ID = {
-        "UNK":0,
-        "CH4":1, 
-        "CO2":2, 
-        "Ar":3, 
-        "Kr":4, 
-        "Xe":5, 
-        "O2":6,
-        "He":7, 
-        "N2":8, 
-        "H2":9,
-    }
-gas = 'CH4'
-mof_name = 'la304204k_si_003_clean'
-res = clf.predict_grid(cif_path=f'../examples/mof/{mof_name}.cif',
-                        gas=gas,
-                        temperature_list=[190,298],
-                        pressure_bins=8)
-print(res.head())
-```
-
 
 Please kindly cite our papers if you use the data/code/model.
 ```
@@ -104,17 +79,6 @@ Please kindly cite our papers if you use the data/code/model.
       eprint={2303.16982},
       archivePrefix={arXiv},
       primaryClass={physics.chem-ph}
-}
-@article{wang2023metal,
-  title={Metal-organic frameworks meet Uni-MOF: a revolutionary gas adsorption detector},
-  author={Wang, Jingqi and Liu, Jiapeng and Wang, Hongshuai and Ke, Guolin and Zhang, Linfeng and Wu, Jianzhong and Gao, Zhifeng and Lu, Diannan},
-  year={2023}
-}
-@article{gao2023uni,
-  title={Uni-QSAR: an Auto-ML Tool for Molecular Property Prediction},
-  author={Gao, Zhifeng and Ji, Xiaohong and Zhao, Guojiang and Wang, Hongshuai and Zheng, Hang and Ke, Guolin and Zhang, Linfeng},
-  journal={arXiv preprint arXiv:2304.12239},
-  year={2023}
 }
 ```
 
