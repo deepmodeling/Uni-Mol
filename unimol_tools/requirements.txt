@@ -1,4 +1,3 @@
-git+https://github.com/dptech-corp/Uni-Core.git
 pandas
 rdkit
 pymatgen
@@ -7,3 +6,4 @@ tqdm
 yacs
 transformers
 wandb
+git+https://github.com/dptech-corp/Uni-Core.git
