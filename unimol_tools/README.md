@@ -50,6 +50,7 @@ res = clf.predict(data = data)
 ```
 ## unimol molecule and atoms level representation
 ```python
+from unimol_tools import UniMolRepr
 # single smiles unimol representation
 clf = UniMolRepr(data_type='molecule', remove_hs=False)
 smiles = 'c1ccc(cc1)C2=NCC(=O)Nc3c2cc(cc3)[N+](=O)[O]'
