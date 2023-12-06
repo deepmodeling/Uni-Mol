@@ -6,3 +6,4 @@ addict
 tqdm
 yacs
 transformers
+wandb
