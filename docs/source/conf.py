@@ -6,7 +6,7 @@
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-project = 'UniMol'
+project = 'Uni-Mol tools'
 copyright = '2023, cuiyaning'
 author = 'cuiyaning'
 release = '0.1.0'
@@ -19,7 +19,7 @@ extensions = ['myst_parser']
 templates_path = ['_templates']
 exclude_patterns = []
 
-
+highlight_language = 'python'
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
