@@ -84,8 +84,14 @@ class NNModel(object):
         self.model = self._init_model(**self.model_params)
 
     def _init_model(self, model_name, **params):
+        freeze_backbone = params.get('freeze_backbone', False)          
         if model_name in NNMODEL_REGISTER:
             model = NNMODEL_REGISTER[model_name](**params)
+            if freeze_backbone == True:
+                for enu, layer_param in enumerate(model.children()):
+                    if enu == 1:
+                        for p in layer_param.parameters():
+                            p.requires_grad = False
         else:
             raise ValueError('Unknown model: {}'.format(self.model_name))
         return model

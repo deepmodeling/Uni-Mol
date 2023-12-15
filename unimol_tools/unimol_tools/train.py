@@ -40,6 +40,7 @@ class MolTrain(object):
                 max_norm=5.0,
                 use_cuda=True,
                 use_amp=True,
+                freeze_backbone=False,
                 **params,
                 ):
         config_path = os.path.join(os.path.dirname(__file__), 'config/default.yaml')
@@ -64,6 +65,7 @@ class MolTrain(object):
         config.max_norm = max_norm
         config.use_cuda = use_cuda
         config.use_amp = use_amp
+        config.freeze_backbone = freeze_backbone
         self.save_path = save_path
         self.config = config
 
