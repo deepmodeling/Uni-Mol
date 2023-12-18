@@ -84,14 +84,16 @@ class NNModel(object):
         self.model = self._init_model(**self.model_params)
 
     def _init_model(self, model_name, **params):
-        freeze_backbone = params.get('freeze_backbone', False)          
+        freeze_layers = params.get('freeze_layers', None)
+        freeze_layers_reversed = params.get('freeze_layers_reversed', False)
         if model_name in NNMODEL_REGISTER:
             model = NNMODEL_REGISTER[model_name](**params)
-            if freeze_backbone == True:
-                for enu, layer_param in enumerate(model.children()):
-                    if enu == 1:
-                        for p in layer_param.parameters():
-                            p.requires_grad = False
+            if freeze_layers is not None:
+                for layer_name, layer_param in model.named_parameters():
+                    should_freeze = any(layer_name.startswith(freeze_layer) for freeze_layer in freeze_layers)
+                    layer_param.requires_grad = not (freeze_layers_reversed ^ should_freeze)
+            total_parameters = sum(p.numel() for p in model.parameters() if p.requires_grad)
+            logger.info('Trainable parameters: {}'.format(total_parameters))
         else:
             raise ValueError('Unknown model: {}'.format(self.model_name))
         return model

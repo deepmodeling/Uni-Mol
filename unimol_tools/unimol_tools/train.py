@@ -40,7 +40,8 @@ class MolTrain(object):
                 max_norm=5.0,
                 use_cuda=True,
                 use_amp=True,
-                freeze_backbone=False,
+                freeze_layers=None,               # frozen layers by startwith name list
+                freeze_layers_reversed=False,     # if true, inverse selection of frozen layers
                 **params,
                 ):
         config_path = os.path.join(os.path.dirname(__file__), 'config/default.yaml')
@@ -65,7 +66,8 @@ class MolTrain(object):
         config.max_norm = max_norm
         config.use_cuda = use_cuda
         config.use_amp = use_amp
-        config.freeze_backbone = freeze_backbone
+        config.freeze_layers = freeze_layers
+        config.freeze_layers_reversed = freeze_layers_reversed
         self.save_path = save_path
         self.config = config
 
