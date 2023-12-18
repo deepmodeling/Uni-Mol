@@ -89,7 +89,7 @@ class NNModel(object):
         if model_name in NNMODEL_REGISTER:
             model = NNMODEL_REGISTER[model_name](**params)
             if isinstance(freeze_layers, str):
-                freeze_layers = [freeze_layers]
+                freeze_layers = freeze_layers.replace(' ', '').split(',')
             if isinstance(freeze_layers, list):
                 for layer_name, layer_param in model.named_parameters():
                     should_freeze = any(layer_name.startswith(freeze_layer) for freeze_layer in freeze_layers)
