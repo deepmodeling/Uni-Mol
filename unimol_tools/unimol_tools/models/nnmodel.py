@@ -92,8 +92,6 @@ class NNModel(object):
                 for layer_name, layer_param in model.named_parameters():
                     should_freeze = any(layer_name.startswith(freeze_layer) for freeze_layer in freeze_layers)
                     layer_param.requires_grad = not (freeze_layers_reversed ^ should_freeze)
-            total_parameters = sum(p.numel() for p in model.parameters() if p.requires_grad)
-            logger.info('Trainable parameters: {}'.format(total_parameters))
         else:
             raise ValueError('Unknown model: {}'.format(self.model_name))
         return model
