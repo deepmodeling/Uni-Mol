@@ -12,6 +12,25 @@ from unicore.modules import TransformerEncoderLayer, LayerNorm
 
 
 class TransformerEncoderWithPair(nn.Module):
+    """
+    A custom Transformer Encoder module that extends PyTorch's nn.Module. This encoder is designed for tasks that require
+    understanding pair relationships in sequences. It includes standard transformer encoder layers along with additional
+    normalization and dropout features.
+
+    Attributes:
+        emb_dropout: Dropout rate applied to the embedding layer.
+        max_seq_len: Maximum length of the input sequences.
+        embed_dim: Dimensionality of the embeddings.
+        attention_heads: Number of attention heads in the transformer layers.
+        emb_layer_norm: Layer normalization applied to the embedding layer.
+        final_layer_norm: Optional final layer normalization.
+        final_head_layer_norm: Optional layer normalization for the attention heads.
+        layers: A list of transformer encoder layers.
+
+    Methods:
+        forward: Performs the forward pass of the module.
+    """
+    
     def __init__(
         self,
         encoder_layers: int = 6,
@@ -27,7 +46,24 @@ class TransformerEncoderWithPair(nn.Module):
         post_ln: bool = False,
         no_final_head_layer_norm: bool = False,
     ) -> None:
+        """
+        Initializes the TransformerEncoderWithPair.
 
+        :param encoder_layers: (int) Number of encoder layers in the transformer.
+        :param embed_dim: (int) Dimensionality of the input embeddings.
+        :param ffn_embed_dim: (int) Dimensionality of the feedforward network model.
+        :param attention_heads: (int) Number of attention heads in each encoder layer.
+        :param emb_dropout: (float) Dropout rate for the embedding layer.
+        :param dropout: (float) Dropout rate for the encoder layers.
+        :param attention_dropout: (float) Dropout rate for the attention mechanisms.
+        :param activation_dropout: (float) Dropout rate for activations.
+        :param max_seq_len: (int) Maximum sequence length the model can handle.
+        :param activation_fn: (str) The activation function to use (e.g., "gelu").
+        :param post_ln: (bool) If True, applies layer normalization after the feedforward network.
+        :param no_final_head_layer_norm: (bool) If True, does not apply layer normalization to the final attention head.
+
+        Initializes and configures the layers and other components of the transformer encoder.
+        """
         super().__init__()
         self.emb_dropout = emb_dropout
         self.max_seq_len = max_seq_len
@@ -66,7 +102,16 @@ class TransformerEncoderWithPair(nn.Module):
         attn_mask: Optional[torch.Tensor] = None,
         padding_mask: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
+        """
+        Conducts the forward pass of the transformer encoder.
 
+        :param emb: (torch.Tensor) The input tensor of embeddings.
+        :param attn_mask: (Optional[torch.Tensor]) Attention mask to specify positions to attend to.
+        :param padding_mask: (Optional[torch.Tensor]) Mask to indicate padded elements in the input.
+
+        :return: (torch.Tensor) The output tensor after passing through the transformer encoder layers.
+                 It also returns tensors related to pair representation and normalization losses.
+        """
         bsz = emb.size(0)
         seq_len = emb.size(1)
         x = self.emb_layer_norm(emb)
