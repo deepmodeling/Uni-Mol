@@ -31,7 +31,7 @@ Loss
    :members:
 
 Transformers
------
+------------
 
 `unimol_tools.unimol_tools.models.transformers.py <https://github.com/dptech-corp/Uni-Mol/blob/docs/unimol_tools/unimol_tools/models/transformers.py>`_ contains a custom Transformer Encoder module that extends `PyTorch's nn.Module <https://pytorch.org/docs/stable/generated/torch.nn.Module.html>`_.
 
