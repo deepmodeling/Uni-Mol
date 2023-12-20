@@ -22,6 +22,7 @@ Uni-Mol tools is a easy-use wrappers for property prediction,representation and 
    web
    data
    models
+   task
    train
    parameters
    examples

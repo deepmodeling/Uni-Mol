@@ -16,15 +16,15 @@ Datareader
 
 Classes and functions from `unimol_tools.unimol_tools.data.datareader.py <https://github.com/dptech-corp/Uni-Mol/tree/docs/unimol_tools/unimol_tools/data/.datareader.py>`_.
 
-.. automodule:: unimol_tools.unimol_tools.data.MolDataReader
+.. automodule:: unimol_tools.unimol_tools.data.datareader.MolDataReader
    :members:
 
 Datascaler
-------
+-----------
 
 Classes and functions from `unimol_tools.unimol_tools.data.datascaler.py <https://github.com/dptech-corp/Uni-Mol/tree/docs/unimol_tools/unimol_tools/data/datascaler.py>`_.
 
-.. automodule:: unimol_tools.unimol_tools.data.TargetScaler
+.. automodule:: unimol_tools.unimol_tools.data.datascaler.TargetScaler
    :members:
 
 Conformer
@@ -32,5 +32,5 @@ Conformer
 
 Classes and functions from `unimol_tools.unimol_tools.data.conformer.py <https://github.com/dptech-corp/Uni-Mol/tree/docs/unimol_tools/unimol_tools/data/conformer.py>`_.
 
-.. automodule:: unimol_tools.unimol_tools.data.ConformerGen
+.. automodule:: unimol_tools.unimol_tools.data.conformer.ConformerGen
    :members:
