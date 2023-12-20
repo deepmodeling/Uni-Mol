@@ -114,6 +114,18 @@ DEFAULT_METRICS = {
 
 
 class Metrics(object):
+    """
+    Class for calculating metrics for different tasks.
+
+    Args:
+        task (str): The task type. Supported tasks are 'regression', 'multilabel_regression',
+            'classification', 'multilabel_classification', and 'multiclass'.
+        metrics_str (str): Comma-separated string of metric names. If provided, only the specified
+            metrics will be calculated. If not provided or an empty string, default metrics for the
+            task will be used.
+        **params: Additional parameters for initializing the Metrics object.
+    """
+
     def __init__(self, task=None, metrics_str=None, **params):
         self.task = task
         self.threshold = np.arange(0, 1., 0.1)
