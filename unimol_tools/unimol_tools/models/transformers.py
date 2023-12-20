@@ -13,19 +13,17 @@ from unicore.modules import TransformerEncoderLayer, LayerNorm
 
 class TransformerEncoderWithPair(nn.Module):
     """
-    A custom Transformer Encoder module that extends PyTorch's nn.Module. This encoder is designed for tasks that require
-    understanding pair relationships in sequences. It includes standard transformer encoder layers along with additional
-    normalization and dropout features.
+    A custom Transformer Encoder module that extends PyTorch's nn.Module. This encoder is designed for tasks that require understanding pair relationships in sequences. It includes standard transformer encoder layers along with additional normalization and dropout features.
 
     Attributes:
-        emb_dropout: Dropout rate applied to the embedding layer.
-        max_seq_len: Maximum length of the input sequences.
-        embed_dim: Dimensionality of the embeddings.
-        attention_heads: Number of attention heads in the transformer layers.
-        emb_layer_norm: Layer normalization applied to the embedding layer.
-        final_layer_norm: Optional final layer normalization.
-        final_head_layer_norm: Optional layer normalization for the attention heads.
-        layers: A list of transformer encoder layers.
+        - emb_dropout: Dropout rate applied to the embedding layer.
+        - max_seq_len: Maximum length of the input sequences.
+        - embed_dim: Dimensionality of the embeddings.
+        - attention_heads: Number of attention heads in the transformer layers.
+        - emb_layer_norm: Layer normalization applied to the embedding layer.
+        - final_layer_norm: Optional final layer normalization.
+        - final_head_layer_norm: Optional layer normalization for the attention heads.
+        - layers: A list of transformer encoder layers.
 
     Methods:
         forward: Performs the forward pass of the module.
@@ -47,8 +45,8 @@ class TransformerEncoderWithPair(nn.Module):
         no_final_head_layer_norm: bool = False,
     ) -> None:
         """
-        Initializes the TransformerEncoderWithPair.
-
+        Initializes and configures the layers and other components of the transformer encoder.
+        
         :param encoder_layers: (int) Number of encoder layers in the transformer.
         :param embed_dim: (int) Dimensionality of the input embeddings.
         :param ffn_embed_dim: (int) Dimensionality of the feedforward network model.
@@ -62,7 +60,6 @@ class TransformerEncoderWithPair(nn.Module):
         :param post_ln: (bool) If True, applies layer normalization after the feedforward network.
         :param no_final_head_layer_norm: (bool) If True, does not apply layer normalization to the final attention head.
 
-        Initializes and configures the layers and other components of the transformer encoder.
         """
         super().__init__()
         self.emb_dropout = emb_dropout

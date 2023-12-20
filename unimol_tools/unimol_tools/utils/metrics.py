@@ -117,13 +117,9 @@ class Metrics(object):
     """
     Class for calculating metrics for different tasks.
 
-    Args:
-        task (str): The task type. Supported tasks are 'regression', 'multilabel_regression',
-            'classification', 'multilabel_classification', and 'multiclass'.
-        metrics_str (str): Comma-separated string of metric names. If provided, only the specified
-            metrics will be calculated. If not provided or an empty string, default metrics for the
-            task will be used.
-        **params: Additional parameters for initializing the Metrics object.
+    :param task: The task type. Supported tasks are 'regression', 'multilabel_regression',
+                 'classification', 'multilabel_classification', and 'multiclass'.
+    :param metrics_str: Comma-separated string of metric names. If provided, only the specified metrics will be calculated. If not provided or an empty string, default metrics for the task will be used.
     """
 
     def __init__(self, task=None, metrics_str=None, **params):
@@ -153,9 +149,9 @@ class Metrics(object):
         return metric_dict
 
     def cal_classification_metric(self, label, predict, nan_value=-1.0, threshold=None):
-        r"""
-            :param label:int
-            :param predict:float
+        """
+            :param label: the labels of the dataset.
+            :param predict: the predict values of the model.
         """
         res_dict = {}
         for metric_type, metric_value in self.metric_dict.items():
@@ -175,9 +171,9 @@ class Metrics(object):
         return res_dict
 
     def cal_reg_metric(self, label, predict, nan_value=-1.0):
-        r"""
-            :param label:int
-            :param predict:float
+        """
+            :param label: the labels of the dataset.
+            :param predict: the predict values of the model.
         """
         res_dict = {}
         for metric_type, metric_value in self.metric_dict.items():
@@ -189,9 +185,9 @@ class Metrics(object):
         return res_dict
 
     def cal_multiclass_metric(self, label, predict, nan_value=-1.0, label_cnt=-1):
-        r"""
-            :param label:int
-            :param predict:float
+        """
+            :param label: the labels of the dataset.
+            :param predict: the predict values of the model.
         """
         res_dict = {}
         for metric_type, metric_value in self.metric_dict.items():

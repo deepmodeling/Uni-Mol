@@ -19,12 +19,11 @@ Uni-Mol tools is a easy-use wrappers for property prediction,representation and 
    requirements
    installation
    tutorial
-   web
    data
    models
    task
+   utils
    train
-   parameters
    examples
    command
    practices

@@ -41,3 +41,20 @@ autodoc_mock_imports = [
 
 html_theme = 'sphinx_rtd_theme'
 html_static_path = ['_static']
+
+# -- Autodoc configuration ---------------------------------------------------
+
+autoclass_content = 'class'
+
+# 显式地设置成员的顺序，确保构造函数的参数首先显示
+autodoc_member_order = 'bysource'
+
+# 设置构造函数的默认选项，包括显示参数
+
+autodoc_default_options = {
+    'members': True,
+    'special-members': '__init__',
+    #'undoc-members': False,
+    #'private-members': False,
+    #'show-inheritance': False,
+}

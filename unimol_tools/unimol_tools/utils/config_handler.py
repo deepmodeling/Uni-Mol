@@ -21,8 +21,7 @@ class YamlHandler:
             """
             A custom logger class that provides logging functionality to console and file.
 
-            Args:
-                file_path (str): The yaml file path of the config.
+            :param file_path: (str) The yaml file path of the config.
             """
             if not os.path.exists(file_path):
                 raise FileExistsError(OSError)
@@ -31,11 +30,9 @@ class YamlHandler:
         def read_yaml(self, encoding='utf-8'):
             """ read yaml file and convert to easydict
 
-            Args:
-                encoding (str): encoding method uses utf-8 by default
+            :param encoding: (str) encoding method uses utf-8 by default
 
-            Returns:
-                Dict (addict): the usage of Dict is the same as dict
+            :return: Dict (addict), the usage of Dict is the same as dict
             """
             with open(self.file_path, encoding=encoding) as f:
                 return Dict(yaml.load(f.read(), Loader=yaml.FullLoader))
@@ -43,8 +40,7 @@ class YamlHandler:
         def write_yaml(self, data, out_file_path, encoding='utf-8'):
             """ write dict or easydict to yaml file(auto write to self.file_path)
 
-            Args:
-                data (dict or Dict(addict) ): dict containing the contents of the yaml file
+            :param data: (dict or Dict(addict)) dict containing the contents of the yaml file
             """
             with open(out_file_path, encoding=encoding, mode='w') as f:
                 return yaml.dump(addict2dict(data) if isinstance(data, Dict) else data,
@@ -55,11 +51,9 @@ class YamlHandler:
 def addict2dict(addict_obj):
     '''convert addict to dict
 
-    Args:
-        addict_obj (Dict(addict)) :the addict obj that you want to convert to dict
+    :param addict_obj: (Dict(addict)) the addict obj that you want to convert to dict
 
-    Return:
-        Dict: converted result
+    :return: (Dict) converted result
     '''
     dict_obj = {}
     for key, vals in addict_obj.items():

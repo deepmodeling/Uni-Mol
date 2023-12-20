@@ -44,6 +44,7 @@ class Trainer(object):
     def _init_trainer(self, **params):
         """
         Initializing the trainer class to train model.
+
         :param params: Containing training arguments.
         """
         ### init common params ###
@@ -71,8 +72,10 @@ class Trainer(object):
         """
         Prepares a batch of data for processing by the model. This method is a wrapper that
         delegates to a specific batch decoration method based on the data type.
+        
         :param batch: The batch of data to be processed.
         :param feature_name: (str, optional) Name of the feature used in batch decoration. Defaults to None.
+
         :return: The decorated batch ready for processing by the model.
         """
         return self.decorate_torch_batch(batch)
@@ -81,7 +84,9 @@ class Trainer(object):
         """
         Prepares a graph-based batch of data for processing by the model. Specifically handles 
         graph-based data structures.
+        
         :param batch: The batch of graph-based data to be processed.
+
         :return: A tuple of (net_input, net_target) for model processing.
         """
         net_input, net_target = {'net_input': batch.to(
@@ -94,9 +99,10 @@ class Trainer(object):
 
     def decorate_torch_batch(self, batch):
         """
-        Prepares a standard PyTorch batch of data for processing by the model. Handles tensor-based 
-        data structures.
+        Prepares a standard PyTorch batch of data for processing by the model. Handles tensor-based data structures.
+
         :param batch: The batch of tensor-based data to be processed.
+
         :return: A tuple of (net_input, net_target) for model processing.
         """
         net_input, net_target = batch
@@ -232,8 +238,7 @@ class Trainer(object):
         :param patience: Number of epochs to wait for an improvement before stopping.
         :param epoch: The current epoch number.
 
-        :return: A tuple (is_early_stop, min_val_loss, wait, max_score) indicating if early stopping criteria are met,
-                 the minimum validation loss, the updated wait time, and the maximum metric score.
+        :return: A tuple (is_early_stop, min_val_loss, wait, max_score) indicating if early stopping criteria are met, the minimum validation loss, the updated wait time, and the maximum metric score.
         """
         if not isinstance(self.metrics_str, str) or self.metrics_str in ['loss', 'none', '']:
             is_early_stop, min_val_loss, wait = self._judge_early_stop_loss(

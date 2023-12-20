@@ -14,15 +14,13 @@ def pad_1d_tokens(
     """
     padding one dimension tokens inputs.
 
-    Args:
-        values (list): A list of 1d tensors.
-        pad_idx (int): The padding index.
-        left_pad (bool, optional): Whether to left pad the tensors. Defaults to False.
-        pad_to_length (int, optional): The desired length of the padded tensors. Defaults to None.
-        pad_to_multiple (int, optional): The multiple to pad the tensors to. Defaults to 1.
+    :param values: A list of 1d tensors.
+    :param pad_idx: The padding index.
+    :param left_pad: Whether to left pad the tensors. Defaults to False.
+    :param pad_to_length: The desired length of the padded tensors. Defaults to None.
+    :param pad_to_multiple: The multiple to pad the tensors to. Defaults to 1.
 
-    Returns:
-        torch.Tensor: A padded 1d tensor.
+    :return: A padded 1d tensor as a torch.Tensor.
 
     """
     size = max(v.size(0) for v in values)
@@ -50,15 +48,14 @@ def pad_2d(
     """
     padding two dimension tensor inputs.
 
-    Args:
-        values (list): A list of 2d tensors.
-        pad_idx (int): The padding index.
-        left_pad (bool, optional): Whether to pad on the left side. Defaults to False.
-        pad_to_length (int, optional): The length to pad the tensors to. If None, the maximum length in the list is used. Defaults to None.
-        pad_to_multiple (int, optional): The multiple to pad the tensors to. Defaults to 1.
+    :param values: A list of 2d tensors.
+    :param pad_idx: The padding index.
+    :param left_pad: Whether to pad on the left side. Defaults to False.
+    :param pad_to_length: The length to pad the tensors to. If None, the maximum length in the list
+                         is used. Defaults to None.
+    :param pad_to_multiple: The multiple to pad the tensors to. Defaults to 1.
 
-    Returns:
-        torch.Tensor: A padded 2d tensor.
+    :return: A padded 2d tensor as a torch.Tensor.
     """
     size = max(v.size(0) for v in values)
     size = size if pad_to_length is None else max(size, pad_to_length)
@@ -85,15 +82,13 @@ def pad_coords(
     """
     padding two dimension tensor coords which the third dimension is 3.
 
-    Args:
-        values (list): A list of 1d tensors.
-        pad_idx (int): The value used for padding.
-        left_pad (bool, optional): Whether to pad on the left side. Defaults to False.
-        pad_to_length (int, optional): The desired length of the padded tensor. Defaults to None.
-        pad_to_multiple (int, optional): The multiple to pad the tensor to. Defaults to 1.
+    :param values: A list of 1d tensors.
+    :param pad_idx: The value used for padding.
+    :param left_pad: Whether to pad on the left side. Defaults to False.
+    :param pad_to_length: The desired length of the padded tensor. Defaults to None.
+    :param pad_to_multiple: The multiple to pad the tensor to. Defaults to 1.
 
-    Returns:
-        torch.Tensor: A padded 2d coordinate tensor.
+    :return: A padded 2d coordinate tensor as a torch.Tensor.
     """
     size = max(v.size(0) for v in values)
     size = size if pad_to_length is None else max(size, pad_to_length)

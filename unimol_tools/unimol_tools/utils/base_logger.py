@@ -13,6 +13,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
 class PackagePathFilter(logging.Filter):
+    """A custom logging filter for adding the relative path to the log record."""
     def filter(self, record):
         """add relative path to record
         """
@@ -29,12 +30,10 @@ class PackagePathFilter(logging.Filter):
 
 
 class Logger(object):
+    """A custom logger class that provides logging functionality to console and file."""
     def __init__(self, logger_name='None'):
         """
-        A custom logger class that provides logging functionality to console and file.
-
-        Args:
-            logger_name (str): The name of the logger (default: 'None')
+        :param logger_name: (str) The name of the logger (default: 'None')
         """
         self.logger = logging.getLogger(logger_name)
         logging.root.setLevel(logging.NOTSET)
@@ -61,8 +60,7 @@ class Logger(object):
         """
         Get the logger object.
 
-        Returns:
-            logging.Logger: The logger object.
+        :return: logging.Logger - a logger object.
 
         """
         if not self.logger.handlers:
