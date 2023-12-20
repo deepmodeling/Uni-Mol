@@ -25,6 +25,17 @@ exclude_patterns = []
 
 highlight_language = 'python'
 
+
+# List of modules to be mocked up. This is useful when some external
+# dependencies are not met at build time and break the building process.
+autodoc_mock_imports = [
+    'rdkit',
+    'unicore',
+    'torch',
+    'sklearn',
+]
+
+
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 

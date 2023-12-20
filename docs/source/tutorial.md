@@ -11,7 +11,7 @@ The data file can be a **CSV file with a header row**. The CSV format should hav
 | SMILES                                          | TARGET |
 | ----------------------------------------------- | ------ |
 | NCCCCC(NC(CCc1ccccc1)C(=O)O)C(=O)N2CCCC2C(=O)O  | 0      |
-| c1ccc(cc1)C2=NCC(=O)Nc3c2cc(cc3)[N+](=O)[O]     | 1      |
+| COc1cc(CN2CCCCC2)cc2cc(C(=O)O)c(=O)oc12         | 1      |
 | CCN(CC)C(C)CN1c2ccccc2Sc3c1cccc3                | 1      |
 |...                                              | ...    |
 
