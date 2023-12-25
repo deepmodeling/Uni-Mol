@@ -29,12 +29,3 @@ Uni-Mol representation
 
 .. automodule:: unimol_tools.UniMolRepr
    :members:
-
-
-MOF Predictor
---------------
-
-`unimol_tools.predictor.py <https://github.com/dptech-corp/Uni-Mol/blob/docs/unimol_tools/unimol_tools/predictor.py>`_ get the MOF predictor.
-
-.. automodule:: unimol_tools.MOFPredictor
-   :members:
