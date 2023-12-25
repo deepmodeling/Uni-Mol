@@ -1,4 +1,4 @@
-.. _train_predict:
+.. _train:
 
 Training and Predicting
 =======================
@@ -9,7 +9,7 @@ Train
 
 `unimol_tools.train.py <https://github.com/dptech-corp/Uni-Mol/blob/docs/unimol_tools/unimol_tools/train.py>`_ trains a Uni-Mol model.
 
-.. automodule:: unimol_tools.MolTrain
+.. automodule:: unimol_tools.train
    :members:
 
 
@@ -18,7 +18,7 @@ Predict
 
 `unimol_tools.predictor.py <https://github.com/dptech-corp/Uni-Mol/blob/docs/unimol_tools/unimol_tools/predictor.py>`_ predict through a Uni-Mol model.
 
-.. automodule:: unimol_tools.MolPredict
+.. automodule:: unimol_tools.predict
    :members:
 
 
@@ -27,5 +27,5 @@ Uni-Mol representation
 
 `unimol_tools.predictor.py <https://github.com/dptech-corp/Uni-Mol/blob/docs/unimol_tools/unimol_tools/predictor.py>`_ get the Uni-Mol representation.
 
-.. automodule:: unimol_tools.UniMolRepr
+.. automodule:: unimol_tools.predictor
    :members:

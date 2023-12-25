@@ -25,7 +25,7 @@ class MolPredict(object):
         """ 
         Initialize a :class:`MolPredict` class.
 
-        param load_model: str, default=None, path of model to load.
+        :param load_model: str, default=None, path of model to load.
         """
         if not load_model:
             raise ValueError("load_model is empty")
@@ -40,18 +40,25 @@ class MolPredict(object):
         """ 
         Predict molecular data.
 
-        param data: str or pandas.DataFrame, input data for prediction. \
+        :param data: str or pandas.DataFrame, input data for prediction. \
             - str: path of csv file.
             - pandas.DataFrame: dataframe of data.
-        param save_path: str, default=None, path to save predict result.
-        param metrics: str, default='none', metrics to evaluate model performance. currently support: \
+        :param save_path: str, default=None, path to save predict result.
+        :param metrics: str, default='none', metrics to evaluate model performance.
+        
+            currently support: 
+
             - classification: auc, auprc, log_loss, acc, f1_score, mcc, precision, recall, cohen_kappa. 
+
             - regression: mse, pearsonr, spearmanr, mse, r2.
+
             - multiclass: log_loss, acc.
+
             - multilabel_classification: auc, auprc, log_loss, acc, mcc.
+
             - multilabel_regression: mae, mse, r2.
 
-        return y_pred: numpy.ndarray, predict result.
+        :return y_pred: numpy.ndarray, predict result.
         """
         self.save_path = save_path
         if not metrics or metrics != 'none':
@@ -101,9 +108,9 @@ class MolPredict(object):
         """
         Save predict result to csv file.
 
-        param data: pandas.DataFrame, predict result.
-        param dir: str, directory to save predict result.
-        param prefix: str, prefix of predict result file name.
+        :param data: pandas.DataFrame, predict result.
+        :param dir: str, directory to save predict result.
+        :param prefix: str, prefix of predict result file name.
         """
         run_id = 0
         if not os.path.exists(dir):

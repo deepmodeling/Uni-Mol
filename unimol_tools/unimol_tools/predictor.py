@@ -44,9 +44,9 @@ class UniMolRepr(object):
         """
         Initialize a :class:`UniMolRepr` class.
 
-        param data_type: str, default='molecule', currently support molecule, oled.
-        param remove_hs: bool, default=False, whether to remove hydrogens in molecular.
-        param use_gpu: bool, default=True, whether to use gpu.
+        :param data_type: str, default='molecule', currently support molecule, oled.
+        :param remove_hs: bool, default=False, whether to remove hydrogens in molecular.
+        :param use_gpu: bool, default=True, whether to use gpu.
         """
         self.device = torch.device("cuda:0" if torch.cuda.is_available() and use_gpu else "cpu")
         self.model = UniMolModel(output_dim=1, data_type=data_type, remove_hs=remove_hs).to(self.device)
@@ -57,13 +57,17 @@ class UniMolRepr(object):
         """
         Get molecular representation by unimol.
 
-        param data: str, dict or list, default=None, input data for unimol. \
-            - str: smiles string or path to a smiles file.
-            - dict: custom conformers, should take atoms and coordinates as input.
-            - list: list of smiles strings.
-        param return_atomic_reprs: bool, default=False, whether to return atomic representations.
+        :param data: str, dict or list, default=None, input data for unimol. 
 
-        return: dict of molecular representation.
+            - str: smiles string or path to a smiles file.
+
+            - dict: custom conformers, should take atoms and coordinates as input.
+
+            - list: list of smiles strings.
+
+        :param return_atomic_reprs: bool, default=False, whether to return atomic representations.
+
+        :return: dict of molecular representation.
         """
 
         if isinstance(data, str):
