@@ -24,11 +24,31 @@ from ..config import MODEL_CONFIG
 
 WEIGHT_DIR = os.path.join(pathlib.Path(__file__).resolve().parents[1], 'weights')
 
+
 class ConformerGen(object):
+    '''
+    This class designed to generate conformers for molecules represented as SMILES strings using provided parameters and configurations. The `transform` method uses multiprocessing to speed up the conformer generation process.
+    '''
     def __init__(self, **params):
+        """
+        Initializes the neural network model based on the provided model name and parameters.
+
+        :param model_name: (str) The name of the model to initialize.
+        :param params: Additional parameters for model configuration.
+
+        :return: An instance of the specified neural network model.
+        :raises ValueError: If the model name is not recognized.
+        """
         self._init_features(**params)
 
     def _init_features(self, **params):
+        """
+        Initializes the features of the ConformerGen object based on provided parameters.
+
+        :param params: Arbitrary keyword arguments for feature configuration.
+                       These can include the random seed, maximum number of atoms, data type,
+                       generation method, generation mode, and whether to remove hydrogens.
+        """
         self.seed = params.get('seed', 42)
         self.max_atoms = params.get('max_atoms', 256)
         self.data_type = params.get('data_type', 'molecule')
@@ -45,6 +65,13 @@ class ConformerGen(object):
         self.dictionary.add_symbol("[MASK]", is_special=True)
 
     def single_process(self, smiles):
+        """
+        Processes a single SMILES string to generate conformers using the specified method.
+
+        :param smiles: (str) The SMILES string representing the molecule.
+        :return: A unimolecular data representation (dictionary) of the molecule.
+        :raises ValueError: If the conformer generation method is unrecognized.
+        """
         if self.method == 'rdkit_random':
             atoms, coordinates = inner_smi2coords(smiles, seed=self.seed, mode=self.mode, remove_hs=self.remove_hs)
             return coords2unimol(atoms, coordinates, self.dictionary, self.max_atoms)
@@ -52,6 +79,7 @@ class ConformerGen(object):
             raise ValueError('Unknown conformer generation method: {}'.format(self.method))
         
     def transform_raw(self, atoms_list, coordinates_list):
+
         inputs = []
         for atoms, coordinates in zip(atoms_list, coordinates_list):
             inputs.append(coords2unimol(atoms, coordinates, self.dictionary, self.max_atoms, remove_hs=self.remove_hs))
@@ -68,7 +96,19 @@ class ConformerGen(object):
         logger.info('Failed to generate 3d conformers for {:.2f}% of molecules.'.format(failed_3d_cnt*100))
         return inputs
 
+
 def inner_smi2coords(smi, seed=42, mode='fast', remove_hs=True):
+    '''
+    This function is responsible for converting a SMILES (Simplified Molecular Input Line Entry System) string into 3D coordinates for each atom in the molecule. It also allows for the generation of 2D coordinates if 3D conformation generation fails, and optionally removes hydrogen atoms and their coordinates from the resulting data.
+
+    :param smi: (str) The SMILES representation of the molecule.
+    :param seed: (int, optional) The random seed for conformation generation. Defaults to 42.
+    :param mode: (str, optional) The mode of conformation generation, 'fast' for quick generation, 'heavy' for more attempts. Defaults to 'fast'.
+    :param remove_hs: (bool, optional) Whether to remove hydrogen atoms from the final coordinates. Defaults to True.
+
+    :return: A tuple containing the list of atom symbols and their corresponding 3D coordinates.
+    :raises AssertionError: If no atoms are present in the molecule or if the coordinates do not align with the atom count.
+    '''
     mol = Chem.MolFromSmiles(smi)
     mol = AllChem.AddHs(mol)
     atoms = [atom.GetSymbol() for atom in mol.GetAtoms()]
@@ -112,6 +152,20 @@ def inner_smi2coords(smi, seed=42, mode='fast', remove_hs=True):
         return atoms, coordinates
 
 def inner_coords(atoms, coordinates, remove_hs=True):
+    """
+    Processes a list of atoms and their corresponding coordinates to remove hydrogen atoms if specified.
+    This function takes a list of atom symbols and their corresponding coordinates and optionally removes hydrogen atoms from the output. It includes assertions to ensure the integrity of the data and uses numpy for efficient processing of the coordinates. 
+
+    :param atoms: (list) A list of atom symbols (e.g., ['C', 'H', 'O']).
+    :param coordinates: (list of tuples or list of lists) Coordinates corresponding to each atom in the `atoms` list.
+    :param remove_hs: (bool, optional) A flag to indicate whether hydrogen atoms should be removed from the output.
+                      Defaults to True.
+    
+    :return: A tuple containing two elements; the filtered list of atom symbols and their corresponding coordinates.
+             If `remove_hs` is False, the original lists are returned.
+    
+    :raises AssertionError: If the length of `atoms` list does not match the length of `coordinates` list.
+    """
     assert len(atoms) == len(coordinates), "coordinates shape is not align atoms"
     coordinates = np.array(coordinates).astype(np.float32)
     if remove_hs:
@@ -124,23 +178,35 @@ def inner_coords(atoms, coordinates, remove_hs=True):
         return atoms, coordinates
 
 def coords2unimol(atoms, coordinates, dictionary, max_atoms=256, remove_hs=True, **params):
+    """
+    Converts atom symbols and coordinates into a unified molecular representation.
+
+    :param atoms: (list) List of atom symbols.
+    :param coordinates: (ndarray) Array of atomic coordinates.
+    :param dictionary: (Dictionary) An object that maps atom symbols to unique integers.
+    :param max_atoms: (int) The maximum number of atoms to consider for the molecule.
+    :param remove_hs: (bool) Whether to remove hydrogen atoms from the representation.
+    :param params: Additional parameters.
+
+    :return: A dictionary containing the molecular representation with tokens, distances, coordinates, and edge types.
+    """
     atoms, coordinates = inner_coords(atoms, coordinates, remove_hs=remove_hs)
     atoms = np.array(atoms)
     coordinates = np.array(coordinates).astype(np.float32)
-    ### cropping atoms and coordinates
-    if len(atoms)>max_atoms:
+    # cropping atoms and coordinates
+    if len(atoms) > max_atoms:
         idx = np.random.choice(len(atoms), max_atoms, replace=False)
         atoms = atoms[idx]
         coordinates = coordinates[idx]
-    ### tokens padding
+    # tokens padding
     src_tokens = np.array([dictionary.bos()] + [dictionary.index(atom) for atom in atoms] + [dictionary.eos()])
     src_distance = np.zeros((len(src_tokens), len(src_tokens)))
-    ### coordinates normalize & padding
+    # coordinates normalize & padding
     src_coord = coordinates - coordinates.mean(axis=0)
     src_coord = np.concatenate([np.zeros((1,3)), src_coord, np.zeros((1,3))], axis=0)
-    ### distance matrix
+    # distance matrix
     src_distance = distance_matrix(src_coord, src_coord)
-    ### edge type 
+    # edge type
     src_edge_type = src_tokens.reshape(-1, 1) * len(dictionary) + src_tokens.reshape(1, -1)
 
     return {
@@ -150,7 +216,20 @@ def coords2unimol(atoms, coordinates, dictionary, max_atoms=256, remove_hs=True,
             'src_edge_type': src_edge_type.astype(int),
             }
 
+
 def coords2unimol_mof(atoms, coordinates, dictionary, max_atoms=256):
+    '''
+    Converts atomic symbols and their coordinates to a unimolecular metal-organic framework (MOF) representation that is suitable for input to a neural network.
+
+    This function handles cropping of atoms and coordinates if the number exceeds the maximum allowed, tokenization of atomic symbols, normalization and padding of coordinates, and computation of a distance matrix.
+
+    :param atoms: (list or np.ndarray) A list of atomic symbols (e.g., ['C', 'H', 'O']).
+    :param coordinates: (list or np.ndarray) A list of 3D coordinates corresponding to the atoms (shape: [num_atoms, 3]).
+    :param dictionary: A dictionary-like object that maps atomic symbols to unique integer tokens and provides methods to access special tokens such as 'bos' (beginning of sequence) and 'eos' (end of sequence).
+    :param max_atoms: (int) The maximum number of atoms to consider; atoms beyond this number are randomly cropped.
+
+    :return: A dictionary containing tokenized atomic symbols ('src_tokens'), a distance matrix ('src_distance'), normalized and padded coordinates ('src_coord'), and edge types ('src_edge_type').
+    '''
     atoms = np.array(atoms)
     coordinates = np.array(coordinates).astype(np.float32)
     ### cropping atoms and coordinates
