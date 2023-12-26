@@ -19,6 +19,7 @@ from .utils import YamlHandler
 from .utils import logger
 
 class MolTrain(object):
+    """A :class:`MolTrain` class is responsible for interface of training process of molecular data."""
     def __init__(self, 
                 task='classification',
                 data_type='molecule',
@@ -42,6 +43,46 @@ class MolTrain(object):
                 use_amp=True,
                 **params,
                 ):
+        """
+        Initialize a :class:`MolTrain` class.
+
+        :param task: str, default='classification', currently support [`]classification`, `regression`, `multiclass`, `multilabel_classification`, `multilabel_regression`.
+        :param data_type: str, default='molecule', currently support molecule, oled.
+        :param epochs: int, default=10, number of epochs to train.
+        :param learning_rate: float, default=1e-4, learning rate of optimizer.
+        :param batch_size: int, default=16, batch size of training.
+        :param early_stopping: int, default=5, early stopping patience.
+        :param metrics: str, default='none', metrics to evaluate model performance.
+
+            currently support: 
+
+            - classification: auc, auprc, log_loss, acc, f1_score, mcc, precision, recall, cohen_kappa. 
+
+            - regression: mse, pearsonr, spearmanr, mse, r2.
+
+            - multiclass: log_loss, acc.
+
+            - multilabel_classification: auc, auprc, log_loss, acc, mcc.
+
+            - multilabel_regression: mae, mse, r2.
+
+        :param split: str, default='random', split method of training dataset. currently support: random, scaffold, group, stratified.
+        :param split_group_col: str, default='scaffold', column name of group split.
+        :param kfold: int, default=5, number of folds for k-fold cross validation.
+        :param save_path: str, default='./exp', path to save training results.
+        :param remove_hs: bool, default=False, whether to remove hydrogens from molecules.
+        :param smiles_col: str, default='SMILES', column name of SMILES.
+        :param target_col_prefix: str, default='TARGET', prefix of target column name.
+        :param target_anomaly_check: str, default='filter', how to deal with anomaly target values. currently support: filter, none.
+        :param smiles_check: str, default='filter', how to deal with invalid SMILES. currently support: filter, none.
+        :param target_normalize: str, default='auto', how to normalize target values. 'auto' means we will choose the normalize strategy by automatic. \
+            currently support: auto, minmax, standard, robust, log1p, none.
+        :param max_norm: float, default=5.0, max norm of gradient clipping.
+        :param use_cuda: bool, default=True, whether to use GPU.
+        :param use_amp: bool, default=True, whether to use automatic mixed precision.
+        :param params: dict, default=None, other parameters.
+
+        """
         config_path = os.path.join(os.path.dirname(__file__), 'config/default.yaml')
         self.yamlhandler = YamlHandler(config_path)
         config = self.yamlhandler.read_yaml()
@@ -69,6 +110,23 @@ class MolTrain(object):
 
 
     def fit(self, data):
+        """
+        Fit the model according to the given training data with multi datasource support, including SMILES csv file and custom coordinate data.
+
+        For example: custom coordinate data.
+
+        .. code-block:: python
+
+            from unimol_tools import MolTrain
+            import numpy as np
+            custom_data ={'target':np.random.randint(2, size=100),
+                        'atoms':[['C','C','H','H','H','H'] for _ in range(100)],
+                        'coordinates':[np.random.randn(6,3) for _ in range(100)],
+                        }
+
+            clf = MolTrain()
+            clf.fit(custom_data)
+        """
         self.datahub = DataHub(data = data, is_train=True, save_path=self.save_path, **self.config)
         self.data = self.datahub.data
         self.update_and_save_config()
@@ -91,6 +149,9 @@ class MolTrain(object):
         return
 
     def update_and_save_config(self):
+        """
+        Update and save config file.
+        """
         self.config['num_classes'] = self.data['num_classes']
         self.config['target_cols'] = ','.join(self.data['target_cols'])
         if self.config['task'] == 'multiclass':

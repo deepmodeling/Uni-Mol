@@ -27,7 +27,12 @@ import sys
 
 
 class Trainer(object):
+    """A :class:`Trainer` class is responsible for initializing the model, and managing its training, validation, and testing phases."""
     def __init__(self, save_path=None, **params):
+        """
+        :param save_path: Path for saving the training outputs. Defaults to None.
+        :param params: Additional parameters for training.
+        """
         self.save_path = save_path
         self.task = params.get('task', None)
 
@@ -37,6 +42,11 @@ class Trainer(object):
         self._init_trainer(**params)
 
     def _init_trainer(self, **params):
+        """
+        Initializing the trainer class to train model.
+
+        :param params: Containing training arguments.
+        """
         ### init common params ###
         self.split_method = params.get('split_method', '5fold_random')
         self.split_seed = params.get('split_seed', 42)
@@ -59,9 +69,26 @@ class Trainer(object):
         ) if self.device.type == 'cuda' and self.amp == True else None
 
     def decorate_batch(self, batch, feature_name=None):
+        """
+        Prepares a batch of data for processing by the model. This method is a wrapper that
+        delegates to a specific batch decoration method based on the data type.
+        
+        :param batch: The batch of data to be processed.
+        :param feature_name: (str, optional) Name of the feature used in batch decoration. Defaults to None.
+
+        :return: The decorated batch ready for processing by the model.
+        """
         return self.decorate_torch_batch(batch)
 
     def decorate_graph_batch(self, batch):
+        """
+        Prepares a graph-based batch of data for processing by the model. Specifically handles 
+        graph-based data structures.
+        
+        :param batch: The batch of graph-based data to be processed.
+
+        :return: A tuple of (net_input, net_target) for model processing.
+        """
         net_input, net_target = {'net_input': batch.to(
             self.device)}, batch.y.to(self.device)
         if self.task in ['classification', 'multiclass', 'multilabel_classification']:
@@ -71,7 +98,12 @@ class Trainer(object):
         return net_input, net_target
 
     def decorate_torch_batch(self, batch):
-        """function used to decorate batch data
+        """
+        Prepares a standard PyTorch batch of data for processing by the model. Handles tensor-based data structures.
+
+        :param batch: The batch of tensor-based data to be processed.
+
+        :return: A tuple of (net_input, net_target) for model processing.
         """
         net_input, net_target = batch
         if isinstance(net_input, dict):
@@ -89,6 +121,21 @@ class Trainer(object):
         return net_input, net_target
 
     def fit_predict(self, model, train_dataset, valid_dataset, loss_func, activation_fn, dump_dir, fold, target_scaler, feature_name=None):
+        """
+        Trains the model on the given training dataset and evaluates it on the validation dataset.
+
+        :param model: The model to be trained and evaluated.
+        :param train_dataset: Dataset used for training the model.
+        :param valid_dataset: Dataset used for validating the model.
+        :param loss_func: The loss function used during training.
+        :param activation_fn: The activation function applied to the model's output.
+        :param dump_dir: Directory where the best model state is saved.
+        :param fold: The fold number in a cross-validation setting.
+        :param target_scaler: Scaler used for scaling the target variable.
+        :param feature_name: (optional) Name of the feature used in data loading. Defaults to None.
+        
+        :return: Predictions made by the model on the validation dataset.
+        """
         model = model.to(self.device)
         train_dataloader = NNDataLoader(
             feature_name=feature_name,
@@ -177,18 +224,47 @@ class Trainer(object):
         return y_preds
 
     def _early_stop_choice(self, wait, loss, min_loss, metric_score, max_score, model, dump_dir, fold, patience, epoch):
-        ### hpyerparameter need to tune if you want to use early stop, currently find use loss is suitable in benchmark test. ###
+        """
+        Determines if early stopping criteria are met, based on either loss improvement or custom metric score.
+
+        :param wait: Number of epochs waited since the last improvement in loss or metric score.
+        :param loss: The current loss value.
+        :param min_loss: The minimum loss value observed so far.
+        :param metric_score: Current metric score.
+        :param max_score: The maximum metric score observed so far.
+        :param model: The model being trained.
+        :param dump_dir: Directory to save the best model state.
+        :param fold: The fold number in cross-validation.
+        :param patience: Number of epochs to wait for an improvement before stopping.
+        :param epoch: The current epoch number.
+
+        :return: A tuple (is_early_stop, min_val_loss, wait, max_score) indicating if early stopping criteria are met, the minimum validation loss, the updated wait time, and the maximum metric score.
+        """
         if not isinstance(self.metrics_str, str) or self.metrics_str in ['loss', 'none', '']:
-            # loss 作为早停 直接用trainer里面的早停函数
             is_early_stop, min_val_loss, wait = self._judge_early_stop_loss(
                 wait, loss, min_loss, model, dump_dir, fold, patience, epoch)
         else:
-            # 到metric进行判断
             is_early_stop, min_val_loss, wait, max_score = self.metrics._early_stop_choice(
                 wait, min_loss, metric_score, max_score, model, dump_dir, fold, patience, epoch)
         return is_early_stop, min_val_loss, wait, max_score
 
     def _judge_early_stop_loss(self, wait, loss, min_loss, model, dump_dir, fold, patience, epoch):
+        """
+        Determines whether early stopping should be triggered based on the loss comparison.
+
+        :param wait: The number of epochs to wait after min_loss has stopped improving.
+        :param loss: The current loss value of the model.
+        :param min_loss: The minimum loss value observed so far.
+        :param model: The neural network model being trained.
+        :param dump_dir: Directory to save the model state.
+        :param fold: The current fold number in a cross-validation setting.
+        :param patience: The number of epochs to wait for an improvement before stopping.
+        :param epoch: The current epoch number.
+
+        :return: A tuple (is_early_stop, min_loss, wait), where is_early_stop is a boolean indicating 
+                 whether early stopping should occur, min_loss is the updated minimum loss, 
+                 and wait is the updated wait counter.
+        """
         is_early_stop = False
         if loss <= min_loss:
             min_loss = loss
@@ -204,6 +280,23 @@ class Trainer(object):
         return is_early_stop, min_loss, wait
 
     def predict(self, model, dataset, loss_func, activation_fn, dump_dir, fold, target_scaler=None, epoch=1, load_model=False, feature_name=None):
+        """
+        Executes the prediction on a given dataset using the specified model.
+
+        :param model: The model to be used for predictions.
+        :param dataset: The dataset to perform predictions on.
+        :param loss_func: The loss function used during training.
+        :param activation_fn: The activation function applied to the model's output.
+        :param dump_dir: Directory where the model state is saved.
+        :param fold: The fold number in cross-validation.
+        :param target_scaler: (optional) Scaler to inverse transform the model's output. Defaults to None.
+        :param epoch: (int) The current epoch number. Defaults to 1.
+        :param load_model: (bool) Whether to load the model from a saved state. Defaults to False.
+        :param feature_name: (str, optional) Name of the feature for data processing. Defaults to None.
+
+        :return: A tuple (y_preds, val_loss, metric_score), where y_preds are the predicted outputs, 
+                 val_loss is the validation loss, and metric_score is the calculated metric score.
+        """
         model = model.to(self.device)
         if load_model == True:
             load_model_path = os.path.join(dump_dir, f'model_{fold}.pth')
@@ -260,6 +353,20 @@ class Trainer(object):
         return y_preds, val_loss, metric_score
 
     def inference(self, model, dataset, return_repr=False, return_atomic_reprs=False, feature_name=None):
+        """
+        Runs inference on the given dataset using the provided model. This method can return
+        various representations based on the model's output.
+
+        :param model: The neural network model to be used for inference.
+        :param dataset: The dataset on which inference is to be performed.
+        :param return_repr: (bool, optional) If True, returns class-level representations. Defaults to False.
+        :param return_atomic_reprs: (bool, optional) If True, returns atomic-level representations. Defaults to False.
+        :param feature_name: (str, optional) Name of the feature used for data loading. Defaults to None.
+
+        :return: A dictionary containing different types of representations based on the model's output and the
+                 specified parameters. This can include class-level representations, atomic coordinates, 
+                 atomic representations, and atomic symbols.
+        """
         model = model.to(self.device)
         dataloader = NNDataLoader(
             feature_name=feature_name,
@@ -286,9 +393,9 @@ class Trainer(object):
         return repr_dict
 
     def set_seed(self, seed):
-        """function used to set a random seed
-        Arguments:
-            seed {int} -- seed number, will set to torch and numpy
+        """
+        Sets a random seed for torch and numpy to ensure reproducibility.
+        :param seed: (int) The seed number to be set.
         """
         torch.manual_seed(seed)
         torch.cuda.manual_seed(seed)
@@ -297,7 +404,21 @@ class Trainer(object):
 
 
 def NNDataLoader(feature_name=None, dataset=None, batch_size=None, shuffle=False, collate_fn=None, drop_last=False):
+    """
+    Creates a DataLoader for neural network training or inference. This function is a wrapper 
+    around the standard PyTorch DataLoader, allowing for custom feature handling and additional 
+    configuration.
 
+    :param feature_name: (str, optional) Name of the feature used for data loading. 
+                         This can be used to specify a particular type of data processing. Defaults to None.
+    :param dataset: (Dataset, optional) The dataset from which to load the data. Defaults to None.
+    :param batch_size: (int, optional) Number of samples per batch to load. Defaults to None.
+    :param shuffle: (bool, optional) Whether to shuffle the data at every epoch. Defaults to False.
+    :param collate_fn: (callable, optional) Merges a list of samples to form a mini-batch. Defaults to None.
+    :param drop_last: (bool, optional) Set to True to drop the last incomplete batch. Defaults to False.
+
+    :return: DataLoader configured according to the provided parameters.
+    """
     dataloader = TorchDataLoader(dataset=dataset,
                                  batch_size=batch_size,
                                  shuffle=shuffle,

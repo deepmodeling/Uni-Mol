@@ -20,7 +20,13 @@ from .utils import logger
 
 
 class MolPredict(object):
+    """A :class:`MolPredict` class is responsible for interface of predicting process of molecular data."""
     def __init__(self, load_model=None):
+        """ 
+        Initialize a :class:`MolPredict` class.
+
+        :param load_model: str, default=None, path of model to load.
+        """
         if not load_model:
             raise ValueError("load_model is empty")
         self.load_model = load_model
@@ -31,6 +37,30 @@ class MolPredict(object):
         self.target_cols = self.config.target_cols
 
     def predict(self, data, save_path=None, metrics='none'):
+        """ 
+        Predict molecular data.
+
+        :param data: str or pandas.DataFrame or dict of atoms and coordinates, input data for prediction. \
+            - str: path of csv file.
+            - pandas.DataFrame: dataframe of data.
+            - dict: dict of atoms and coordinates, e.g. {'atoms': ['C', 'C', 'C'], 'coordinates': [[0, 0, 0], [0, 0, 1], [0, 0, 2]]}
+        :param save_path: str, default=None, path to save predict result.
+        :param metrics: str, default='none', metrics to evaluate model performance.
+        
+            currently support: 
+
+            - classification: auc, auprc, log_loss, acc, f1_score, mcc, precision, recall, cohen_kappa. 
+
+            - regression: mse, pearsonr, spearmanr, mse, r2.
+
+            - multiclass: log_loss, acc.
+
+            - multilabel_classification: auc, auprc, log_loss, acc, mcc.
+
+            - multilabel_regression: mae, mse, r2.
+
+        :return y_pred: numpy.ndarray, predict result.
+        """
         self.save_path = save_path
         if not metrics or metrics != 'none':
             self.config.metrics = metrics
@@ -76,6 +106,13 @@ class MolPredict(object):
         return y_pred
     
     def save_predict(self, data, dir, prefix):
+        """
+        Save predict result to csv file.
+
+        :param data: pandas.DataFrame, predict result.
+        :param dir: str, directory to save predict result.
+        :param prefix: str, prefix of predict result file name.
+        """
         run_id = 0
         if not os.path.exists(dir):
             os.makedirs(dir)

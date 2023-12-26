@@ -29,7 +29,32 @@ BACKBONE = {
 WEIGHT_DIR = os.path.join(pathlib.Path(__file__).resolve().parents[1], 'weights')
 
 class UniMolModel(BaseUnicoreModel):
+    """
+    UniMolModel is a specialized model for molecular, protein, crystal, or MOF (Metal-Organic Frameworks) data. 
+    It dynamically configures its architecture based on the type of data it is intended to work with. The model
+    supports multiple data types and incorporates various architecture configurations and pretrained weights.
+
+    Attributes:
+        - output_dim: The dimension of the output layer.
+        - data_type: The type of data the model is designed to handle.
+        - remove_hs: Flag to indicate whether hydrogen atoms are removed in molecular data.
+        - pretrain_path: Path to the pretrained model weights.
+        - dictionary: The dictionary object used for tokenization and encoding.
+        - mask_idx: Index of the mask token in the dictionary.
+        - padding_idx: Index of the padding token in the dictionary.
+        - embed_tokens: Embedding layer for token embeddings.
+        - encoder: Transformer encoder backbone of the model.
+        - gbf_proj, gbf: Layers for Gaussian basis functions or numerical embeddings.
+        - classification_head: The final classification head of the model.
+    """
     def __init__(self, output_dim=2, data_type='molecule', **params):
+        """
+        Initializes the UniMolModel with specified parameters and data type.
+
+        :param output_dim: (int) The number of output dimensions (classes).
+        :param data_type: (str) The type of data (e.g., 'molecule', 'protein').
+        :param params: Additional parameters for model configuration.
+        """
         super().__init__()
         if data_type == 'molecule':
             self.args = molecule_architecture()
@@ -106,6 +131,11 @@ class UniMolModel(BaseUnicoreModel):
         self.load_pretrained_weights(path=self.pretrain_path)
 
     def load_pretrained_weights(self, path):
+        """
+        Loads pretrained weights into the model.
+
+        :param path: (str) Path to the pretrained weight file.
+        """
         if path is not None:
             if self.data_type == 'mof':
                 logger.info("Loading pretrained weights from {}".format(path))
@@ -119,7 +149,12 @@ class UniMolModel(BaseUnicoreModel):
 
     @classmethod
     def build_model(cls, args):
-        """Build a new model instance."""
+        """
+        Class method to build a new instance of the UniMolModel.
+
+        :param args: Arguments for model configuration.
+        :return: An instance of UniMolModel.
+        """
         return cls(args)
 
     def forward(
@@ -136,6 +171,22 @@ class UniMolModel(BaseUnicoreModel):
         return_atomic_reprs=False,
         **kwargs
     ):
+        """
+        Defines the forward pass of the model.
+
+        :param src_tokens: Tokenized input data.
+        :param src_distance: Additional molecular features.
+        :param src_coord: Additional molecular features.
+        :param src_edge_type: Additional molecular features.
+        :param gas_id: Optional environmental features for MOFs.
+        :param gas_attr: Optional environmental features for MOFs.
+        :param pressure: Optional environmental features for MOFs.
+        :param temperature: Optional environmental features for MOFs.
+        :param return_repr: Flags to return intermediate representations.
+        :param return_atomic_reprs: Flags to return intermediate representations.
+
+        :return: Output logits or requested intermediate representations.
+        """
         padding_mask = src_tokens.eq(self.padding_idx)
         if not padding_mask.any():
             padding_mask = None
@@ -196,6 +247,13 @@ class UniMolModel(BaseUnicoreModel):
         return logits
     
     def batch_collate_fn_mof(self, samples):
+        """
+        Custom collate function for batch processing MOF data.
+
+        :param samples: A list of sample data.
+
+        :return: A batch dictionary with padded and processed features.
+        """
         dd = {}
         for k in samples[0].keys():
             if k == 'src_coord':
@@ -216,6 +274,13 @@ class UniMolModel(BaseUnicoreModel):
         return dd
 
     def batch_collate_fn(self, samples):
+        """
+        Custom collate function for batch processing non-MOF data.
+
+        :param samples: A list of sample data.
+
+        :return: A tuple containing a batch dictionary and labels.
+        """
         batch = {}
         for k in samples[0][0].keys():
             if k == 'src_coord':
@@ -244,6 +309,15 @@ class ClassificationHead(nn.Module):
         activation_fn,
         pooler_dropout,
     ):
+        """
+        Initialize the classification head.
+
+        :param input_dim: Dimension of input features.
+        :param inner_dim: Dimension of the inner layer.
+        :param num_classes: Number of classes for classification.
+        :param activation_fn: Activation function name.
+        :param pooler_dropout: Dropout rate for the pooling layer.
+        """
         super().__init__()
         self.dense = nn.Linear(input_dim, inner_dim)
         self.activation_fn = get_activation_fn(activation_fn)
@@ -251,6 +325,13 @@ class ClassificationHead(nn.Module):
         self.out_proj = nn.Linear(inner_dim, num_classes)
 
     def forward(self, features, **kwargs):
+        """
+        Forward pass for the classification head.
+
+        :param features: Input features for classification.
+
+        :return: Output from the classification head.
+        """
         x = features
         x = self.dropout(x)
         x = self.dense(x)
@@ -260,8 +341,15 @@ class ClassificationHead(nn.Module):
         return x
 
 class NonLinearHead(nn.Module):
-    """Head for simple classification tasks."""
+    """
+    A neural network module used for simple classification tasks. It consists of a two-layered linear network 
+    with a nonlinear activation function in between.
 
+    Attributes:
+        - linear1: The first linear layer.
+        - linear2: The second linear layer that outputs to the desired dimensions.
+        - activation_fn: The nonlinear activation function.
+    """
     def __init__(
         self,
         input_dim,
@@ -269,6 +357,14 @@ class NonLinearHead(nn.Module):
         activation_fn,
         hidden=None,
     ):
+        """
+        Initializes the NonLinearHead module.
+
+        :param input_dim: Dimension of the input features.
+        :param out_dim: Dimension of the output.
+        :param activation_fn: The activation function to use.
+        :param hidden: Dimension of the hidden layer; defaults to the same as input_dim if not provided.
+        """
         super().__init__()
         hidden = input_dim if not hidden else hidden
         self.linear1 = nn.Linear(input_dim, hidden)
@@ -276,18 +372,43 @@ class NonLinearHead(nn.Module):
         self.activation_fn = get_activation_fn(activation_fn)
 
     def forward(self, x):
+        """
+        Forward pass of the NonLinearHead.
+
+        :param x: Input tensor to the module.
+
+        :return: Tensor after passing through the network.
+        """
         x = self.linear1(x)
         x = self.activation_fn(x)
         x = self.linear2(x)
         return x
     
 class GasModel(nn.Module):
+    """
+    Model for embedding gas attributes.
+    """
     def __init__(self, gas_attr_input_dim, gas_dim, gas_max_count=500):
+        """
+        Initialize the GasModel.
+
+        :param gas_attr_input_dim: Input dimension for gas attributes.
+        :param gas_dim: Dimension for gas embeddings.
+        :param gas_max_count: Maximum count for gas embedding.
+        """
         super().__init__()
         self.gas_embed = nn.Embedding(gas_max_count, gas_dim)
         self.gas_attr_embed = NonLinearHead(gas_attr_input_dim, gas_dim, 'relu')
 
     def forward(self, gas, gas_attr):
+        """
+        Forward pass for the gas model.
+
+        :param gas: Gas identifiers.
+        :param gas_attr: Gas attributes.
+
+        :return: Combined representation of gas and its attributes.
+        """
         gas = gas.long()
         gas_attr = gas_attr.type_as(self.gas_attr_embed.linear1.weight)
         gas_embed = self.gas_embed(gas)  # shape of gas_embed is [batch_size, gas_dim]
@@ -297,7 +418,17 @@ class GasModel(nn.Module):
         return gas_repr
 
 class EnvModel(nn.Module):
+    """
+    Model for environmental embeddings like pressure and temperature.
+    """
     def __init__(self, hidden_dim, bins=32, min_max_key=None):
+        """
+        Initialize the EnvModel.
+
+        :param hidden_dim: Dimension for the hidden layer.
+        :param bins: Number of bins for embedding.
+        :param min_max_key: Dictionary with min and max values for normalization.
+        """
         super().__init__()
         self.project = NonLinearHead(2, hidden_dim, 'relu')
         self.bins = bins
@@ -306,6 +437,14 @@ class EnvModel(nn.Module):
         self.min_max_key = min_max_key
         
     def forward(self, pressure, temperature):
+        """
+        Forward pass for the environmental model.
+
+        :param pressure: Pressure values.
+        :param temperature: Temperature values.
+
+        :return: Combined representation of environmental features.
+        """
         pressure = pressure.type_as(self.project.linear1.weight)
         temperature = temperature.type_as(self.project.linear1.weight)
         pressure = torch.clamp(pressure, self.min_max_key['pressure'][0], self.min_max_key['pressure'][1])
@@ -328,12 +467,37 @@ class EnvModel(nn.Module):
 
 @torch.jit.script
 def gaussian(x, mean, std):
+    """
+    Gaussian function implemented for PyTorch tensors.
+
+    :param x: The input tensor.
+    :param mean: The mean for the Gaussian function.
+    :param std: The standard deviation for the Gaussian function.
+
+    :return: The output tensor after applying the Gaussian function.
+    """
     pi = 3.14159
     a = (2 * pi) ** 0.5
     return torch.exp(-0.5 * (((x - mean) / std) ** 2)) / (a * std)
 
 class GaussianLayer(nn.Module):
+    """
+    A neural network module implementing a Gaussian layer, useful in graph neural networks.
+
+    Attributes:
+        - K: Number of Gaussian kernels.
+        - means, stds: Embeddings for the means and standard deviations of the Gaussian kernels.
+        - mul, bias: Embeddings for scaling and bias parameters.
+    """
     def __init__(self, K=128, edge_types=1024):
+        """
+        Initializes the GaussianLayer module.
+
+        :param K: Number of Gaussian kernels.
+        :param edge_types: Number of different edge types to consider.
+
+        :return: An instance of the configured Gaussian kernel and edge types.
+        """
         super().__init__()
         self.K = K
         self.means = nn.Embedding(1, K)
@@ -346,6 +510,14 @@ class GaussianLayer(nn.Module):
         nn.init.constant_(self.mul.weight, 1)
 
     def forward(self, x, edge_type):
+        """
+        Forward pass of the GaussianLayer.
+
+        :param x: Input tensor representing distances or other features.
+        :param edge_type: Tensor indicating types of edges in the graph.
+
+        :return: Tensor transformed by the Gaussian layer.
+        """
         mul = self.mul(edge_type).type_as(x)
         bias = self.bias(edge_type).type_as(x)
         x = mul * x.unsqueeze(-1) + bias
@@ -355,7 +527,24 @@ class GaussianLayer(nn.Module):
         return gaussian(x.float(), mean, std).type_as(self.means.weight)
     
 class NumericalEmbed(nn.Module):
+    """
+    Numerical embedding module, typically used for embedding edge features in graph neural networks.
+
+    Attributes:
+        - K: Output dimension for embeddings.
+        - mul, bias, w_edge: Embeddings for transformation parameters.
+        - proj: Projection layer to transform inputs.
+        - ln: Layer normalization.
+    """
     def __init__(self, K=128, edge_types=1024, activation_fn='gelu'):
+        """
+        Initializes the NonLinearHead.
+
+        :param input_dim: The input dimension of the first layer.
+        :param out_dim: The output dimension of the second layer.
+        :param activation_fn: The activation function to use.
+        :param hidden: The dimension of the hidden layer; defaults to input_dim if not specified.
+        """
         super().__init__()
         self.K = K 
         self.mul = nn.Embedding(edge_types, 1)
@@ -371,6 +560,13 @@ class NumericalEmbed(nn.Module):
 
 
     def forward(self, x, edge_type):    # edge_type, atoms
+        """
+        Forward pass of the NonLinearHead.
+
+        :param x: Input tensor to the classification head.
+
+        :return: The output tensor after passing through the layers.
+        """
         mul = self.mul(edge_type).type_as(x)
         bias = self.bias(edge_type).type_as(x)
         w_edge = self.w_edge(edge_type).type_as(x)

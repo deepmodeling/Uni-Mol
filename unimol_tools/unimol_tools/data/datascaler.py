@@ -38,7 +38,17 @@ SCALER_MODE = {
 }
 
 class TargetScaler(object):
+    '''
+    A class to scale the target.
+    '''
     def __init__(self, ss_method, task, load_dir=None):
+        """
+        Initializes the TargetScaler object for scaling target values.
+
+        :param ss_method: (str) The scaling method to be used. 
+        :param task: (str) The type of machine learning task (e.g., 'classification', 'regression').
+        :param load_dir: (str, optional) Directory from which to load an existing scaler.
+        """
         self.ss_method = ss_method
         self.task = task
         if load_dir and os.path.exists(os.path.join(load_dir, 'target_scaler.ss')):
@@ -47,6 +57,13 @@ class TargetScaler(object):
             self.scaler = None
     
     def transform(self, target):
+        """
+        Transforms the target values using the appropriate scaling method.
+
+        :param target: (array-like) The target values to be transformed.
+
+        :return: (array-like) The transformed target values.
+        """
         if self.task in ['classification', 'multiclass', 'multilabel_classification']:
             return target
         elif self.ss_method == 'none':
@@ -64,6 +81,12 @@ class TargetScaler(object):
             return target
         
     def fit(self, target, dump_dir):
+        """
+        Fits the scaler to the target values and optionally saves the scaler to disk.
+
+        :param target: (array-like) The target values to fit the scaler.
+        :param dump_dir: (str) Directory where the fitted scaler will be saved.
+        """
         if self.task in ['classification', 'multiclass', 'multilabel_classification']:
             return 
         elif self.ss_method == 'none':
@@ -103,6 +126,32 @@ class TargetScaler(object):
         joblib.dump(self.scaler, os.path.join(dump_dir, 'target_scaler.ss'))
     
     def scaler_choose(self, method, target):
+        """
+        Selects the appropriate scaler based on the scaling method and fit it to the target.
+
+        :param method: (str) The scaling method to be used.
+
+            currently support:
+
+                - 'minmax': MinMaxScaler,
+
+                - 'standard': StandardScaler,
+
+                - 'robust': RobustScaler,
+
+                - 'maxabs': MaxAbsScaler,
+
+                - 'quantile': QuantileTransformer,
+
+                - 'power_trans': PowerTransformer,
+
+                - 'normalizer': Normalizer,
+
+                - 'log1p': FunctionTransformer,
+            
+        :param target: (array-like) The target values to fit the scaler.
+        :return: The fitted scaler object.
+        """
         if method=='power_trans':
             scaler = SCALER_MODE[method](method='box-cox') if min(target) > 0 else SCALER_MODE[method](method='yeo-johnson')
         elif method=='log1p':
@@ -112,6 +161,13 @@ class TargetScaler(object):
         return scaler
 
     def inverse_transform(self, target):
+        """
+        Inverse transforms the scaled target values back to their original scale.
+
+        :param target: (array-like) The target values to be inverse transformed.
+
+        :return: (array-like) The target values in their original scale.
+        """
         if self.task in ['classification', 'multiclass', 'multilabel_classification']:
             return target
         if self.ss_method == 'none' or self.scaler is None:
@@ -128,8 +184,14 @@ class TargetScaler(object):
             raise ValueError('Unknown scaler method: {}'.format(self.ss_method))
             
     def is_skewed(self, target):
+        """
+        Determines whether the target values are skewed based on skewness and kurtosis metrics.
+
+        :param target: (array-like) The target values to be checked for skewness.
+
+        :return: (bool) True if the target is skewed, False otherwise.
+        """
         if self.task in ['classification', 'multiclass', 'multilabel_classification']:
             return False
         else:
             return abs(skew(target)) > 5.0 or abs(kurtosis(target)) > 20.0
-

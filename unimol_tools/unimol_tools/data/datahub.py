@@ -18,7 +18,20 @@ from .conformer import ConformerGen
 from ..utils import logger
 
 class DataHub(object):
+    """
+    The DataHub class is responsible for storing and preprocessing data for machine learning tasks.
+    It initializes with configuration options to handle different types of tasks such as regression, 
+    classification, and others. It also supports data scaling and handling molecular data.
+    """
     def __init__(self, data=None, is_train=True, save_path=None, **params):
+        """
+        Initializes the DataHub instance with data and configuration for the ML task.
+
+        :param data: Initial dataset to be processed.
+        :param is_train: (bool) Indicates if the DataHub is being used for training.
+        :param save_path: (str) Path to save any necessary files, like scalers.
+        :param params: Additional parameters for data preprocessing and model configuration.
+        """
         self.data = data
         self.is_train = is_train
         self.save_path = save_path
@@ -29,6 +42,16 @@ class DataHub(object):
         self._init_data(**params)
     
     def _init_data(self, **params):
+        """
+        Initializes and preprocesses the data based on the task and parameters provided.
+
+        This method handles reading raw data, scaling targets, and transforming data for use with 
+        molecular inputs. It tailors the preprocessing steps based on the task type, such as regression 
+        or classification.
+
+        :param params: Additional parameters for data processing.
+        :raises ValueError: If the task type is unknown.
+        """
         self.data = MolDataReader().read_data(self.data, self.is_train, **params)
         self.data['target_scaler'] = TargetScaler(self.ss_method, self.task, self.save_path)
         if self.task == 'regression': 

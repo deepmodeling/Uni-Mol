@@ -1,5 +1,7 @@
 # unimol tools for various prediction and downstreams.
 
+Documentation of Uni-Mol tools is available at https://unimol.readthedocs.io/en/latest/
+
 ## details can be found in bohrium notebook
 * [unimol property predict](https://bohrium.dp.tech/notebook/298bcead4f614971bb62fbeef2e9db16)
 * [unimol representation](https://bohrium.dp.tech/notebook/f39a7a8836134cca8e22c099dc9654f8)
