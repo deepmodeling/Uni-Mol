@@ -38,6 +38,9 @@ SCALER_MODE = {
 }
 
 class TargetScaler(object):
+    '''
+    A class to scale the target.
+    '''
     def __init__(self, ss_method, task, load_dir=None):
         """
         Initializes the TargetScaler object for scaling target values.
@@ -127,15 +130,24 @@ class TargetScaler(object):
         Selects the appropriate scaler based on the scaling method and fit it to the target.
 
         :param method: (str) The scaling method to be used.
-        Supporting:
-            'minmax': MinMaxScaler,
-            'standard': StandardScaler,
-            'robust': RobustScaler,
-            'maxabs': MaxAbsScaler,
-            'quantile': QuantileTransformer,
-            'power_trans': PowerTransformer,
-            'normalizer': Normalizer,
-            'log1p': FunctionTransformer,
+
+            currently support:
+
+                - 'minmax': MinMaxScaler,
+
+                - 'standard': StandardScaler,
+
+                - 'robust': RobustScaler,
+
+                - 'maxabs': MaxAbsScaler,
+
+                - 'quantile': QuantileTransformer,
+
+                - 'power_trans': PowerTransformer,
+
+                - 'normalizer': Normalizer,
+
+                - 'log1p': FunctionTransformer,
             
         :param target: (array-like) The target values to fit the scaler.
         :return: The fitted scaler object.

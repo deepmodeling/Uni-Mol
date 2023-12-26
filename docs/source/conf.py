@@ -55,6 +55,6 @@ autodoc_default_options = {
     'members': True,
     'special-members': '__init__',
     #'undoc-members': False,
-    #'private-members': False,
+    'private-members': True,
     #'show-inheritance': False,
 }

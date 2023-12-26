@@ -23,7 +23,7 @@ from rdkit.Chem.Scaffolds import MurckoScaffold
 WEIGHT_DIR = os.path.join(pathlib.Path(__file__).resolve().parents[1], 'weights')
 
 class MolDataReader(object):
-
+    '''A class to read Mol Data.'''
     def read_data(self, data=None, is_train=True, **params):
         # TO DO 
         # 1. add anomaly detection & outlier removal.
@@ -199,7 +199,7 @@ class MolDataReader(object):
     
 
 class MOFReader(object):
-
+    '''A class to read MOF data.'''
     def __init__(self):
         """
         Initialize the MOFReader object with predefined gas lists, gas ID mappings, 
