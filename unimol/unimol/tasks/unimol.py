@@ -235,3 +235,7 @@ class UniMolTask(UnicoreTask):
 
         model = models.build_model(args, self)
         return model
+
+    def disable_shuffling(self) -> bool:
+        return True
+    
