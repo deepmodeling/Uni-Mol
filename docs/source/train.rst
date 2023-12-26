@@ -1,6 +1,6 @@
 .. _train:
 
-Training and Predicting
+Interface
 =======================
 
 
