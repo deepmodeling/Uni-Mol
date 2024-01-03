@@ -74,7 +74,7 @@ class ConformerGen(object):
         """
         if self.method == 'rdkit_random':
             atoms, coordinates = inner_smi2coords(smiles, seed=self.seed, mode=self.mode, remove_hs=self.remove_hs)
-            return coords2unimol(atoms, coordinates, self.dictionary, self.max_atoms)
+            return coords2unimol(atoms, coordinates, self.dictionary, self.max_atoms, remove_hs=self.remove_hs)
         else:
             raise ValueError('Unknown conformer generation method: {}'.format(self.method))
         
