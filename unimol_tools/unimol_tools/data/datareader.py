@@ -23,12 +23,27 @@ from rdkit.Chem.Scaffolds import MurckoScaffold
 WEIGHT_DIR = os.path.join(pathlib.Path(__file__).resolve().parents[1], 'weights')
 
 class MolDataReader(object):
-
+    '''A class to read Mol Data.'''
     def read_data(self, data=None, is_train=True, **params):
         # TO DO 
         # 1. add anomaly detection & outlier removal.
         # 2. add support for other file format.
         # 3. add support for multi tasks.
+
+        """
+        Reads and preprocesses molecular data from various input formats for model training or prediction.
+        Parsing target columns
+        1. if target_cols is not None, use target_cols as target columns.
+        2. if target_cols is None, use all columns with prefix 'target_col_prefix' as target columns.
+        3. use given target_cols as target columns placeholder with value -1.0 for predict
+        
+        :param data: The input molecular data. Can be a file path (str), a dictionary, or a list of SMILES strings.
+        :param is_train: (bool) A flag indicating if the operation is for training. Determines data processing steps.
+        :param params: A dictionary of additional parameters for data processing.
+
+        :return: A dictionary containing processed data and related information for model consumption.
+        :raises ValueError: If the input data type is not supported or if any SMILES string is invalid (when strict).
+        """
         task = params.get('task', None)
         target_cols = params.get('target_cols', None)
         smiles_col = params.get('smiles_col', 'SMILES')
@@ -117,6 +132,16 @@ class MolDataReader(object):
         return dd
 
     def check_smiles(self,smi, is_train, smi_strict):
+        """
+        Validates a SMILES string and decides whether it should be included based on training mode and strictness.
+
+        :param smi: (str) The SMILES string to check.
+        :param is_train: (bool) Indicates if this check is happening during training.
+        :param smi_strict: (bool) If true, invalid SMILES strings raise an error, otherwise they're logged and skipped.
+
+        :return: (bool) True if the SMILES string is valid, False otherwise.
+        :raises ValueError: If the SMILES string is invalid and strict mode is on.
+        """
         if Chem.MolFromSmiles(smi) is None:
             if is_train and not smi_strict:
                 logger.info(f'Illegal SMILES clean: {smi}')
@@ -126,12 +151,29 @@ class MolDataReader(object):
         return True    
     
     def smi2scaffold(self,smi):
+        """
+        Converts a SMILES string to its corresponding scaffold.
+
+        :param smi: (str) The SMILES string to convert.
+
+        :return: (str) The scaffold of the SMILES string, or the original SMILES if conversion fails.
+        """
         try:
             return MurckoScaffold.MurckoScaffoldSmiles(smiles=smi, includeChirality=True)
         except:
             return smi
     
     def anomaly_clean(self, data, task, target_cols):
+        """
+        Performs anomaly cleaning on the data based on the specified task.
+
+        :param data: (DataFrame) The dataset to be cleaned.
+        :param task: (str) The type of task which determines the cleaning strategy.
+        :param target_cols: (list) The list of target columns to consider for cleaning.
+
+        :return: (DataFrame) The cleaned dataset.
+        :raises ValueError: If the provided task is not recognized.
+        """
         if task in ['classification', 'multiclass', 'multilabel_classification', 'multilabel_regression']:
             return data
         if task == 'regression':
@@ -140,6 +182,14 @@ class MolDataReader(object):
             raise ValueError('Unknown task: {}'.format(task))
     
     def anomaly_clean_regression(self, data, target_cols):
+        """
+        Performs anomaly cleaning specifically for regression tasks using a 3-sigma threshold.
+
+        :param data: (DataFrame) The dataset to be cleaned.
+        :param target_cols: (list) The list of target columns to consider for cleaning.
+
+        :return: (DataFrame) The cleaned dataset after applying the 3-sigma rule.
+        """
         sz = data.shape[0]
         target_col = target_cols[0]
         _mean, _std = data[target_col].mean(), data[target_col].std()
@@ -149,7 +199,13 @@ class MolDataReader(object):
     
 
 class MOFReader(object):
+    '''A class to read MOF data.'''
     def __init__(self):
+        """
+        Initialize the MOFReader object with predefined gas lists, gas ID mappings, 
+        gas attributes, dictionary name from the model configuration, and a loaded 
+        dictionary for atom types. Sets the maximum number of atoms in a structure.
+        """
         self.gas_list = ['CH4','CO2','Ar','Kr','Xe','O2','He','N2','H2']
         self.GAS2ID = {
             "UNK":0,
@@ -181,7 +237,13 @@ class MOFReader(object):
 
     def cif_parser(self, cif_path, primitive=False):
         """
-        Parser for single cif file
+        Parses a single CIF file to extract structural information.
+
+        :param cif_path: (str) Path to the CIF file.
+        :param primitive: (bool) Whether to use the primitive cell.
+
+        :return: A dictionary containing structural information such as ID, atoms, 
+                 coordinates, lattice parameters, and volume.
         """
         s = Structure.from_file(cif_path, primitive=primitive)
         id = cif_path.split('/')[-1][:-4]
@@ -209,6 +271,15 @@ class MOFReader(object):
                 }
 
     def gas_parser(self, gas='CH4'):
+        """
+        Parses information about a specific gas.
+
+        :param gas: (str) The name of the gas.
+
+        :return: A dictionary containing the ID and attributes for the specified gas.
+
+        :raises AssertionError: If the specified gas is not in the supported gas list.
+        """
         assert gas in self.gas_list, "{} is not in list, current we support: {}".format(gas, '-'.join(self.gas_list))
         gas_id = self.GAS2ID.get(gas, 0)
         gas_attr = self.GAS2ATTR.get(gas, np.zeros(6))
@@ -216,6 +287,15 @@ class MOFReader(object):
         return {'gas_id': gas_id, 'gas_attr': gas_attr}
 
     def read_with_gas(self, cif_path, gas):
+        """
+        Reads CIF file and gas information, and combines them into a single dictionary.
+
+        :param cif_path: (str) Path to the CIF file.
+        :param gas: (str) The name of the gas to be read.
+
+        :return: A dictionary containing both the structural information from the CIF file 
+                 and the attributes of the specified gas.
+        """
         dd = self.cif_parser(cif_path)
         atoms, coordinates = inner_coords(dd['atoms'], dd['coordinates'])
         dd = coords2unimol_mof(atoms, coordinates, self.dictionary, max_atoms=self.max_atoms)

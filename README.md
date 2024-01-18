@@ -48,6 +48,8 @@ Uni-Mol tools is a easy-use wrappers for property prediction,representation and 
 
 Check this [subfolder](./unimol_tools/) for more detalis.
 
+Documentation of Uni-Mol tools is available at https://unimol.readthedocs.io/en/latest/
+
 News
 ----
 **Jul 7 2023**: We update a new version of Uni-Mol+, including the model setting for OC20 and a better performance on PCQM4MV2. 
