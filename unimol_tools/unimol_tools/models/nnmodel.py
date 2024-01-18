@@ -94,10 +94,6 @@ class NNModel(object):
         self.model = self._init_model(**self.model_params)
 
     def _init_model(self, model_name, **params):
-<<<<<<< HEAD
-        freeze_layers = params.get('freeze_layers', None)
-        freeze_layers_reversed = params.get('freeze_layers_reversed', False)
-=======
         """
         Initializes the neural network model based on the provided model name and parameters.
 
@@ -107,7 +103,8 @@ class NNModel(object):
         :return: An instance of the specified neural network model.
         :raises ValueError: If the model name is not recognized.
         """
->>>>>>> main
+        freeze_layers = params.get('freeze_layers', None)
+        freeze_layers_reversed = params.get('freeze_layers_reversed', False)
         if model_name in NNMODEL_REGISTER:
             model = NNMODEL_REGISTER[model_name](**params)
             if isinstance(freeze_layers, str):
