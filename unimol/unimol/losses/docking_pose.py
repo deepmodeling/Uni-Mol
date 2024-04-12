@@ -25,6 +25,7 @@ class DockingPossLoss(UnicoreLoss):
 
         ### distance loss
         distance_mask = sample["target"]["distance_target"].ne(0)  # 0 is padding
+        # 0 is impossible in the cross distance matrix (clash) so ok for padding with 0
         if self.args.dist_threshold > 0:
             distance_mask &= (
                 sample["target"]["distance_target"] < self.args.dist_threshold
@@ -37,8 +38,9 @@ class DockingPossLoss(UnicoreLoss):
 
         ### holo distance loss
         holo_distance_mask = sample["target"]["holo_distance_target"].ne(
-            0
-        )  # 0 is padding
+            -1
+        )  # -1 is padding
+        # 0 cannot be used for padding because 0 is on the diagonal holo distance matrix
         holo_distance_predict_train = holo_distance_predict[holo_distance_mask]
         holo_distance_target = sample["target"]["holo_distance_target"][
             holo_distance_mask

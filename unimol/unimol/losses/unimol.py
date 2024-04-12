@@ -162,7 +162,9 @@ class UniMolLoss(UnicoreLoss):
         masked_distance_target = sample[target_key]["distance_target"][
             dist_masked_tokens
         ]
-        non_pad_pos = masked_distance_target > 0
+        # 0 is on the diagonal distance matrix
+        # Use -1 for padding masked_distance_target
+        non_pad_pos = masked_distance_target >= 0
         if normalize:
             masked_distance_target = (
                 masked_distance_target.float() - self.dist_mean

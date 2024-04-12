@@ -198,7 +198,8 @@ class UniMolPocketTask(UnicoreTask):
                 "tokens_target": RightPadDataset(
                     tgt_dataset, pad_idx=self.dictionary.pad()
                 ),
-                "distance_target": RightPadDataset2D(distance_dataset, pad_idx=0),
+                # pad with -1 because distance matrix has 0 on the diagonal
+                "distance_target": RightPadDataset2D(distance_dataset, pad_idx=-1),
                 "coord_target": RightPadDatasetCoord(coord_dataset, pad_idx=0),
                 "pdb_id": RawArrayDataset(pdb_id_dataset),
             }

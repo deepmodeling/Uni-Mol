@@ -267,7 +267,7 @@ class DockingPose(UnicoreTask):
                     ),
                     "holo_coord": RightPadDatasetCoord(holo_coord_dataset, pad_idx=0),
                     "holo_distance_target": RightPadDataset2D(
-                        holo_distance_dataset, pad_idx=0
+                        holo_distance_dataset, pad_idx=-1  # -1 for padding because 0 is on the diagonal
                     ),
                 },
                 "smi_name": RawArrayDataset(smi_dataset),
