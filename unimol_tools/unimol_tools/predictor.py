@@ -87,7 +87,7 @@ class UniMolRepr(object):
                          **self.params,
                         )
         dataset = MolDataset(datahub.data['unimol_input'])
-        self.trainer = Trainer(task='repr')
+        self.trainer = Trainer(task='repr', cuda=self.device)
         repr_output = self.trainer.inference(self.model, 
                                              return_repr=True, 
                                              return_atomic_reprs=return_atomic_reprs, 

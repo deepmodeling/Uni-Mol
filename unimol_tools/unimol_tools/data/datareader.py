@@ -66,7 +66,7 @@ class MolDataReader(object):
                     for i in range(label.shape[1]):
                         data[target_col_prefix + str(i)] = label[:,i]
 
-            _ = data.pop('target')
+            _ = data.pop('target', None)
             data = pd.DataFrame(data).rename(columns={smiles_col: 'SMILES'})
         
         elif isinstance(data, list):
