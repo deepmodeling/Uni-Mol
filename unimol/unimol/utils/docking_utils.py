@@ -180,6 +180,9 @@ def docking_data_pre(raw_data_path, predict_path):
             pocket_coords = pocket_coords.numpy().astype(np.float32)
             distance_predict = distance_predict.numpy().astype(np.float32)
             holo_distance_predict = holo_distance_predict.numpy().astype(np.float32)
+            # Fill diagonal with 0, issue with the model not learning to predict 0 distance
+            holo_distance_predict = np.fill_diagonal(holo_distance_predict, 0)
+            #
             holo_coords = holo_coordinates.numpy().astype(np.float32)
 
             pocket_coords_list.append(pocket_coords)

@@ -162,14 +162,18 @@ class UniMolLoss(UnicoreLoss):
         masked_distance_target = sample[target_key]["distance_target"][
             dist_masked_tokens
         ]
-        non_pad_pos = masked_distance_target > 0
+        # padding distance
+        nb_masked_tokens = dist_masked_tokens.sum(dim=-1)
+        masked_src_tokens = sample["net_input"]["src_tokens"].ne(self.padding_idx)
+        masked_src_tokens_expanded = torch.repeat_interleave(masked_src_tokens, nb_masked_tokens, dim=0)
+        #
         if normalize:
             masked_distance_target = (
                 masked_distance_target.float() - self.dist_mean
             ) / self.dist_std
         masked_dist_loss = F.smooth_l1_loss(
-            masked_distance[non_pad_pos].view(-1).float(),
-            masked_distance_target[non_pad_pos].view(-1),
+            masked_distance[masked_src_tokens_expanded].view(-1).float(),
+            masked_distance_target[masked_src_tokens_expanded].view(-1),
             reduction="mean",
             beta=1.0,
         )

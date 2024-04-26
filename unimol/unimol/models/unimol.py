@@ -229,14 +229,18 @@ class UniMolModel(BaseUnicoreModel):
             if self.args.masked_coord_loss > 0:
                 coords_emb = src_coord
                 if padding_mask is not None:
-                    atom_num = (torch.sum(1 - padding_mask.type_as(x), dim=1) - 1).view(
+                    atom_num = torch.sum(1 - padding_mask.type_as(x), dim=1).view(
                         -1, 1, 1, 1
-                    )
+                    )  # consider BOS and EOS as part of the object
                 else:
-                    atom_num = src_coord.shape[1] - 1
+                    atom_num = src_coord.shape[1]
                 delta_pos = coords_emb.unsqueeze(1) - coords_emb.unsqueeze(2)
                 attn_probs = self.pair2coord_proj(delta_encoder_pair_rep)
                 coord_update = delta_pos / atom_num * attn_probs
+                # Mask padding
+                pair_coords_mask = (1 - padding_mask.float()).unsqueeze(-1) * (1 - padding_mask.float()).unsqueeze(1)
+                coord_update = coord_update * pair_coords_mask.unsqueeze(-1)
+                #
                 coord_update = torch.sum(coord_update, dim=2)
                 encoder_coord = coords_emb + coord_update
             if self.args.masked_dist_loss > 0:

@@ -1,7 +1,7 @@
 # Copyright (c) DP Technology.
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
-
+import torch
 import torch.nn.functional as F
 from unicore import metrics
 from unicore.losses import UnicoreLoss, register_loss
@@ -11,6 +11,9 @@ from unicore.losses import UnicoreLoss, register_loss
 class DockingPossLoss(UnicoreLoss):
     def __init__(self, task):
         super().__init__(task)
+        self.eos_idx = task.dictionary.eos()
+        self.bos_idx = task.dictionary.bos()
+        self.padding_idx = task.dictionary.pad()
 
     def forward(self, model, sample, reduce=True):
         """Compute the loss for the given sample.
@@ -24,7 +27,8 @@ class DockingPossLoss(UnicoreLoss):
         cross_distance_predict, holo_distance_predict = net_outputs[0], net_outputs[1]
 
         ### distance loss
-        distance_mask = sample["target"]["distance_target"].ne(0)  # 0 is padding
+        distance_mask = sample["target"]["distance_target"].ne(0)  # 0 for padding, BOS and EOS
+        # 0 is impossible in the cross distance matrix, all the relevant cross distances are kept
         if self.args.dist_threshold > 0:
             distance_mask &= (
                 sample["target"]["distance_target"] < self.args.dist_threshold
@@ -36,9 +40,10 @@ class DockingPossLoss(UnicoreLoss):
         )
 
         ### holo distance loss
-        holo_distance_mask = sample["target"]["holo_distance_target"].ne(
-            0
-        )  # 0 is padding
+        token_mask = sample["net_input"]["mol_src_tokens"].ne(self.padding_idx) & \
+                     sample["net_input"]["mol_src_tokens"].ne(self.eos_idx) & \
+                     sample["net_input"]["mol_src_tokens"].ne(self.bos_idx)
+        holo_distance_mask = token_mask.unsqueeze(-1) & token_mask.unsqueeze(1)
         holo_distance_predict_train = holo_distance_predict[holo_distance_mask]
         holo_distance_target = sample["target"]["holo_distance_target"][
             holo_distance_mask
