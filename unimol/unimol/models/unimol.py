@@ -233,7 +233,7 @@ class UniMolModel(BaseUnicoreModel):
                         -1, 1, 1, 1
                     )  # consider BOS and EOS as part of the object
                 else:
-                    atom_num = src_coord.shape[1] - 1
+                    atom_num = src_coord.shape[1]
                 delta_pos = coords_emb.unsqueeze(1) - coords_emb.unsqueeze(2)
                 attn_probs = self.pair2coord_proj(delta_encoder_pair_rep)
                 coord_update = delta_pos / atom_num * attn_probs
