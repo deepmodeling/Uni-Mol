@@ -99,9 +99,12 @@ def get_flexible_torsions(mol: Chem.Mol) -> th.Tensor:
     i_, l_ = (dist_mat.triu() == 3).bool().nonzero().T.tolist()
     # Shortest path, where rotatable bond in the middle is a torsion
     flex_unique_torsions = []
+    central_bond_torsions = set()
     for i, l in zip(i_, l_):
         i, j, k, l = Chem.GetShortestPath(mol, i, l)
-        if {(j, k), (k, j)}.intersection(matches):
+        if {(j, k), (k, j)}.intersection(matches) and (j, k) not in central_bond_torsions:
+            # Register the central bond
+            central_bond_torsions.update([(j, k), (k, j)])
             # torsion in the direction that leaves lesser atoms to later rotate: towards the periphery
             if (dist_mat[j] < dist_mat[k]).sum() > (dist_mat[j] > dist_mat[k]).sum():
                 flex_unique_torsions.append([i, j, k, l])
