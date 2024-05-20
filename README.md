@@ -7,6 +7,7 @@ Shortcuts
 - [Uni-Mol](./unimol/)
 - [Uni-Mol+](./unimol_plus/)
 - [Uni-Mol Tools](./unimol_tools/)
+- [Uni-Mol Docking V2](./unimol_docking_v2/)
 
 
 **Note**: if you want to install or run our codes, please `cd` to subfolders first.
@@ -50,8 +51,19 @@ Check this [subfolder](./unimol_tools/) for more detalis.
 
 Documentation of Uni-Mol tools is available at https://unimol.readthedocs.io/en/latest/
 
+Uni-Mol Docking V2: towards realistic and accurate binding pose prediction
+--------------------------------------------------------------------
+We update unimol docking to Uni-Mol Docking V2, which demonstrates a remarkable improvement in performance, accurately predicting the binding poses of 77+% of ligands in the PoseBusters benchmark with an RMSD value of less than 2.0 Å, and 75+\% passing all quality checks. This represents a significant increase from the 62% achieved by the previous Uni-Mol Docking model. Notably, our Uni-Mol Docking approach generates chemically accurate predictions, circumventing issues such as chirality inversions and steric
+clashes that have plagued previous ML models.
+
+Check this [subfolder](./unimol_docking_v2/) for more detalis.
+
+Service of Uni-Mol Docking v2 is avaiable at https://bohrium.dp.tech/apps/unimoldockingv2
+
 News
 ----
+**May 20 2024**: We release Uni-Mol Docking V2, including data, model and weight.
+
 **Jul 7 2023**: We update a new version of Uni-Mol+, including the model setting for OC20 and a better performance on PCQM4MV2. 
 
 **Jun 9 2023**: We release Uni-Mol tools for property prediction, representation and downstreams.
