@@ -15,7 +15,7 @@ recycling=4
 
 export NCCL_ASYNC_ERROR_HANDLING=1
 export OMP_NUM_THREADS=1
-python -m torch.distributed.launch --nproc_per_node=$n_gpu --master_port=$MASTER_PORT $(which unicore-train) --user-dir ../../unimol $data_path --train-subset train --valid-subset valid \
+python -m torch.distributed.launch --nproc_per_node=$n_gpu --master_port=$MASTER_PORT $(which unicore-train) --user-dir ./unimol $data_path --train-subset train --valid-subset valid \
        --num-workers 8 --ddp-backend=c10d \
        --task docking_pose_v2 --loss docking_pose_v2 --arch docking_pose_v2  \
        --optimizer adam --adam-betas '(0.9, 0.99)' --adam-eps 1e-6 --clip-norm 1.0 \
