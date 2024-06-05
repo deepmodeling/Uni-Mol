@@ -1,0 +1,4 @@
+input_protein,input_ligand,input_docking_grid,output_ligand_name
+protein1.pdb,ligand_prepared1.sdf,docking_grid1.json,ligand_predict1
+protein2.pdb,ligand_prepared2.sdf,docking_grid2.json,ligand_predict2
+protein3.pdb,ligand_prepared3.sdf,docking_grid3.json,ligand_predict3
