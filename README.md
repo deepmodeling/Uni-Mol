@@ -97,6 +97,24 @@ News
 **Jun 10 2022**: The 3D conformation data used in Uni-Mol is released.
 
 
+Contact Us
+--------
+**1. Github issue** (recommended)   
+you can open an issue on GitHub.
+
+**2. WeChat**   
+We welcome everyone to join our Uni-Mol user **WeChat group**. Scan the QR code below to join.
+
+
+<img src = "https://bohrium.oss-cn-zhangjiakou.aliyuncs.com/article/16664/34ccee67813f42468568978e61f2f639/3b6b5467-1d17-4c37-a234-150129ac8e22.png" width = 15%>
+
+
+**3. E-mail**   
+
+If you wish to have in-depth contact with the Uni-Mol development team, please send an email to unimol@dp.tech.
+
+
+
 Citation
 --------
 
