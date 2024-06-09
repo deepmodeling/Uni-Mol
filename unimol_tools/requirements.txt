@@ -12,6 +12,5 @@ ml_collections
 numpy
 scipy
 tensorboardX
-tqdm
 tokenizers
 git+https://github.com/dptech-corp/Uni-Core.git
