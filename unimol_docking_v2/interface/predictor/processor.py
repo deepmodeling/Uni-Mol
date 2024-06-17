@@ -416,6 +416,10 @@ class Processor:
     def clash_fix(self, predicted_ligand, input_protein, input_ligand):
         if self.mode=='batch_one2many':
             input_protein = [input_protein] * len(input_ligand)
+        elif self.mode == 'single':
+            input_ligand = [input_ligand]
+            input_protein = [input_protein]
+            predicted_ligand = [predicted_ligand]
         input_content = zip(predicted_ligand, predicted_ligand, input_ligand, input_protein)
 
         with Pool(self.nthreads) as pool:

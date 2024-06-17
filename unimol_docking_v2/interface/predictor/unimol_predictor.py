@@ -37,8 +37,8 @@ class UnimolPredictor:
                 batch_size:int):
         lmdb_name = self.preprocess(input_protein, input_ligand, input_docking_grid, output_ligand_name, output_ligand_dir)
         
-        pkt_data_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "example_data", "docking", "dict_pkt.txt")
-        mol_data_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "example_data", "docking", "dict_mol.txt")
+        pkt_data_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "example_data", "dict_pkt.txt")
+        mol_data_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "example_data", "dict_mol.txt")
         script_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "unimol", "infer.py")
         user_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "unimol")
         # inference
