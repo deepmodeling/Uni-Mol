@@ -30,8 +30,8 @@ python setup.py install
 ```
 
 ## News
-- 2024-06-20: unimol_tools v0.1.0 released, we remove the dependency of Uni-Core.
-- 2024-03-20: unimol_tools documents is coming soon.
+- 2024-06-20: unimol_tools v0.1.0 released, we remove the dependency of Uni-Core. And we will publish to pypi soon.
+- 2024-03-20: unimol_tools documents is available at https://unimol.readthedocs.io/en/latest/
 
 ## molecule property prediction
 ```python
