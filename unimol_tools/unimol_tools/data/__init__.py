@@ -1,2 +1,2 @@
 from .datahub import DataHub
-from .datareader import MOFReader
+from .dictionary import Dictionary

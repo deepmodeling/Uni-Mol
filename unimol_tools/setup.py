@@ -5,12 +5,12 @@ from setuptools import setup
 
 setup(
     name="unimol_tools",
-    version="1.0.0",
+    version="0.1.0",
     description=("unimol_tools is a Python package for property prediciton with Uni-Mol in molecule, materials and protein."),
     author="DP Technology",
     author_email="unimol@dp.tech",
     license="The MIT License",
-    url="https://github.com/dptech-corp/Uni-Mol",
+    url="https://github.com/dptech-corp/Uni-Mol/unimol_tools",
     packages=find_packages(
         where='.',
         exclude=[
@@ -18,7 +18,15 @@ setup(
             "dist",
         ],
     ),
-    install_requires=["yacs", "addict", "tqdm", "transformers", "pymatgen"],
+    install_requires=["numpy<2.0.0,>=1.22.4",
+                      "pandas<2.0.0",
+                      "torch",
+                      "joblib",
+                      "rdkit",
+                      "pyyaml",
+                      "addict",
+                      "scikit-learn",
+                      "tqdm"],
     python_requires=">=3.6",
     include_package_data=True,
     classifiers=[

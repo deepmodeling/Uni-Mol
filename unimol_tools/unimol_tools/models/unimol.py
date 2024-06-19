@@ -3,16 +3,10 @@
 # LICENSE file in the root directory of this source tree.
 
 from __future__ import absolute_import, division, print_function
-from ast import Not
 
-import logging
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from unicore.utils import get_activation_fn
-from unicore.data import Dictionary
-from unicore.models import BaseUnicoreModel
-from unicore.modules import LayerNorm, init_bert_params
 from .transformers import TransformerEncoderWithPair
 from ..utils import pad_1d_tokens, pad_2d, pad_coords
 import argparse
@@ -21,6 +15,7 @@ import os
 
 from ..utils import logger
 from ..config import MODEL_CONFIG
+from ..data import Dictionary
 
 BACKBONE = {
     'transformer': TransformerEncoderWithPair,
@@ -28,7 +23,7 @@ BACKBONE = {
 
 WEIGHT_DIR = os.path.join(pathlib.Path(__file__).resolve().parents[1], 'weights')
 
-class UniMolModel(BaseUnicoreModel):
+class UniMolModel(nn.Module):
     """
     UniMolModel is a specialized model for molecular, protein, crystal, or MOF (Metal-Organic Frameworks) data. 
     It dynamically configures its architecture based on the type of data it is intended to work with. The model
@@ -64,8 +59,6 @@ class UniMolModel(BaseUnicoreModel):
             self.args = protein_architecture()
         elif data_type == 'crystal':
             self.args = crystal_architecture()
-        elif data_type == 'mof':
-            self.args = mof_architecture()
         else:
             raise ValueError('Current not support data type: {}'.format(data_type))
         self.output_dim = output_dim
@@ -106,28 +99,13 @@ class UniMolModel(BaseUnicoreModel):
             self.gbf = GaussianLayer(K, n_edge_type)
         else:
             self.gbf = NumericalEmbed(K, n_edge_type)
-        
-        if data_type == 'mof':
-            self.min_max_key = {
-                'pressure': [-4.0, 6.0],      # transoformed pressure in log10(P)
-                'temperature': [100, 400.0],  
-             }
-            self.gas_embed = GasModel(self.args.gas_attr_input_dim, self.args.hidden_dim)
-            self.env_embed = EnvModel(self.args.hidden_dim, self.args.bins, self.min_max_key)
-            self.classifier = ClassificationHead(self.args.encoder_embed_dim+self.args.hidden_dim*5, 
-                                    self.args.hidden_dim*2, 
-                                    self.output_dim, 
-                                    self.args.pooler_activation_fn,
-                                    self.args.pooler_dropout)
-        else:
-            self.classification_head = ClassificationHead(
-                input_dim=self.args.encoder_embed_dim,
-                inner_dim=self.args.encoder_embed_dim,
-                num_classes=self.output_dim,
-                activation_fn=self.args.pooler_activation_fn,
-                pooler_dropout=self.args.pooler_dropout,
-            )
-        self.apply(init_bert_params)
+        self.classification_head = ClassificationHead(
+            input_dim=self.args.encoder_embed_dim,
+            inner_dim=self.args.encoder_embed_dim,
+            num_classes=self.output_dim,
+            activation_fn=self.args.pooler_activation_fn,
+            pooler_dropout=self.args.pooler_dropout,
+        )
         self.load_pretrained_weights(path=self.pretrain_path)
 
     def load_pretrained_weights(self, path):
@@ -137,15 +115,9 @@ class UniMolModel(BaseUnicoreModel):
         :param path: (str) Path to the pretrained weight file.
         """
         if path is not None:
-            if self.data_type == 'mof':
-                logger.info("Loading pretrained weights from {}".format(path))
-                state_dict = torch.load(path, map_location=lambda storage, loc: storage)
-                model_dict = {k.replace('unimat.',''):v for k, v in state_dict['model'].items()}
-                self.load_state_dict(model_dict, strict=True)
-            else:
-                logger.info("Loading pretrained weights from {}".format(path))
-                state_dict = torch.load(path, map_location=lambda storage, loc: storage)
-                self.load_state_dict(state_dict['model'], strict=False)
+            logger.info("Loading pretrained weights from {}".format(path))
+            state_dict = torch.load(path, map_location=lambda storage, loc: storage)
+            self.load_state_dict(state_dict['model'], strict=False)
 
     @classmethod
     def build_model(cls, args):
@@ -163,10 +135,6 @@ class UniMolModel(BaseUnicoreModel):
         src_distance,
         src_coord,
         src_edge_type,
-        gas_id=None,
-        gas_attr=None,
-        pressure=None,
-        temperature=None,
         return_repr=False,
         return_atomic_reprs=False,
         **kwargs
@@ -229,49 +197,17 @@ class UniMolModel(BaseUnicoreModel):
                     atomic_symbol.append(self.dictionary.symbols[atomic_num])
                 atomic_symbols.append(atomic_symbol)
                 cls_atomic_reprs.append(atomic_reprs)
-            return {'cls_repr': cls_repr, 
-                    'atomic_symbol': atomic_symbols, 
-                    'atomic_coords': filtered_coords, 
-                    'atomic_reprs': cls_atomic_reprs}        
+            return {
+                'cls_repr': cls_repr, 
+                'atomic_symbol': atomic_symbols, 
+                'atomic_coords': filtered_coords, 
+                'atomic_reprs': cls_atomic_reprs
+                }        
         if return_repr and not return_atomic_reprs:
             return {'cls_repr': cls_repr}  
 
-        if self.data_type == 'mof':
-            gas_embed = self.gas_embed(gas_id, gas_attr) # shape of gas_embed is [batch_size, gas_dim*2]
-            env_embed = self.env_embed(pressure, temperature) # shape of gas_embed is [batch_size, env_dim*3]
-            rep = torch.cat([cls_repr, gas_embed, env_embed], dim=-1)
-            logits = self.classifier(rep)
-        else:
-            logits = self.classification_head(cls_repr)
-
+        logits = self.classification_head(cls_repr)
         return logits
-    
-    def batch_collate_fn_mof(self, samples):
-        """
-        Custom collate function for batch processing MOF data.
-
-        :param samples: A list of sample data.
-
-        :return: A batch dictionary with padded and processed features.
-        """
-        dd = {}
-        for k in samples[0].keys():
-            if k == 'src_coord':
-                v = pad_coords([torch.tensor(s[k]).float() for s in samples], pad_idx=0.0)
-            elif k == 'src_edge_type':
-                v = pad_2d([torch.tensor(s[k]).long() for s in samples], pad_idx=self.padding_idx)
-            elif k == 'src_distance':
-                v = pad_2d([torch.tensor(s[k]).float() for s in samples], pad_idx=0.0)
-            elif k == 'src_tokens':
-                v = pad_1d_tokens([torch.tensor(s[k]).long() for s in samples], pad_idx=self.padding_idx)
-            elif k == 'gas_id':
-                v = torch.tensor([s[k] for s in samples]).long()
-            elif k in ['gas_attr', 'temperature', 'pressure']:
-                v = torch.tensor([s[k] for s in samples]).float()
-            else:
-                continue
-            dd[k] = v
-        return dd
 
     def batch_collate_fn(self, samples):
         """
@@ -383,87 +319,6 @@ class NonLinearHead(nn.Module):
         x = self.activation_fn(x)
         x = self.linear2(x)
         return x
-    
-class GasModel(nn.Module):
-    """
-    Model for embedding gas attributes.
-    """
-    def __init__(self, gas_attr_input_dim, gas_dim, gas_max_count=500):
-        """
-        Initialize the GasModel.
-
-        :param gas_attr_input_dim: Input dimension for gas attributes.
-        :param gas_dim: Dimension for gas embeddings.
-        :param gas_max_count: Maximum count for gas embedding.
-        """
-        super().__init__()
-        self.gas_embed = nn.Embedding(gas_max_count, gas_dim)
-        self.gas_attr_embed = NonLinearHead(gas_attr_input_dim, gas_dim, 'relu')
-
-    def forward(self, gas, gas_attr):
-        """
-        Forward pass for the gas model.
-
-        :param gas: Gas identifiers.
-        :param gas_attr: Gas attributes.
-
-        :return: Combined representation of gas and its attributes.
-        """
-        gas = gas.long()
-        gas_attr = gas_attr.type_as(self.gas_attr_embed.linear1.weight)
-        gas_embed = self.gas_embed(gas)  # shape of gas_embed is [batch_size, gas_dim]
-        gas_attr_embed = self.gas_attr_embed(gas_attr)  # shape of gas_attr_embed is [batch_size, gas_dim]
-        # gas_embed = torch.cat([gas_embed, gas_attr_embed], dim=-1)
-        gas_repr = torch.concat([gas_embed, gas_attr_embed], dim=-1)
-        return gas_repr
-
-class EnvModel(nn.Module):
-    """
-    Model for environmental embeddings like pressure and temperature.
-    """
-    def __init__(self, hidden_dim, bins=32, min_max_key=None):
-        """
-        Initialize the EnvModel.
-
-        :param hidden_dim: Dimension for the hidden layer.
-        :param bins: Number of bins for embedding.
-        :param min_max_key: Dictionary with min and max values for normalization.
-        """
-        super().__init__()
-        self.project = NonLinearHead(2, hidden_dim, 'relu')
-        self.bins = bins
-        self.pressure_embed = nn.Embedding(bins, hidden_dim)
-        self.temperature_embed = nn.Embedding(bins, hidden_dim)
-        self.min_max_key = min_max_key
-        
-    def forward(self, pressure, temperature):
-        """
-        Forward pass for the environmental model.
-
-        :param pressure: Pressure values.
-        :param temperature: Temperature values.
-
-        :return: Combined representation of environmental features.
-        """
-        pressure = pressure.type_as(self.project.linear1.weight)
-        temperature = temperature.type_as(self.project.linear1.weight)
-        pressure = torch.clamp(pressure, self.min_max_key['pressure'][0], self.min_max_key['pressure'][1])
-        temperature = torch.clamp(temperature, self.min_max_key['temperature'][0], self.min_max_key['temperature'][1])
-        pressure = (pressure - self.min_max_key['pressure'][0]) / (self.min_max_key['pressure'][1] - self.min_max_key['pressure'][0])
-        temperature = (temperature - self.min_max_key['temperature'][0]) / (self.min_max_key['temperature'][1] - self.min_max_key['temperature'][0])
-        # shapes of pressure and temperature both are [batch_size, ]
-        env_project = torch.cat((pressure[:, None], temperature[:, None]), dim=-1)
-        env_project = self.project(env_project)  # shape of env_project is [batch_size, env_dim]
-
-        pressure_bin = torch.floor(pressure * self.bins).to(torch.long)
-        temperature_bin = torch.floor(temperature * self.bins).to(torch.long)
-        pressure_embed = self.pressure_embed(pressure_bin)  # shape of pressure_embed is [batch_size, env_dim]
-        temperature_embed = self.temperature_embed(temperature_bin)  # shape of temperature_embed is [batch_size, env_dim]
-        env_embed = torch.cat([pressure_embed, temperature_embed], dim=-1)
-
-        env_repr = torch.cat([env_project, env_embed], dim=-1)
-
-        return env_repr
 
 @torch.jit.script
 def gaussian(x, mean, std):
@@ -479,6 +334,20 @@ def gaussian(x, mean, std):
     pi = 3.14159
     a = (2 * pi) ** 0.5
     return torch.exp(-0.5 * (((x - mean) / std) ** 2)) / (a * std)
+
+def get_activation_fn(activation):
+    """ Returns the activation function corresponding to `activation` """
+
+    if activation == "relu":
+        return F.relu
+    elif activation == "gelu":
+        return F.gelu
+    elif activation == "tanh":
+        return torch.tanh
+    elif activation == "linear":
+        return lambda x: x
+    else:
+        raise RuntimeError("--activation-fn {} not supported".format(activation))
 
 class GaussianLayer(nn.Module):
     """
@@ -552,7 +421,7 @@ class NumericalEmbed(nn.Module):
         self.w_edge = nn.Embedding(edge_types, K)
 
         self.proj = NonLinearHead(1, K, activation_fn, hidden=2*K)
-        self.ln = LayerNorm(K)
+        self.ln = nn.LayerNorm(K)
 
         nn.init.constant_(self.bias.weight, 0)
         nn.init.constant_(self.mul.weight, 1)
@@ -638,29 +507,6 @@ def crystal_architecture():
     args.backbone = getattr(args, "backbone", "transformer")
     args.kernel = getattr(args, "kernel", "linear")
     args.delta_pair_repr_norm_loss = getattr(args, "delta_pair_repr_norm_loss", -1.0)
-    return args
-
-def mof_architecture():
-    args = argparse.ArgumentParser()
-    args.encoder_layers = getattr(args, "encoder_layers", 8)
-    args.encoder_embed_dim = getattr(args, "encoder_embed_dim", 512)
-    args.encoder_ffn_embed_dim = getattr(args, "encoder_ffn_embed_dim", 2048)
-    args.encoder_attention_heads = getattr(args, "encoder_attention_heads", 64)
-    args.dropout = getattr(args, "dropout", 0.1)
-    args.emb_dropout = getattr(args, "emb_dropout", 0.1)
-    args.attention_dropout = getattr(args, "attention_dropout", 0.1)
-    args.activation_dropout = getattr(args, "activation_dropout", 0.0)
-    args.pooler_dropout = getattr(args, "pooler_dropout", 0.2)
-    args.max_seq_len = getattr(args, "max_seq_len", 1024)
-    args.activation_fn = getattr(args, "activation_fn", "gelu")
-    args.post_ln = getattr(args, "post_ln", False)
-    args.backbone = getattr(args, "backbone", "transformer")
-    args.kernel = getattr(args, "kernel", "linear")
-    args.delta_pair_repr_norm_loss = getattr(args, "delta_pair_repr_norm_loss", -1.0)
-    args.gas_attr_input_dim = getattr(args, "gas_attr_input_dim", 6)
-    args.hidden_dim = getattr(args, "hidden_dim", 128)
-    args.pooler_activation_fn = getattr(args, "pooler_activation_fn", "tanh")
-    args.bins = getattr(args, "bins", 32)
     return args
 
 def oled_architecture():

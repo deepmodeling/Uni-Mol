@@ -7,7 +7,6 @@ from __future__ import absolute_import, division, print_function
 import yaml
 import os
 from addict import Dict
-import logging
 
 from .base_logger import logger
 

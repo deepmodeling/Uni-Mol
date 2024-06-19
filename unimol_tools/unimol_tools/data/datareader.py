@@ -4,20 +4,11 @@
 
 from __future__ import absolute_import, division, print_function
 
-import logging
-import copy
 import os
 import pandas as pd
-import re
-from pymatgen.core import Structure
-from .conformer import inner_coords, coords2unimol_mof
-from unicore.data import Dictionary
 import numpy as np
-import csv
-from typing import List, Optional
 from rdkit import Chem
 from ..utils import logger
-from ..config import MODEL_CONFIG
 import pathlib
 from rdkit.Chem.Scaffolds import MurckoScaffold
 WEIGHT_DIR = os.path.join(pathlib.Path(__file__).resolve().parents[1], 'weights')
@@ -197,109 +188,3 @@ class MolDataReader(object):
         data = data[(data[target_col] > _mean - 3 * _std) & (data[target_col] < _mean + 3 * _std)]
         logger.info('Anomaly clean with 3 sigma threshold: {} -> {}'.format(sz, data.shape[0]))
         return data
-    
-
-class MOFReader(object):
-    '''A class to read MOF data.'''
-    def __init__(self):
-        """
-        Initialize the MOFReader object with predefined gas lists, gas ID mappings, 
-        gas attributes, dictionary name from the model configuration, and a loaded 
-        dictionary for atom types. Sets the maximum number of atoms in a structure.
-        """
-        self.gas_list = ['CH4','CO2','Ar','Kr','Xe','O2','He','N2','H2']
-        self.GAS2ID = {
-            "UNK":0,
-            "CH4":1, 
-            "CO2":2, 
-            "Ar":3, 
-            "Kr":4, 
-            "Xe":5, 
-            "O2":6, 
-            "He":7, 
-            "N2":8, 
-            "H2":9,
-        }
-        self.GAS2ATTR = {
-            "CH4":[0.295589,0.165132,0.251511019,-0.61518,0.026952,0.25887781],
-            "CO2":[1.475242,1.475921,1.620478155,0.086439,1.976795,1.69928074],
-            "Ar":[-0.11632,0.294448,0.1914686,-0.01667,-0.07999,-0.1631478],
-            "Kr":[0.48802,0.602454,0.215485568,1.084671,0.415991,0.39885917],
-            "Xe":[1.324657,0.751519,0.233498293,2.276323,1.12122,1.18462811],
-            "O2":[-0.08095,0.37909,0.335570404,-0.61626,-0.5363,-0.1130181],
-            "He":[-1.66617,-1.88746,-2.15618995,-0.9173,-1.36413,-1.6042445],
-            "N2":[-0.37636,-0.3968,0.41962979,-0.31495,-0.40022,-0.3355659],
-            "H2":[-1.34371,-1.3843,-1.11145188,-0.96708,-1.16031,-1.3256695],
-        }
-        self.dict_name = MODEL_CONFIG['dict']['mof']
-        self.dictionary = Dictionary.load(os.path.join(WEIGHT_DIR, self.dict_name))
-        self.dictionary.add_symbol("[MASK]", is_special=True)
-        self.max_atoms = 512
-
-    def cif_parser(self, cif_path, primitive=False):
-        """
-        Parses a single CIF file to extract structural information.
-
-        :param cif_path: (str) Path to the CIF file.
-        :param primitive: (bool) Whether to use the primitive cell.
-
-        :return: A dictionary containing structural information such as ID, atoms, 
-                 coordinates, lattice parameters, and volume.
-        """
-        s = Structure.from_file(cif_path, primitive=primitive)
-        id = cif_path.split('/')[-1][:-4]
-        lattice = s.lattice
-        abc = lattice.abc # lattice vectors
-        angles = lattice.angles # lattice angles
-        volume = lattice.volume # lattice volume
-        lattice_matrix = lattice.matrix # lattice 3x3 matrix
-
-        df = s.as_dataframe()
-        atoms = df['Species'].astype(str).map(lambda x: re.sub("\d+", "", x)).tolist()
-        coordinates = df[['x', 'y', 'z']].values.astype(np.float32)
-        abc_coordinates = df[['a', 'b', 'c']].values.astype(np.float32)
-        assert len(atoms) == coordinates.shape[0]
-        assert len(atoms) == abc_coordinates.shape[0]
-
-        return {'ID':id, 
-                'atoms':atoms, 
-                'coordinates':coordinates, 
-                'abc':abc, 
-                'angles':angles, 
-                'volume':volume, 
-                'lattice_matrix':lattice_matrix, 
-                'abc_coordinates':abc_coordinates,
-                }
-
-    def gas_parser(self, gas='CH4'):
-        """
-        Parses information about a specific gas.
-
-        :param gas: (str) The name of the gas.
-
-        :return: A dictionary containing the ID and attributes for the specified gas.
-
-        :raises AssertionError: If the specified gas is not in the supported gas list.
-        """
-        assert gas in self.gas_list, "{} is not in list, current we support: {}".format(gas, '-'.join(self.gas_list))
-        gas_id = self.GAS2ID.get(gas, 0)
-        gas_attr = self.GAS2ATTR.get(gas, np.zeros(6))
-
-        return {'gas_id': gas_id, 'gas_attr': gas_attr}
-
-    def read_with_gas(self, cif_path, gas):
-        """
-        Reads CIF file and gas information, and combines them into a single dictionary.
-
-        :param cif_path: (str) Path to the CIF file.
-        :param gas: (str) The name of the gas to be read.
-
-        :return: A dictionary containing both the structural information from the CIF file 
-                 and the attributes of the specified gas.
-        """
-        dd = self.cif_parser(cif_path)
-        atoms, coordinates = inner_coords(dd['atoms'], dd['coordinates'])
-        dd = coords2unimol_mof(atoms, coordinates, self.dictionary, max_atoms=self.max_atoms)
-        dd.update(self.gas_parser(gas))
-
-        return dd

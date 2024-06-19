@@ -4,8 +4,6 @@
 
 from __future__ import absolute_import, division, print_function
 
-import logging
-import copy
 import os
 import torch
 import torch.nn as nn

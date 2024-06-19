@@ -7,9 +7,10 @@ Documentation of Uni-Mol tools is available at https://unimol.readthedocs.io/en/
 * [unimol representation](https://bohrium.dp.tech/notebook/f39a7a8836134cca8e22c099dc9654f8)
 
 ## install
- - Notice: [Uni-Core](https://github.com/dptech-corp/Uni-Core) is needed, please install it first. Current Uni-Core requires torch>=2.0.0 by default, if you want to install other version, please check its [Installation Documentation](https://github.com/dptech-corp/Uni-Core#installation).
+- pytorch is required, please install pytorch according to your environment. if you are using cuda, please install pytorch with cuda. More details can be found at https://pytorch.org/get-started/locally/
+- currently, rdkit needs with numpy<2.0.0, please install rdkit with numpy<2.0.0.
 ```python
-## unicore and other dependencies installation
+## dependencies installation
 pip install -r requirements.txt
 ## clone repo
 git clone https://github.com/dptech-corp/Uni-Mol.git
@@ -18,9 +19,6 @@ cd Uni-Mol/unimol_tools/unimol_tools
 ## download pretrained weights
 wget https://github.com/dptech-corp/Uni-Mol/releases/download/v0.1/mol_pre_all_h_220816.pt
 wget https://github.com/dptech-corp/Uni-Mol/releases/download/v0.1/mol_pre_no_h_220816.pt
-wget https://github.com/dptech-corp/Uni-Mol/releases/download/v0.1/pocket_pre_220816.pt
-wget https://github.com/dptech-corp/Uni-Mol/releases/download/v0.1/mof_pre_no_h_CORE_MAP_20230505.pt
-wget https://github.com/dptech-corp/Uni-Mol/releases/download/v0.1/mp_all_h_230313.pt
 wget https://github.com/dptech-corp/Uni-Mol/releases/download/v0.1/oled_pre_no_h_230101.pt
 
 mkdir -p weights
@@ -32,7 +30,8 @@ python setup.py install
 ```
 
 ## News
-- unimol_tools documents is coming soon.
+- 2024-06-20: unimol_tools v0.1.0 released, we remove the dependency of Uni-Core.
+- 2024-03-20: unimol_tools documents is coming soon.
 
 ## molecule property prediction
 ```python
