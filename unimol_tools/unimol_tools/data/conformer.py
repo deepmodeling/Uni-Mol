@@ -5,9 +5,7 @@
 from __future__ import absolute_import, division, print_function
 
 import os
-import pandas as pd
 import numpy as np
-from tqdm import tqdm
 from rdkit import Chem
 from rdkit.Chem import AllChem
 from rdkit import RDLogger
@@ -15,7 +13,7 @@ import warnings
 from scipy.spatial import distance_matrix
 RDLogger.DisableLog('rdApp.*') 
 warnings.filterwarnings(action='ignore')
-from unicore.data import Dictionary
+from .dictionary import Dictionary
 from multiprocessing import Pool
 from tqdm import tqdm
 import pathlib
@@ -207,48 +205,6 @@ def coords2unimol(atoms, coordinates, dictionary, max_atoms=256, remove_hs=True,
     # distance matrix
     src_distance = distance_matrix(src_coord, src_coord)
     # edge type
-    src_edge_type = src_tokens.reshape(-1, 1) * len(dictionary) + src_tokens.reshape(1, -1)
-
-    return {
-            'src_tokens': src_tokens.astype(int), 
-            'src_distance': src_distance.astype(np.float32), 
-            'src_coord': src_coord.astype(np.float32), 
-            'src_edge_type': src_edge_type.astype(int),
-            }
-
-
-def coords2unimol_mof(atoms, coordinates, dictionary, max_atoms=256):
-    '''
-    Converts atomic symbols and their coordinates to a unimolecular metal-organic framework (MOF) representation that is suitable for input to a neural network.
-
-    This function handles cropping of atoms and coordinates if the number exceeds the maximum allowed, tokenization of atomic symbols, normalization and padding of coordinates, and computation of a distance matrix.
-
-    :param atoms: (list or np.ndarray) A list of atomic symbols (e.g., ['C', 'H', 'O']).
-    :param coordinates: (list or np.ndarray) A list of 3D coordinates corresponding to the atoms (shape: [num_atoms, 3]).
-    :param dictionary: A dictionary-like object that maps atomic symbols to unique integer tokens and provides methods to access special tokens such as 'bos' (beginning of sequence) and 'eos' (end of sequence).
-    :param max_atoms: (int) The maximum number of atoms to consider; atoms beyond this number are randomly cropped.
-
-    :return: A dictionary containing tokenized atomic symbols ('src_tokens'), a distance matrix ('src_distance'), normalized and padded coordinates ('src_coord'), and edge types ('src_edge_type').
-    '''
-    atoms = np.array(atoms)
-    coordinates = np.array(coordinates).astype(np.float32)
-    ### cropping atoms and coordinates
-    if len(atoms)>max_atoms:
-        idx = np.random.choice(len(atoms), max_atoms, replace=False)
-        atoms = atoms[idx]
-        coordinates = coordinates[idx]
-    ### tokens padding
-    src_tokens = np.array([dictionary.bos()] + [dictionary.index(atom) for atom in atoms] + [dictionary.eos()])
-    src_distance = np.zeros((len(src_tokens), len(src_tokens)))
-    ### coordinates normalize & padding
-    src_coord = coordinates - coordinates.mean(axis=0)
-    src_coord = np.concatenate([np.zeros((1,3)), src_coord, np.zeros((1,3))], axis=0)
-    ### distance matrix
-    # src_distance = distance_matrix(src_coord, src_coord)
-    src_distance = np.zeros((len(src_tokens), len(src_tokens)))
-    src_distance[1:-1,1:-1] = distance_matrix(src_coord[1:-1], src_coord[1:-1])
-                            
-    ### edge type 
     src_edge_type = src_tokens.reshape(-1, 1) * len(dictionary) + src_tokens.reshape(1, -1)
 
     return {
