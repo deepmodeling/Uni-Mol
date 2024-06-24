@@ -11,7 +11,6 @@ from rdkit import Chem
 from ..utils import logger
 import pathlib
 from rdkit.Chem.Scaffolds import MurckoScaffold
-WEIGHT_DIR = os.path.join(pathlib.Path(__file__).resolve().parents[1], 'weights')
 
 class MolDataReader(object):
     '''A class to read Mol Data.'''

@@ -83,5 +83,5 @@ class Logger(object):
             self.logger.addHandler(file_handler)
         return self.logger
 
-logger = Logger('Uni-Mol(QSAR)').get_logger()
+logger = Logger('Uni-Mol Tools').get_logger()
 logger.setLevel(logging.INFO)

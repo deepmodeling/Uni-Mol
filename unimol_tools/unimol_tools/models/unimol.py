@@ -16,12 +16,11 @@ import os
 from ..utils import logger
 from ..config import MODEL_CONFIG
 from ..data import Dictionary
+from ..weights import weight_download, WEIGHT_DIR
 
 BACKBONE = {
     'transformer': TransformerEncoderWithPair,
 }
-
-WEIGHT_DIR = os.path.join(pathlib.Path(__file__).resolve().parents[1], 'weights')
 
 class UniMolModel(nn.Module):
     """
@@ -67,11 +66,12 @@ class UniMolModel(nn.Module):
         if data_type == 'molecule':
             name = "no_h" if self.remove_hs else "all_h" 
             name = data_type + '_' + name
-            self.pretrain_path = os.path.join(WEIGHT_DIR, MODEL_CONFIG['weight'][name])
-            self.dictionary = Dictionary.load(os.path.join(WEIGHT_DIR, MODEL_CONFIG['dict'][name]))
         else:
-            self.pretrain_path = os.path.join(WEIGHT_DIR, MODEL_CONFIG['weight'][data_type])
-            self.dictionary = Dictionary.load(os.path.join(WEIGHT_DIR, MODEL_CONFIG['dict'][data_type]))
+            name = data_type
+        if not os.path.exists(os.path.join(WEIGHT_DIR, MODEL_CONFIG['weight'][name])):
+            weight_download(MODEL_CONFIG['weight'][name], WEIGHT_DIR)
+        self.pretrain_path = os.path.join(WEIGHT_DIR, MODEL_CONFIG['weight'][name])
+        self.dictionary = Dictionary.load(os.path.join(WEIGHT_DIR, MODEL_CONFIG['dict'][name]))
         self.mask_idx = self.dictionary.add_symbol("[MASK]", is_special=True)
         self.padding_idx = self.dictionary.pad()
         self.embed_tokens = nn.Embedding(
