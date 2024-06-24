@@ -59,7 +59,7 @@ class MolDataReader(object):
             _ = data.pop('target', None)
             data = pd.DataFrame(data).rename(columns={smiles_col: 'SMILES'})
         
-        elif isinstance(data, list):
+        elif isinstance(data, list) or isinstance(data, np.ndarray):
             # load from smiles list
             data = pd.DataFrame(data, columns=['SMILES'])
         else:
