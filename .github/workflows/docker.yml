@@ -53,3 +53,28 @@ jobs:
           context: ./unimol/docker/
           push: true
           tags: dptechnology/unimol:latest-pytorch1.11.0-cuda11.3
+
+  publish_package:
+    name: Publish package
+    needs: [docker]
+
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Build core package
+        env:
+          FLASH_ATTENTION_SKIP_CUDA_BUILD: "TRUE"
+        run: |
+          python setup.py sdist --dist-dir=dist
+
+      - name: Deploy
+        env:
+          TWINE_USERNAME: "__token__"
+          TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
+        run: |
+          python -m twine upload dist/*
