@@ -70,6 +70,8 @@ class UniMolModel(nn.Module):
             name = data_type
         if not os.path.exists(os.path.join(WEIGHT_DIR, MODEL_CONFIG['weight'][name])):
             weight_download(MODEL_CONFIG['weight'][name], WEIGHT_DIR)
+        if not os.path.exists(os.path.join(WEIGHT_DIR, MODEL_CONFIG['dict'][name])):
+            weight_download(MODEL_CONFIG['dict'][name], WEIGHT_DIR)
         self.pretrain_path = os.path.join(WEIGHT_DIR, MODEL_CONFIG['weight'][name])
         self.dictionary = Dictionary.load(os.path.join(WEIGHT_DIR, MODEL_CONFIG['dict'][name]))
         self.mask_idx = self.dictionary.add_symbol("[MASK]", is_special=True)
