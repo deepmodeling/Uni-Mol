@@ -16,11 +16,10 @@ warnings.filterwarnings(action='ignore')
 from .dictionary import Dictionary
 from multiprocessing import Pool
 from tqdm import tqdm
-import pathlib
+
 from ..utils import logger
 from ..config import MODEL_CONFIG
-
-WEIGHT_DIR = os.path.join(pathlib.Path(__file__).resolve().parents[1], 'weights')
+from ..weights import weight_download, WEIGHT_DIR
 
 
 class ConformerGen(object):
@@ -59,6 +58,8 @@ class ConformerGen(object):
             self.dict_name = MODEL_CONFIG['dict'][name]
         else:
             self.dict_name = MODEL_CONFIG['dict'][self.data_type]
+        if not os.path.exists(os.path.join(WEIGHT_DIR, self.dict_name)):
+            weight_download(self.dict_name, WEIGHT_DIR)
         self.dictionary = Dictionary.load(os.path.join(WEIGHT_DIR, self.dict_name))
         self.dictionary.add_symbol("[MASK]", is_special=True)
 

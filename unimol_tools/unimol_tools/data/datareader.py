@@ -11,7 +11,6 @@ from rdkit import Chem
 from ..utils import logger
 import pathlib
 from rdkit.Chem.Scaffolds import MurckoScaffold
-WEIGHT_DIR = os.path.join(pathlib.Path(__file__).resolve().parents[1], 'weights')
 
 class MolDataReader(object):
     '''A class to read Mol Data.'''
@@ -60,7 +59,7 @@ class MolDataReader(object):
             _ = data.pop('target', None)
             data = pd.DataFrame(data).rename(columns={smiles_col: 'SMILES'})
         
-        elif isinstance(data, list):
+        elif isinstance(data, list) or isinstance(data, np.ndarray):
             # load from smiles list
             data = pd.DataFrame(data, columns=['SMILES'])
         else:
