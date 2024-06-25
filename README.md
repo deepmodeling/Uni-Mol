@@ -60,7 +60,7 @@ Uni-Mol Docking V2: Towards realistic and accurate binding pose prediction
 [![arXiv](https://img.shields.io/badge/arXiv-2405.11769-00ff00.svg)](https://arxiv.org/abs/2405.11769) [![Static Badge](https://img.shields.io/badge/Bohrium_Apps-Uni--Mol_Docking_V2-blue)](https://bohrium.dp.tech/apps/unimoldockingv2)
 
 
-<p align="center"><img src="unimol_docking_v2/figure/bohrium_app.png" width=60%></p>
+<p align="center"><img src="unimol_docking_v2/figure/bohrium_app.gif" width=60%></p>
 <p align="center"><b>Uni-Mol Docking V2 Bohrium App</b></p>
 
 We update Uni-Mol Docking to Uni-Mol Docking V2, which demonstrates a remarkable improvement in performance, accurately predicting the binding poses of 77+% of ligands in the PoseBusters benchmark with an RMSD value of less than 2.0 Å, and 75+\% passing all quality checks. This represents a significant increase from the 62% achieved by the previous Uni-Mol Docking model. Notably, our Uni-Mol Docking approach generates chemically accurate predictions, circumventing issues such as chirality inversions and steric
