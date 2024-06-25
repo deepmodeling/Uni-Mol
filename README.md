@@ -1,7 +1,7 @@
 Official Repository for the Uni-Mol Series Methods
 ==================================================
 
-<img src = "https://bohrium.oss-cn-zhangjiakou.aliyuncs.com/article/16664/2a33c1251a364e9d958983eca9035072/dfd515f9-4df3-4779-9b54-cb8eaaa0b6a2.png" width = 40%>
+<img src = "https://bohrium.oss-cn-zhangjiakou.aliyuncs.com/article/16664/d50607556c5c4076bf3df363a7f1aedf/4feaf601-09b6-4bcb-85a0-70890c36c444.png" width = 40%>
 
 Welcome to the official repository for the Uni-Mol series methods!
 
