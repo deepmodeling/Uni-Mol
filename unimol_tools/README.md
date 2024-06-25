@@ -1,35 +1,57 @@
-# unimol tools for various prediction and downstreams.
+# Uni-Mol tools for various prediction and downstreams.
 
 Documentation of Uni-Mol tools is available at https://unimol.readthedocs.io/en/latest/
 
-## details can be found in bohrium notebook
+## Details can be found in bohrium notebook
 * [unimol property predict](https://bohrium.dp.tech/notebook/298bcead4f614971bb62fbeef2e9db16)
 * [unimol representation](https://bohrium.dp.tech/notebook/f39a7a8836134cca8e22c099dc9654f8)
 
-## install
+## Install
 - pytorch is required, please install pytorch according to your environment. if you are using cuda, please install pytorch with cuda. More details can be found at https://pytorch.org/get-started/locally/
 - currently, rdkit needs with numpy<2.0.0, please install rdkit with numpy<2.0.0.
+
+### Option 1: Installing from PyPi (Recommended)
+
+```bash
+pip install unimol_tools
+```
+
+We recommend installing ```huggingface_hub``` so that the required unimol models can be automatically downloaded at runtime! It can be install by
+
+```bash
+pip install huggingface_hub
+```
+
+`huggingface_hub` allows you to easily download and manage models from the Hugging Face Hub, which is key for using UniMol models.
+
+### Option 2: Installing from source
+
 ```python
-## dependencies installation
+## Dependencies installation
 pip install -r requirements.txt
-## clone repo
+
+## Clone repository
 git clone https://github.com/dptech-corp/Uni-Mol.git
-cd Uni-Mol/unimol_tools/unimol_tools
+cd Uni-Mol/unimol_tools
 
-## download pretrained weights
-wget https://github.com/dptech-corp/Uni-Mol/releases/download/v0.1/mol_pre_all_h_220816.pt
-wget https://github.com/dptech-corp/Uni-Mol/releases/download/v0.1/mol_pre_no_h_220816.pt
-wget https://github.com/dptech-corp/Uni-Mol/releases/download/v0.1/oled_pre_no_h_230101.pt
-
-mkdir -p weights
-mv *.pt weights/
-
-## install
-cd ..
+## Install
 python setup.py install
 ```
 
+### Models in Huggingface
+
+The UniMol pretrained models can be found at [dptech/Uni-Mol-Models](https://huggingface.co/dptech/Uni-Mol-Models/tree/main).
+
+If the download is slow, you can use other mirrors, such as:
+
+```bash
+export HF_ENDPOINT=https://hf-mirror.com
+```
+
+Setting the `HF_ENDPOINT` environment variable specifies the mirror address for the Hugging Face Hub to use when downloading models.
+
 ## News
+- 2024-06-25: unimol_tools has been publish to pypi! Huggingface has been used to manage the pretrain models.
 - 2024-06-20: unimol_tools v0.1.0 released, we remove the dependency of Uni-Core. And we will publish to pypi soon.
 - 2024-03-20: unimol_tools documents is available at https://unimol.readthedocs.io/en/latest/
 
