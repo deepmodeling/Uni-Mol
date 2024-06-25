@@ -14,6 +14,14 @@ WEIGHT_DIR = os.path.dirname(os.path.abspath(__file__))
 os.environ["HF_ENDPOINT"] = "https://hf-mirror.com" # use mirror to download weights
 
 def weight_download(pretrain, save_path, local_dir_use_symlinks=True):
+    """
+    Downloads the specified pretrained model weights.
+    
+    Args:
+        pretrain (str): The name of the pretrained model to download.
+        save_path (str): The directory where the weights should be saved.
+        local_dir_use_symlinks (bool, optional): Whether to use symlinks for the local directory. Defaults to True.
+    """
     if os.path.exists(os.path.join(save_path, pretrain)):
         logger.info(f'{pretrain} exists in {save_path}')
         return
@@ -29,6 +37,12 @@ def weight_download(pretrain, save_path, local_dir_use_symlinks=True):
 
 # Download all the weights when this script is run
 def download_all_weights(local_dir_use_symlinks=False):
+    """
+    Downloads all available pretrained model weights to the WEIGHT_DIR.
+    
+    Args:
+        local_dir_use_symlinks (bool, optional): Whether to use symlinks for the local directory. Defaults to False.
+    """
     logger.info(f'Downloading all weights to {WEIGHT_DIR}')
     snapshot_download(
         repo_id="dptech/Uni-Mol-Models",
