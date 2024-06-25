@@ -70,6 +70,7 @@ jobs:
         env:
           FLASH_ATTENTION_SKIP_CUDA_BUILD: "TRUE"
         run: |
+          cd unimol_tools
           python setup.py sdist --dist-dir=dist
 
       - name: Deploy
