@@ -1,6 +1,10 @@
 Official Repository for the Uni-Mol Series Methods
 ==================================================
 
+<img src = "https://bohrium.oss-cn-zhangjiakou.aliyuncs.com/article/16664/2a33c1251a364e9d958983eca9035072/dfd515f9-4df3-4779-9b54-cb8eaaa0b6a2.png" width = 40%>
+
+Welcome to the official repository for the Uni-Mol series methods!
+
 Shortcuts
 ---------
 
@@ -105,12 +109,14 @@ you can open an issue on GitHub.
 **2. WeChat**   
 We welcome everyone to join our Uni-Mol user **WeChat group**. Scan the QR code below to join.
 
-
 <img src = "https://bohrium.oss-cn-zhangjiakou.aliyuncs.com/article/16664/34ccee67813f42468568978e61f2f639/3b6b5467-1d17-4c37-a234-150129ac8e22.png" width = 15%>
 
+**3. slack**      
+Overseas users can scan the QR code below to join the Uni-Mol discussion channel on Slack.
 
-**3. E-mail**   
+<img src="https://bohrium.oss-cn-zhangjiakou.aliyuncs.com/article/16664/1faae12e397941c6bc8931a99453b426/21c3bc07-cade-49f9-8a45-4e5bef0e5fda.png" width = 15%>
 
+**4. E-mail**      
 If you wish to have in-depth contact with the Uni-Mol development team, please send an email to unimol@dp.tech.
 
 
