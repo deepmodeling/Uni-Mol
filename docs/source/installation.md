@@ -1,31 +1,48 @@
 # Installation
 
-## Overview
+## Install
+- pytorch is required, please install pytorch according to your environment. if you are using cuda, please install pytorch with cuda. More details can be found at https://pytorch.org/get-started/locally/
+- currently, rdkit needs with numpy<2.0.0, please install rdkit with numpy<2.0.0.
 
-[Uni-Mol](https://github.com/dptech-corp/Uni-Mol/tree/main)
- now can be installed from source. 
-```shell
-## unicore and other dependencies installation
+### Option 1: Installing from PyPi (Recommended)
+
+```bash
+pip install unimol_tools
+```
+
+We recommend installing ```huggingface_hub``` so that the required unimol models can be automatically downloaded at runtime! It can be install by
+
+```bash
+pip install huggingface_hub
+```
+
+`huggingface_hub` allows you to easily download and manage models from the Hugging Face Hub, which is key for using UniMol models.
+
+### Option 2: Installing from source
+
+```python
+## Dependencies installation
 pip install -r requirements.txt
-## clone repo
+
+## Clone repository
 git clone https://github.com/dptech-corp/Uni-Mol.git
-cd Uni-Mol/unimol_tools/unimol_tools
+cd Uni-Mol/unimol_tools
 
-## download pretrained weights
-wget https://github.com/dptech-corp/Uni-Mol/releases/download/v0.1/mol_pre_all_h_220816.pt
-wget https://github.com/dptech-corp/Uni-Mol/releases/download/v0.1/mol_pre_no_h_220816.pt
-wget https://github.com/dptech-corp/Uni-Mol/releases/download/v0.1/pocket_pre_220816.pt
-wget https://github.com/dptech-corp/Uni-Mol/releases/download/v0.1/mof_pre_no_h_CORE_MAP_20230505.pt
-wget https://github.com/dptech-corp/Uni-Mol/releases/download/v0.1/mp_all_h_230313.pt
-wget https://github.com/dptech-corp/Uni-Mol/releases/download/v0.1/oled_pre_no_h_230101.pt
-
-mkdir -p weights
-mv *.pt weights/
-
-## install
-cd ..
+## Install
 python setup.py install
 ```
+
+### Models in Huggingface
+
+The UniMol pretrained models can be found at [dptech/Uni-Mol-Models](https://huggingface.co/dptech/Uni-Mol-Models/tree/main).
+
+If the download is slow, you can use other mirrors, such as:
+
+```bash
+export HF_ENDPOINT=https://hf-mirror.com
+```
+
+Setting the `HF_ENDPOINT` environment variable specifies the mirror address for the Hugging Face Hub to use when downloading models.
 
 ## Bohrium notebook
 
