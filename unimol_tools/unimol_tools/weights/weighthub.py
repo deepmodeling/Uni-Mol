@@ -16,11 +16,10 @@ os.environ["HF_ENDPOINT"] = "https://hf-mirror.com" # use mirror to download wei
 def weight_download(pretrain, save_path, local_dir_use_symlinks=True):
     """
     Downloads the specified pretrained model weights.
-    
-    Args:
-        pretrain (str): The name of the pretrained model to download.
-        save_path (str): The directory where the weights should be saved.
-        local_dir_use_symlinks (bool, optional): Whether to use symlinks for the local directory. Defaults to True.
+
+    :param pretrain: (str), The name of the pretrained model to download.
+    :param save_path: (str), The directory where the weights should be saved.
+    :param local_dir_use_symlinks: (bool, optional), Whether to use symlinks for the local directory. Defaults to True.
     """
     if os.path.exists(os.path.join(save_path, pretrain)):
         logger.info(f'{pretrain} exists in {save_path}')
@@ -40,8 +39,7 @@ def download_all_weights(local_dir_use_symlinks=False):
     """
     Downloads all available pretrained model weights to the WEIGHT_DIR.
     
-    Args:
-        local_dir_use_symlinks (bool, optional): Whether to use symlinks for the local directory. Defaults to False.
+    :param local_dir_use_symlinks: (bool, optional), Whether to use symlinks for the local directory. Defaults to False.
     """
     logger.info(f'Downloading all weights to {WEIGHT_DIR}')
     snapshot_download(
