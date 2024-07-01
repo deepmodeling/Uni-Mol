@@ -10,7 +10,7 @@ setup(
     author="DP Technology",
     author_email="unimol@dp.tech",
     license="The MIT License",
-    url="https://github.com/dptech-corp/Uni-Mol",
+    url="https://github.com/deepmodeling/Uni-Mol",
     packages=find_packages(
         exclude=["scripts", "tests", "example_data", "docker", "figure"]
     ),

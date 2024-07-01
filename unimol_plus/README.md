@@ -12,21 +12,21 @@ In the [PCQM4MV2](https://ogb.stanford.edu/docs/lsc/leaderboards/#pcqm4mv2) benc
 
 | Model Settings   | # Layers   | # Param.    | Validation MAE   | Model Checkpoint | 
 |------------------|------------| ----------- |------------------|------------------|
-| Uni-Mol+         |     12     |   52.4 M    | 0.0696           | [link](https://github.com/dptech-corp/Uni-Mol/releases/download/v0.2/unimol_plus_pcq_base.pt)          |
-| Uni-Mol+ Large   |     18     |   77 M      | 0.0693           | [link](https://github.com/dptech-corp/Uni-Mol/releases/download/v0.2/unimol_plus_pcq_large.pt)         |
-| Uni-Mol+ Small   |      6     |   27.7 M    | 0.0714           | [link](https://github.com/dptech-corp/Uni-Mol/releases/download/v0.2/unimol_plus_pcq_small.pt)         |
+| Uni-Mol+         |     12     |   52.4 M    | 0.0696           | [link](https://github.com/deepmodeling/Uni-Mol/releases/download/v0.2/unimol_plus_pcq_base.pt)          |
+| Uni-Mol+ Large   |     18     |   77 M      | 0.0693           | [link](https://github.com/deepmodeling/Uni-Mol/releases/download/v0.2/unimol_plus_pcq_large.pt)         |
+| Uni-Mol+ Small   |      6     |   27.7 M    | 0.0714           | [link](https://github.com/deepmodeling/Uni-Mol/releases/download/v0.2/unimol_plus_pcq_small.pt)         |
 
 
 In the [OC20](https://opencatalystproject.org/leaderboard.html) IS2RE  benchmark, Uni-Mol+ outperforms previous SOTA methods by a large margin.
 
 | Model Settings   | # Layers   | # Param.    | Validation Mean MAE  | Test Mean MAE  | Model Checkpoint | 
 |------------------|------------| ----------- |----------------------|----------------|------------------|
-| Uni-Mol+         |     12     |  48.6 M     | 0.4088               | 0.4143         | [link](https://github.com/dptech-corp/Uni-Mol/releases/download/v0.2/unimol_plus_oc20_base.pt)          |
+| Uni-Mol+         |     12     |  48.6 M     | 0.4088               | 0.4143         | [link](https://github.com/deepmodeling/Uni-Mol/releases/download/v0.2/unimol_plus_oc20_base.pt)          |
 
 
 Dependencies
 ------------
- - [Uni-Core](https://github.com/dptech-corp/Uni-Core) with pytorch > 2.0.0, check its [Installation Documentation](https://github.com/dptech-corp/Uni-Core#installation).
+ - [Uni-Core](https://github.com/deepmodeling/Uni-Core) with pytorch > 2.0.0, check its [Installation Documentation](https://github.com/deepmodeling/Uni-Core#installation).
  - rdkit==2022.09.3, install via `pip install rdkit==2022.09.3`
  - numba and pandas, install via `pip install numba pandas`
 
@@ -128,4 +128,4 @@ Please kindly cite this paper if you use the data/code/model.
 License
 -------
 
-This project is licensed under the terms of the MIT license. See [LICENSE](https://github.com/dptech-corp/Uni-Mol/blob/main/LICENSE) for additional details.
+This project is licensed under the terms of the MIT license. See [LICENSE](https://github.com/deepmodeling/Uni-Mol/blob/main/LICENSE) for additional details.
