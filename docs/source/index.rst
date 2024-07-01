@@ -24,6 +24,7 @@ Uni-Mol tools is a easy-use wrappers for property prediction,representation and 
    models
    task
    utils
+   weight
    features
 
 Indices and tables
