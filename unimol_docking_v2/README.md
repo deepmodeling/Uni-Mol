@@ -12,7 +12,7 @@ Service of Uni-Mol Docking V2 is avaiable at https://bohrium.dp.tech/apps/unimol
 
 Dependencies
 ------------
- - [Uni-Core](https://github.com/dptech-corp/Uni-Core), check its [Installation Documentation](https://github.com/dptech-corp/Uni-Core#installation).
+ - [Uni-Core](https://github.com/deepmodeling/Uni-Core), check its [Installation Documentation](https://github.com/deepmodeling/Uni-Core#installation).
  - rdkit==2022.9.3, install via `pip install rdkit-pypi==2022.9.3 -i https://pypi.tuna.tsinghua.edu.cn/simple/ --trusted-host pypi.tuna.tsinghua.edu.cn`
   - biopandas==0.4.1, install via `pip install biopandas`
 
@@ -21,7 +21,7 @@ Data
 | Data                     | File Size  | Update Date | Download Link                                                                                                             | 
 |--------------------------|------------| ----------- |---------------------------------------------------------------------------------------------------------------------------|
 | Raw training data       | 4.95GB   | May 14 2024 |https://zenodo.org/records/11191555     |
-| Posebusters and Astex   | 8.2MB   | Nov 16 2023 |https://github.com/dptech-corp/Uni-Mol/files/13352676/eval_sets.zip     |
+| Posebusters and Astex   | 8.2MB   | Nov 16 2023 |https://github.com/deepmodeling/Uni-Mol/files/13352676/eval_sets.zip     |
 
 
 Note that we use the `Posebusters V1` (428 datapoints, released in August 2023). For the latest version, please refer to [Posebusters repo](https://github.com/maabuu/posebusters).
@@ -113,4 +113,4 @@ Please kindly cite this paper if you use the data/code/model.
 License
 -------
 
-This project is licensed under the terms of the MIT license. See [LICENSE](https://github.com/dptech-corp/Uni-Mol/blob/main/LICENSE) for additional details.
+This project is licensed under the terms of the MIT license. See [LICENSE](https://github.com/deepmodeling/Uni-Mol/blob/main/LICENSE) for additional details.

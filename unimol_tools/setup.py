@@ -10,7 +10,7 @@ setup(
     author="DP Technology",
     author_email="unimol@dp.tech",
     license="The MIT License",
-    url="https://github.com/dptech-corp/Uni-Mol/unimol_tools",
+    url="https://github.com/deepmodeling/Uni-Mol/unimol_tools",
     packages=find_packages(
         where='.',
         exclude=[

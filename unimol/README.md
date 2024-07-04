@@ -1,7 +1,7 @@
 Uni-Mol: A Universal 3D Molecular Representation Learning Framework 
 ===================================================================
 
-[[Paper](https://openreview.net/forum?id=6K2RM6wVqKu)], [[Uni-Mol Docking Colab](https://colab.research.google.com/github/dptech-corp/Uni-Mol/blob/main/unimol/notebooks/unimol_binding_pose_demo.ipynb)]
+[[Paper](https://openreview.net/forum?id=6K2RM6wVqKu)], [[Uni-Mol Docking Colab](https://colab.research.google.com/github/deepmodeling/Uni-Mol/blob/main/unimol/notebooks/unimol_binding_pose_demo.ipynb)]
 
 Authors: Gengmo Zhou, Zhifeng Gao, Qiankun Ding, Hang Zheng, Hongteng Xu, Zhewei Wei, Linfeng Zhang, Guolin Ke 
 
@@ -63,8 +63,8 @@ Uni-Mol's pretrained model weights
 
 | Model                     | File Size  |Update Date | Download Link                                                | 
 |--------------------------|------------| ------------|--------------------------------------------------------------|
-| molecular pretrain       | 181MB   | Aug 17 2022 |https://github.com/dptech-corp/Uni-Mol/releases/download/v0.1/mol_pre_no_h_220816.pt                |
-| pocket pretrain          | 181MB   | Aug 17 2022 |https://github.com/dptech-corp/Uni-Mol/releases/download/v0.1/pocket_pre_220816.pt                  |
+| molecular pretrain       | 181MB   | Aug 17 2022 |https://github.com/deepmodeling/Uni-Mol/releases/download/v0.1/mol_pre_no_h_220816.pt                |
+| pocket pretrain          | 181MB   | Aug 17 2022 |https://github.com/deepmodeling/Uni-Mol/releases/download/v0.1/pocket_pre_220816.pt                  |
 
 
 Uni-Mol's finetuned model weights
@@ -72,14 +72,14 @@ Uni-Mol's finetuned model weights
 
 | Model                                           | File Size| Update Date| Download Link                                                     | 
 |-------------------------------------------------|---------| -----------|--------------------------------------------------------------------|
-| molecular conformation generation (qm9)         | 181MB   | Sep 8 2022 |https://github.com/dptech-corp/Uni-Mol/releases/download/v0.1/qm9_220908.pt    |
-| molecular conformation generation (drugs)       | 181MB   | Sep 8 2022 |https://github.com/dptech-corp/Uni-Mol/releases/download/v0.1/drugs_220908.pt  |
-| Protein-ligand binding pose prediction          | 415MB   | Sep 8 2022 |https://github.com/dptech-corp/Uni-Mol/releases/download/v0.1/binding_pose_220908.pt      |
+| molecular conformation generation (qm9)         | 181MB   | Sep 8 2022 |https://github.com/deepmodeling/Uni-Mol/releases/download/v0.1/qm9_220908.pt    |
+| molecular conformation generation (drugs)       | 181MB   | Sep 8 2022 |https://github.com/deepmodeling/Uni-Mol/releases/download/v0.1/drugs_220908.pt  |
+| Protein-ligand binding pose prediction          | 415MB   | Sep 8 2022 |https://github.com/deepmodeling/Uni-Mol/releases/download/v0.1/binding_pose_220908.pt      |
 
 
 Dependencies
 ------------
- - [Uni-Core](https://github.com/dptech-corp/Uni-Core), check its [Installation Documentation](https://github.com/dptech-corp/Uni-Core#installation).
+ - [Uni-Core](https://github.com/deepmodeling/Uni-Core), check its [Installation Documentation](https://github.com/deepmodeling/Uni-Core#installation).
  - rdkit==2022.9.3, install via `pip install rdkit-pypi==2022.9.3`
 
 To use GPUs within docker you need to [install nvidia-docker-2](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html#docker) first. Use the following command to pull the docker image:
@@ -268,7 +268,7 @@ For ClinTox, Tox21, ToxCast, SIDER, HIV, PCBA and MUV, we set `loss_func=multi_t
 For ESOL, FreeSolv and Lipo, we set `loss_func=finetune_mse`.
 For QM7, QM8 and QM9, we set `loss_func=finetune_smooth_mae`.
 
-**NOTE**: Our first version of the molecular pretraining ran with **all hydrogen** pretrained model, and above hyper-parameters are also for **all hydrogen** pretrained model. You can download the [all hydrogen model parameter](https://github.com/dptech-corp/Uni-Mol/releases/download/v0.1/mol_pre_all_h_220816.pt) here, and use it with `only_polar=-1` to reproduce our results. The performance of pretraining model with **no hydrogen** is very close to the **all hydrogen** one in molecular property prediction. We will update the hyperparameters for the no hydrogen version later.
+**NOTE**: Our first version of the molecular pretraining ran with **all hydrogen** pretrained model, and above hyper-parameters are also for **all hydrogen** pretrained model. You can download the [all hydrogen model parameter](https://github.com/deepmodeling/Uni-Mol/releases/download/v0.1/mol_pre_all_h_220816.pt) here, and use it with `only_polar=-1` to reproduce our results. The performance of pretraining model with **no hydrogen** is very close to the **all hydrogen** one in molecular property prediction. We will update the hyperparameters for the no hydrogen version later.
 
 **NOTE**: For reproduce, you can do the validation on test set while training, with `--valid-subset valid` changing to `--valid-subset valid,test`. The model selection is still based on the performance of the valid set. It is controlled by `--best-checkpoint-metric $metric`.
 
@@ -537,4 +537,4 @@ Please kindly cite this paper if you use the data/code/model.
 License
 -------
 
-This project is licensed under the terms of the MIT license. See [LICENSE](https://github.com/dptech-corp/Uni-Mol/blob/main/LICENSE) for additional details.
+This project is licensed under the terms of the MIT license. See [LICENSE](https://github.com/deepmodeling/Uni-Mol/blob/main/LICENSE) for additional details.
