@@ -30,7 +30,7 @@ class TTADataset(BaseWrapperDataset):
         atoms = np.array(self.dataset[smi_idx][self.atoms])
         coordinates = np.array(self.dataset[smi_idx][self.coordinates][coord_idx])
         smi = self.dataset[smi_idx]["smi"]
-        target = self.dataset[smi_idx]["target"]
+        target = self.dataset[smi_idx].get("target", None)
         return {
             "atoms": atoms,
             "coordinates": coordinates.astype(np.float32),
