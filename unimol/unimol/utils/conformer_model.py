@@ -12,7 +12,7 @@ import pickle
 import argparse
 import warnings
 from docking_utils import rmsd_func
-from typing import List
+from typing import List, Optional
 
 
 warnings.filterwarnings(action="ignore")
