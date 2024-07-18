@@ -1,5 +1,1 @@
-<<<<<<< HEAD
 git+git://github.com/dptech-corp/Uni-Core.git@stable#egg=Uni-Core
-=======
-git+git://github.com/deepmodeling/Uni-Core.git@stable#egg=Uni-Core
->>>>>>> upstream/main
