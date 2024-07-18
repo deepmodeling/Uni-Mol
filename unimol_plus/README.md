@@ -26,7 +26,7 @@ In the [OC20](https://opencatalystproject.org/leaderboard.html) IS2RE  benchmark
 
 Dependencies
 ------------
- - [Uni-Core](https://github.com/deepmodeling/Uni-Core) with pytorch > 2.0.0, check its [Installation Documentation](https://github.com/deepmodeling/Uni-Core#installation).
+ - [Uni-Core](https://github.com/dptech-corp/Uni-Core) with pytorch > 2.0.0, check its [Installation Documentation](https://github.com/dptech-corp/Uni-Core#installation).
  - rdkit==2022.09.3, install via `pip install rdkit==2022.09.3`
  - numba and pandas, install via `pip install numba pandas`
 
