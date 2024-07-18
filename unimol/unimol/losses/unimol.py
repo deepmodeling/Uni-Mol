@@ -185,6 +185,8 @@ class UniMolInferLoss(UnicoreLoss):
     def __init__(self, task):
         super().__init__(task)
         self.padding_idx = task.dictionary.pad()
+        self.bos_idx = task.dictionary.bos()
+        self.eos_idx = task.dictionary.eos()
 
     def forward(self, model, sample, reduce=True):
         """Compute the loss for the given sample.
@@ -196,12 +198,14 @@ class UniMolInferLoss(UnicoreLoss):
         """
         input_key = "net_input"
         target_key = "target"
-        src_tokens = sample[input_key]["src_tokens"].ne(self.padding_idx)
+        src_tokens = sample[input_key]["src_tokens"]
+        token_mask = (src_tokens.ne(self.padding_idx) & src_tokens.ne(self.bos_idx) & src_tokens.ne(self.eos_idx))
         (
             encoder_rep,
             encoder_pair_rep,
         ) = model(**sample[input_key], features_only=True)
         sample_size = sample[input_key]["src_tokens"].size(0)
+        encoder_rep_list = []
         encoder_pair_rep_list = []
         if 'pdb_id' in sample[target_key].keys():
             name_key = 'pdb_id'
@@ -210,10 +214,12 @@ class UniMolInferLoss(UnicoreLoss):
         else:
             raise NotImplementedError("No name key in the original data")
 
-        for i in range(sample_size):  # rm padding token
-            encoder_pair_rep_list.append(encoder_pair_rep[i][src_tokens[i], :][:, src_tokens[i]].data.cpu().numpy())
+        for i in range(sample_size):  # rm padding bos eos token
+            encoder_rep_list.append(encoder_rep[i][token_mask[i]].data.cpu().numpy())
+            encoder_pair_rep_list.append(encoder_pair_rep[i][token_mask[i], :][:, token_mask[i]].data.cpu().numpy())
         logging_output = {
                 "mol_repr_cls": encoder_rep[:, 0, :].data.cpu().numpy(),  # get cls token
+                "atom_repr": encoder_rep_list,
                 "pair_repr": encoder_pair_rep_list,
                 "data_name": sample[target_key][name_key],
                 "bsz": sample[input_key]["src_tokens"].size(0),

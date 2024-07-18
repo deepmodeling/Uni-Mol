@@ -2,8 +2,8 @@ Uni-Mol Docking V2
 ===================================================================
 [![arXiv](https://img.shields.io/badge/arXiv-2405.11769-00ff00.svg)](https://arxiv.org/abs/2405.11769) ![Static Badge](https://img.shields.io/badge/Bohrium_Apps-Uni--Mol_Docking_V2-blue?link=https%3A%2F%2Fbohrium.dp.tech%2Fapps%2Funimoldockingv2)
 
-<p align="center"><img src="figure/bohrium_app.png" width=60%></p>
-<p align="center"><b>Uni-Mol Docking V2 Bohrium App Interface</b></p>
+<p align="center"><img src="figure/bohrium_app.gif" width=60%></p>
+<p align="center"><b>Uni-Mol Docking V2 Bohrium App</b></p>
 
 We update Uni-Mol Docking to Uni-Mol Docking V2, which demonstrates a remarkable improvement in performance, accurately predicting the binding poses of 77+% of ligands in the PoseBusters benchmark with an RMSD value of less than 2.0 Å, and 75+\% passing all quality checks. This represents a significant increase from the 62% achieved by the previous Uni-Mol Docking model. Notably, our Uni-Mol Docking approach generates chemically accurate predictions, circumventing issues such as chirality inversions and steric
 clashes that have plagued previous ML models.
@@ -12,7 +12,7 @@ Service of Uni-Mol Docking V2 is avaiable at https://bohrium.dp.tech/apps/unimol
 
 Dependencies
 ------------
- - [Uni-Core](https://github.com/dptech-corp/Uni-Core), check its [Installation Documentation](https://github.com/dptech-corp/Uni-Core#installation).
+ - [Uni-Core](https://github.com/deepmodeling/Uni-Core), check its [Installation Documentation](https://github.com/deepmodeling/Uni-Core#installation).
  - rdkit==2022.9.3, install via `pip install rdkit-pypi==2022.9.3 -i https://pypi.tuna.tsinghua.edu.cn/simple/ --trusted-host pypi.tuna.tsinghua.edu.cn`
   - biopandas==0.4.1, install via `pip install biopandas`
 
@@ -43,7 +43,7 @@ Results
 | DiffDock        |  37.9 |71.76  |
 | UMol |   45| - | 
 | Vina      |  52.3  | 57.65 | 
-| Uni-Mol Docking     |  58.9 | 82.35 | 
+| Uni-Mol Docking     |  62.4 | 82.35 | 
 | AlphaFold latest     |  73.6 | - |
 | **Uni-Mol Docking V2**   |  **77.6** | **95.29**|
 

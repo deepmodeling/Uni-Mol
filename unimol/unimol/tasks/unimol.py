@@ -31,6 +31,7 @@ from unimol.data import (
     RightPadDatasetCoord,
     Add2DConformerDataset,
     LMDBDataset,
+    TTADataset,
 )
 from unicore.tasks import UnicoreTask, register_task
 
@@ -107,6 +108,12 @@ class UniMolTask(UnicoreTask):
             type=int,
             help="1: only polar hydrogen ; -1: all hydrogen ; 0: remove all hydrogen ",
         )
+        parser.add_argument(
+            "--conf-size",
+            default=10,
+            type=int,
+            help="number of conformers generated with each molecule",
+        )
 
     def __init__(self, args, dictionary):
         super().__init__(args)
@@ -141,11 +148,17 @@ class UniMolTask(UnicoreTask):
                 raw_dataset = Add2DConformerDataset(
                     raw_dataset, "smi", "atoms", "coordinates"
                 )
-            smi_dataset = KeyDataset(raw_dataset, "smi")
-            dataset = ConformerSampleDataset(
-                raw_dataset, coord_seed, "atoms", "coordinates"
-            )
-            dataset = AtomTypeDataset(raw_dataset, dataset)
+                smi_dataset = KeyDataset(raw_dataset, "smi")
+                dataset = ConformerSampleDataset(
+                    raw_dataset, coord_seed, "atoms", "coordinates"
+                )
+                dataset = AtomTypeDataset(raw_dataset, dataset)
+            elif self.args.mode == 'infer':
+                dataset = TTADataset(
+                    raw_dataset, self.args.seed, "atoms", "coordinates", self.args.conf_size
+                )
+                dataset = AtomTypeDataset(dataset, dataset)
+                smi_dataset = KeyDataset(dataset, "smi")
             dataset = RemoveHydrogenDataset(
                 dataset,
                 "atoms",
