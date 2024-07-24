@@ -9,7 +9,12 @@ except:
     def snapshot_download(*args, **kwargs):
         raise ImportError('huggingface_hub is not installed. If weights are not avaliable, please install it by running: pip install huggingface_hub. Otherwise, please download the weights manually from https://huggingface.co/dptech/Uni-Mol-Models')
 
-WEIGHT_DIR = os.path.dirname(os.path.abspath(__file__))
+WEIGHT_DIR = os.environ.get('UNIMOL_WEIGHT_DIR', os.path.dirname(os.path.abspath(__file__)))
+
+if 'UNIMOL_WEIGHT_DIR' in os.environ:
+    logger.warning(f'Using custom weight directory from UNIMOL_WEIGHT_DIR: {WEIGHT_DIR}')
+else:
+    logger.info(f'Weights will be downloaded to default directory: {WEIGHT_DIR}')
 
 os.environ["HF_ENDPOINT"] = "https://hf-mirror.com" # use mirror to download weights
 
