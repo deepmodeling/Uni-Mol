@@ -5,16 +5,14 @@ Official Repository for the Uni-Mol Series Methods
 
 Welcome to the official repository for the Uni-Mol series methods!
 
-Shortcuts
----------
+## Navigation 
 
-- [Uni-Mol](./unimol/)
-- [Uni-Mol+](./unimol_plus/)
-- [Uni-Mol Tools](./unimol_tools/)
-- [Uni-Mol Docking V2](./unimol_docking_v2/)
-
-
-**Note**: if you want to install or run our codes, please `cd` to subfolders first.
+| Fold | In Short | Description  |
+|------------------------|---------------------------|-------------|
+| [Uni-Mol](./unimol/) | Molecule Representation Framework | Uni-Mol is a universal 3D molecular representation learning framework designed for various downstreams tasks. You can use Uni-Mol in various molecule related tasks, including molecule property prediction, binding pose prediction etc. Released with [Zhou et al. 2022](https://openreview.net/forum?id=6K2RM6wVqKu) (ICLR 2023 version).|
+| [Uni-Mol+](./unimol_plus/) | Molecule Quantumn Chemical Modeling | Un-Mol+ is design for molecule quantumn chemical property prediction, and ranks the 1st in two well-known benchmarks, OGB-LSC and OC20. You can use Uni-Mol+ in molecule geometry related tasks, such as conformation generation and optimization, quantumn property prediction. Released with [Lu et al. 2023](https://arxiv.org/pdf/2303.16982) (Nat Comm, Aug 2024). |
+| [Uni-Mol Tools](./unimol_tools/) | Molecule Property Prediction Tools | Uni-Mol tools is a easy-use wrappers for automatic property prediction, representation with Uni-Mol. You can install with `pip install unimol-tools`. Released with [Gao et al. 2023](https://arxiv.org/pdf/2304.12239). (Arixv, Apr 2023).|
+| [Uni-Mol Docking](./unimol_docking_v2/) | Protein Ligand Docking Tools | Uni-Mol Docking achieves industry-leading performance in complex structure prediction, comparable to AlphaFold3. You can use Uni-Mol Docking for target docking with given pockets. Released with [E Alcaide et al. 2024](https://arxiv.org/pdf/2405.11769). (Arixv, May 2024).|
 
 
 Uni-Mol: A Universal 3D Molecular Representation Learning Framework
