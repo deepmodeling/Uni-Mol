@@ -134,13 +134,15 @@ Please kindly cite our papers if you use the data/code/model.
   year={2023},
   url={https://openreview.net/forum?id=6K2RM6wVqKu}
 }
-@misc{lu2023highly,
-      title={Highly Accurate Quantum Chemical Property Prediction with Uni-Mol+}, 
-      author={Shuqi Lu and Zhifeng Gao and Di He and Linfeng Zhang and Guolin Ke},
-      year={2023},
-      eprint={2303.16982},
-      archivePrefix={arXiv},
-      primaryClass={physics.chem-ph}
+@article{lu2024data,
+  title={Data-driven quantum chemical property prediction leveraging 3D conformations with Uni-Mol+},
+  author={Lu, Shuqi and Gao, Zhifeng and He, Di and Zhang, Linfeng and Ke, Guolin},
+  journal={Nature Communications},
+  volume={15},
+  number={1},
+  pages={7104},
+  year={2024},
+  publisher={Nature Publishing Group UK London}
 }
 ```
 
