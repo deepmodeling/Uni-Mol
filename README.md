@@ -68,6 +68,8 @@ Service of Uni-Mol Docking V2 is avaiable at https://bohrium.dp.tech/apps/unimol
 
 News
 ----
+**Sep 26 2024**: [Uni-Mol2](https://openreview.net/forum?id=64V40K2fDv) is accepted by NeurIPS 2024, our data, code, and model weights will be released soon.
+
 **Aug 19 2024**: Uni-Mol+ is accepted by Nature Communications, reference: [Data-driven quantum chemical property prediction leveraging 3D conformations with Uni-Mol+](https://www.nature.com/articles/s41467-024-51321-w).
 
 **Jul 1 2024**: We release [Uni-Mol2 arxiv report](https://arxiv.org/pdf/2406.14969), the largest molecular pretraining model to date with 1.1B parameters through pretraining on 800M conformations.
