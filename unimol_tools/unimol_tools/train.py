@@ -43,6 +43,7 @@ class MolTrain(object):
                 use_amp=True,
                 freeze_layers=None,               
                 freeze_layers_reversed=False,     
+                load_model_dir=None,              # load model for transfer learning
                 **params,
                 ):
         """
@@ -87,7 +88,11 @@ class MolTrain(object):
         :param params: dict, default=None, other parameters.
 
         """
-        config_path = os.path.join(os.path.dirname(__file__), 'config/default.yaml')
+        if load_model_dir is not None:
+            config_path = os.path.join(load_model_dir, 'config.yaml')
+            logger.info('Load config file from {}'.format(config_path))
+        else:
+            config_path = os.path.join(os.path.dirname(__file__), 'config/default.yaml')
         self.yamlhandler = YamlHandler(config_path)
         config = self.yamlhandler.read_yaml()
         config.task = task
@@ -111,6 +116,7 @@ class MolTrain(object):
         config.use_amp = use_amp
         config.freeze_layers = freeze_layers
         config.freeze_layers_reversed = freeze_layers_reversed
+        config.load_model_dir = load_model_dir
         self.save_path = save_path
         self.config = config
 
