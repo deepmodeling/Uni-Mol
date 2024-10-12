@@ -34,6 +34,7 @@ class MolTrain(object):
                 save_path='./exp',
                 remove_hs=False,
                 smiles_col='SMILES',
+                target_cols=None,
                 target_col_prefix='TARGET',
                 target_anomaly_check="filter",
                 smiles_check="filter",
@@ -75,6 +76,7 @@ class MolTrain(object):
         :param save_path: str, default='./exp', path to save training results.
         :param remove_hs: bool, default=False, whether to remove hydrogens from molecules.
         :param smiles_col: str, default='SMILES', column name of SMILES.
+        :param target_cols: list or str, default=None, column names of target values.
         :param target_col_prefix: str, default='TARGET', prefix of target column name.
         :param target_anomaly_check: str, default='filter', how to deal with anomaly target values. currently support: filter, none.
         :param smiles_check: str, default='filter', how to deal with invalid SMILES. currently support: filter, none.
@@ -86,6 +88,7 @@ class MolTrain(object):
         :param freeze_layers: str or list, frozen layers by startwith name list. ['encoder', 'gbf'] will freeze all the layers whose name start with 'encoder' or 'gbf'.
         :param freeze_layers_reversed: bool, default=False, inverse selection of frozen layers
         :param params: dict, default=None, other parameters.
+        :param load_model_dir: str, default=None, path to load model for transfer learning.
 
         """
         if load_model_dir is not None:
@@ -107,6 +110,7 @@ class MolTrain(object):
         config.kfold = kfold
         config.remove_hs = remove_hs
         config.smiles_col = smiles_col
+        config.target_cols = target_cols
         config.target_col_prefix = target_col_prefix
         config.anomaly_clean = target_anomaly_check in ['filter']
         config.smi_strict = smiles_check in ['filter']
