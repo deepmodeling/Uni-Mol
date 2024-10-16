@@ -1,4 +1,6 @@
-# Tutorial
+# Quick start
+
+Quick start for UniMol Tools.
 
 ## Molecule property prediction
 
@@ -41,6 +43,7 @@ res = clf.predict(data = test_data)
 Uni-Mol representation can easily be achieved as follow.
 
 ```python
+import numpy as np
 from unimol_tools import UniMolRepr
 # single smiles unimol representation
 clf = UniMolRepr(data_type='molecule', remove_hs=False)
