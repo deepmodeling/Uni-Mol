@@ -67,8 +67,22 @@ Check this [subfolder](./unimol_docking_v2/) for more detalis.
 
 Service of Uni-Mol Docking V2 is avaiable at https://bohrium.dp.tech/apps/unimoldockingv2
 
+Uni-Mol2: Exploring Molecular Pretraining Model at Scale
+==================================================================
+
+<p align="center">
+    <img src="unimol2/figure/unimol2_arch.jpg" alt="overview" width="800" />
+</p>
+
+We present Uni-Mol2 , an innovative molecular pretraining model that leverages a two-track transformer to effectively integrate features at the atomic level, graph level, and geometry structure level. Along with this, we systematically investigate the scaling law within molecular pretraining models, characterizing the power-law correlations between validation loss and model size, dataset size, and computational resources. Consequently, we successfully scale Uni-Mol2 to 1.1 billion parameters through pretraining on 800 million conformations, making it the largest molecular pretraining model to date.
+
+Check this [subfolder](./unimol2/) for more detalis.
+
+
 News
 ----
+**Oct 10 2024**: We release Uni-Mol2 with code, demo and pretraining weights, scales from 8.4M to 1.1B.
+
 **Sep 26 2024**: [Uni-Mol2](https://openreview.net/forum?id=64V40K2fDv) is accepted by NeurIPS 2024, our data, code, and model weights will be released soon.
 
 **Aug 19 2024**: Uni-Mol+ is accepted by Nature Communications, reference: [Data-driven quantum chemical property prediction leveraging 3D conformations with Uni-Mol+](https://www.nature.com/articles/s41467-024-51321-w).
