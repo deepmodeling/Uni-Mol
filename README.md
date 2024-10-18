@@ -69,6 +69,7 @@ Service of Uni-Mol Docking V2 is avaiable at https://bohrium.dp.tech/apps/unimol
 
 Uni-Mol2: Exploring Molecular Pretraining Model at Scale
 ==================================================================
+[![arXiv](https://img.shields.io/badge/arXiv-2406.14969-00ff00.svg)](https://arxiv.org/pdf/2406.14969)
 
 <p align="center">
     <img src="unimol2/figure/unimol2_arch.jpg" alt="overview" width="800" />
