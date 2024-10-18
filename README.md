@@ -5,24 +5,20 @@ Official Repository for the Uni-Mol Series Methods
 
 Welcome to the official repository for the Uni-Mol series methods!
 
-Shortcuts
----------
+## Navigation 
 
-- [Uni-Mol](./unimol/)
-- [Uni-Mol+](./unimol_plus/)
-- [Uni-Mol Tools](./unimol_tools/)
-- [Uni-Mol Docking V2](./unimol_docking_v2/)
-
-
-**Note**: if you want to install or run our codes, please `cd` to subfolders first.
+| Fold | In Short | Description  |
+|------------------------|---------------------------|-------------|
+| [Uni-Mol](./unimol/) | Molecule Representation Framework | Uni-Mol is a universal 3D molecular representation learning framework designed for various downstreams tasks. You can use Uni-Mol in various molecule related tasks, including molecule property prediction, binding pose prediction etc. Released with [Zhou et al. 2022](https://openreview.net/forum?id=6K2RM6wVqKu) (ICLR 2023).|
+| [Uni-Mol+](./unimol_plus/) | Molecule Quantumn Chemical Modeling | Un-Mol+ is design for molecule quantumn chemical property prediction, and ranks the 1st in two well-known benchmarks, OGB-LSC and OC20. You can use Uni-Mol+ in molecule geometry related tasks, such as conformation generation and optimization, quantumn property prediction. Released with [Lu et al. 2023](https://www.nature.com/articles/s41467-024-51321-w) (Nat Comm, Aug 2024). |
+| [Uni-Mol Tools](./unimol_tools/) | Molecule Property Prediction Tools | Uni-Mol tools is a easy-use wrappers for automatic property prediction, representation with Uni-Mol. You can install with `pip install unimol-tools`. Released with [Gao et al. 2023](https://arxiv.org/pdf/2304.12239). (Arxiv Report, Apr 2023).|
+| [Uni-Mol Docking](./unimol_docking_v2/) | Protein Ligand Docking Tools | Uni-Mol Docking achieves industry-leading performance in complex structure prediction, comparable to AlphaFold3. You can use Uni-Mol Docking for target docking with given pockets. Released with [E Alcaide et al. 2024](https://arxiv.org/pdf/2405.11769). (Arxiv Report, May 2024).|
 
 
 Uni-Mol: A Universal 3D Molecular Representation Learning Framework
 -------------------------------------------------------------------
 
-[[Paper](https://openreview.net/forum?id=6K2RM6wVqKu)], [[Uni-Mol Docking Colab](https://colab.research.google.com/github/deepmodeling/Uni-Mol/blob/main/unimol/notebooks/unimol_binding_pose_demo.ipynb)]
-
-Authors: Gengmo Zhou, Zhifeng Gao, Qiankun Ding, Hang Zheng, Hongteng Xu, Zhewei Wei, Linfeng Zhang, Guolin Ke 
+[[Paper](https://openreview.net/forum?id=6K2RM6wVqKu)], [[Uni-Mol Property Prediction Service](https://bohrium.dp.tech/apps/qsar-web-new)],[[Uni-Mol Docking Service](https://bohrium.dp.tech/apps/unimoldockingv2)]
 
 <p align="center"><img src="unimol/figure/overview.png" width=60%></p>
 <p align="center"><b>Schematic illustration of the Uni-Mol framework</b></p>
@@ -72,6 +68,12 @@ Service of Uni-Mol Docking V2 is avaiable at https://bohrium.dp.tech/apps/unimol
 
 News
 ----
+**Sep 26 2024**: [Uni-Mol2](https://openreview.net/forum?id=64V40K2fDv) is accepted by NeurIPS 2024, our data, code, and model weights will be released soon.
+
+**Aug 19 2024**: Uni-Mol+ is accepted by Nature Communications, reference: [Data-driven quantum chemical property prediction leveraging 3D conformations with Uni-Mol+](https://www.nature.com/articles/s41467-024-51321-w).
+
+**Jul 1 2024**: We release [Uni-Mol2 arxiv report](https://arxiv.org/pdf/2406.14969), the largest molecular pretraining model to date with 1.1B parameters through pretraining on 800M conformations.
+
 **May 20 2024**: We release Uni-Mol Docking V2, including data, model and weight.
 
 **Jul 7 2023**: We update a new version of Uni-Mol+, including the model setting for OC20 and a better performance on PCQM4MV2. 
@@ -134,13 +136,15 @@ Please kindly cite our papers if you use the data/code/model.
   year={2023},
   url={https://openreview.net/forum?id=6K2RM6wVqKu}
 }
-@misc{lu2023highly,
-      title={Highly Accurate Quantum Chemical Property Prediction with Uni-Mol+}, 
-      author={Shuqi Lu and Zhifeng Gao and Di He and Linfeng Zhang and Guolin Ke},
-      year={2023},
-      eprint={2303.16982},
-      archivePrefix={arXiv},
-      primaryClass={physics.chem-ph}
+@article{lu2024data,
+  title={Data-driven quantum chemical property prediction leveraging 3D conformations with Uni-Mol+},
+  author={Lu, Shuqi and Gao, Zhifeng and He, Di and Zhang, Linfeng and Ke, Guolin},
+  journal={Nature Communications},
+  volume={15},
+  number={1},
+  pages={7104},
+  year={2024},
+  publisher={Nature Publishing Group UK London}
 }
 ```
 

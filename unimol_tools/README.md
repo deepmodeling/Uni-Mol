@@ -50,7 +50,16 @@ export HF_ENDPOINT=https://hf-mirror.com
 
 Setting the `HF_ENDPOINT` environment variable specifies the mirror address for the Hugging Face Hub to use when downloading models.
 
+### Modify the default directory for weights
+
+Setting the `UNIMOL_WEIGHT_DIR` environment variable specifies the directory for pre-trained weights if the weights have been downloaded from another source.
+
+```bash
+export UNIMOL_WEIGHT_DIR=/path/to/your/weights/dir/
+```
+
 ## News
+- 2024-07-23: User experience improvements: Add `UNIMOL_WEIGHT_DIR`.
 - 2024-06-25: unimol_tools has been publish to pypi! Huggingface has been used to manage the pretrain models.
 - 2024-06-20: unimol_tools v0.1.0 released, we remove the dependency of Uni-Core. And we will publish to pypi soon.
 - 2024-03-20: unimol_tools documents is available at https://unimol.readthedocs.io/en/latest/
