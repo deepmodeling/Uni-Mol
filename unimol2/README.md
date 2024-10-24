@@ -50,6 +50,7 @@ arch=unimol2_$arch_name
 
 data_path='Your Data Path"
 weight_path="Your Checkpoint Path"
+weight_path=$weight_path/$weight_name
 
 drop_feat_prob=1.0
 use_2d_pos=0.0
