@@ -1,6 +1,6 @@
-# UniMol School
+# Uni-Mol School
 
-Welcome to UniMol School! This course is designed to provide comprehensive training on UniMol, a powerful tool for molecular modeling and simulations.
+Welcome to Uni-Mol School! This course is designed to provide comprehensive training on Uni-Mol, a powerful tool for molecular modeling and simulations.
 
 ## Course Introduction
 The properties of drugs are determined by their three-dimensional structures, which are crucial for their efficacy and absorption. Drug design requires consideration of molecular diversity. Current Molecular Representation Learning (MRL) models mainly utilize one-dimensional or two-dimensional data, with limited capability to integrate 3D information.
@@ -21,6 +21,6 @@ Uni-Mol, developed by the DP Technology team, is the first general large-scale 3
 |  | Biomedical Science Uni-Mol Notebook Case Study | |
 
 ## How to Enroll
-Enroll now and start your journey with UniMol! [Click here to enroll](https://bohrium.dp.tech/courses/6134196349?tab=courses)
+Enroll now and start your journey with Uni-Mol! [Click here to enroll](https://bohrium.dp.tech/courses/6134196349?tab=courses)
 
-Don't miss this opportunity to advance your knowledge and skills in molecular modeling with UniMol!
+Don't miss this opportunity to advance your knowledge and skills in molecular modeling with Uni-Mol!

@@ -44,7 +44,7 @@ Uni-Mol tools is a easy-use wrappers for property prediction,representation and 
 
 .. toctree::
    :maxdepth: 2
-   :caption: UniMol tools:
+   :caption: Uni-Mol tools:
 
    train
    data
