@@ -43,6 +43,8 @@ class MolTrain(object):
                 use_amp=True,
                 freeze_layers=None,               
                 freeze_layers_reversed=False,     
+                model_name='unimolv1',
+                model_size='84m',
                 **params,
                 ):
         """
@@ -111,6 +113,8 @@ class MolTrain(object):
         config.use_amp = use_amp
         config.freeze_layers = freeze_layers
         config.freeze_layers_reversed = freeze_layers_reversed
+        config.model_name = model_name
+        config.model_size = model_size
         self.save_path = save_path
         self.config = config
 

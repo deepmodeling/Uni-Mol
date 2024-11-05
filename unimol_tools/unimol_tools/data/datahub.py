@@ -6,7 +6,7 @@ from __future__ import absolute_import, division, print_function
 import numpy as np
 from .datareader import MolDataReader
 from .datascaler import TargetScaler
-from .conformer import ConformerGen
+from .conformer import ConformerGen, UniMolV2Feature
 
 class DataHub(object):
     """
@@ -75,10 +75,17 @@ class DataHub(object):
         else:
             raise ValueError('Unknown task: {}'.format(self.task))
 
-        if 'atoms' in self.data and 'coordinates' in self.data:
-            no_h_list = ConformerGen(**params).transform_raw(self.data['atoms'], self.data['coordinates'])
-        else:
-            smiles_list = self.data["smiles"]                  
-            no_h_list = ConformerGen(**params).transform(smiles_list)
+        if params.get('model_name', None) == 'unimolv1':
+            if 'atoms' in self.data and 'coordinates' in self.data:
+                no_h_list = ConformerGen(**params).transform_raw(self.data['atoms'], self.data['coordinates'])
+            else:
+                smiles_list = self.data["smiles"]                  
+                no_h_list = ConformerGen(**params).transform(smiles_list)
+        elif params.get('model_name', None) == 'unimolv2':
+            if 'atoms' in self.data and 'coordinates' in self.data:
+                no_h_list = UniMolV2Feature().transform_raw(self.data['atoms'], self.data['coordinates'])
+            else:
+                smiles_list = self.data["smiles"]                  
+                no_h_list = UniMolV2Feature().transform(smiles_list)
 
         self.data['unimol_input'] = no_h_list

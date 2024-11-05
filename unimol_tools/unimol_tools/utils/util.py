@@ -41,6 +41,7 @@ def pad_1d_tokens(
 def pad_2d(
     values,
     pad_idx,
+    dim=1,
     left_pad=False,
     pad_to_length=None,
     pad_to_multiple=1,
@@ -61,7 +62,10 @@ def pad_2d(
     size = size if pad_to_length is None else max(size, pad_to_length)
     if pad_to_multiple != 1 and size % pad_to_multiple != 0:
         size = int(((size - 0.1) // pad_to_multiple + 1) * pad_to_multiple)
-    res = values[0].new(len(values), size, size).fill_(pad_idx)
+    if dim == 1:
+        res = values[0].new(len(values), size, size).fill_(pad_idx)
+    else:
+        res = values[0].new(len(values), size, size, dim).fill_(pad_idx)
 
     def copy_tensor(src, dst):
         assert dst.numel() == src.numel()
@@ -75,6 +79,7 @@ def pad_2d(
 def pad_coords(
     values,
     pad_idx,
+    dim=3,
     left_pad=False,
     pad_to_length=None,
     pad_to_multiple=1,
@@ -94,7 +99,7 @@ def pad_coords(
     size = size if pad_to_length is None else max(size, pad_to_length)
     if pad_to_multiple != 1 and size % pad_to_multiple != 0:
         size = int(((size - 0.1) // pad_to_multiple + 1) * pad_to_multiple)
-    res = values[0].new(len(values), size, 3).fill_(pad_idx)
+    res = values[0].new(len(values), size, dim).fill_(pad_idx)
 
     def copy_tensor(src, dst):
         assert dst.numel() == src.numel()
