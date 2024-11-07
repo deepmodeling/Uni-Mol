@@ -87,7 +87,7 @@ class MolTrain(object):
         :param freeze_layers: str or list, frozen layers by startwith name list. ['encoder', 'gbf'] will freeze all the layers whose name start with 'encoder' or 'gbf'.
         :param freeze_layers_reversed: bool, default=False, inverse selection of frozen layers
         :param params: dict, default=None, other parameters.
-        :param model_name: str, default='unimolv1', avaliable: unimolv1, unimolv2.
+        :param model_name: str, default='unimolv1', currently support unimolv1, unimolv2.
         :param model_size: str, default='84m', model size. work when model_name is unimolv2. avaliable: 84m, 164m, 310m, 570m, 1.1B.
 
         """

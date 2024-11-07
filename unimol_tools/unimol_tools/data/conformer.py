@@ -301,7 +301,8 @@ class UniMolV2Feature(object):
             
             inputs = []
             for atoms, coordinates in zip(atoms_list, coordinates_list):
-                inputs.append(mol2unimolv2(atoms, coordinates, self.max_atoms, remove_hs=self.remove_hs))
+                mol = create_mol_from_atoms_and_coords(atoms, coordinates)
+                inputs.append(mol2unimolv2(mol, self.max_atoms, remove_hs=self.remove_hs))
             return inputs
     
     def transform(self, smiles_list):
@@ -314,7 +315,30 @@ class UniMolV2Feature(object):
         # failed_3d_cnt = np.mean([(item['src_coord'][:,2]==0.0).all() for item in inputs])
         # logger.info('Succeeded in generating 3d conformers for {:.2f}% of molecules.'.format((1-failed_3d_cnt)*100))
         return inputs
-    
+
+def create_mol_from_atoms_and_coords(atoms, coordinates):
+    """
+    Creates an RDKit molecule object from a list of atom symbols and their corresponding coordinates.
+
+    :param atoms: (list) Atom symbols for the molecule.
+    :param coordinates: (list) Atomic coordinates for the molecule.
+    :return: RDKit molecule object.
+    """
+    mol = Chem.RWMol()
+    atom_indices = []
+
+    for atom in atoms:
+        atom_idx = mol.AddAtom(Chem.Atom(atom))
+        atom_indices.append(atom_idx)
+
+    conf = Chem.Conformer(len(atoms))
+    for i, coord in enumerate(coordinates):
+        conf.SetAtomPosition(i, coord)
+
+    mol.AddConformer(conf)
+    Chem.SanitizeMol(mol)
+    return mol
+
 def mol2unimolv2(mol, max_atoms=128, remove_hs=True, **params):
     """
     Converts atom symbols and coordinates into a unified molecular representation.

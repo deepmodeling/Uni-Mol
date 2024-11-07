@@ -180,33 +180,34 @@ class UniMolModel(nn.Module):
         cls_repr = encoder_rep[:, 0, :]  # CLS token repr
         all_repr = encoder_rep[:, :, :]  # all token repr
 
-        filtered_tensors = []
-        filtered_coords = []
-        for tokens, coord in zip(src_tokens, src_coord):
-            filtered_tensor = tokens[(tokens != 0) & (tokens != 1) & (tokens != 2)] # filter out BOS(0), EOS(1), PAD(2)
-            filtered_coord = coord[(tokens != 0) & (tokens != 1) & (tokens != 2)]
-            filtered_tensors.append(filtered_tensor)
-            filtered_coords.append(filtered_coord)
+        if return_repr:
+            filtered_tensors = []
+            filtered_coords = []
+            for tokens, coord in zip(src_tokens, src_coord):
+                filtered_tensor = tokens[(tokens != 0) & (tokens != 1) & (tokens != 2)] # filter out BOS(0), EOS(1), PAD(2)
+                filtered_coord = coord[(tokens != 0) & (tokens != 1) & (tokens != 2)]
+                filtered_tensors.append(filtered_tensor)
+                filtered_coords.append(filtered_coord)
 
-        lengths = [len(filtered_tensor) for filtered_tensor in filtered_tensors] # Compute the lengths of the filtered tensors
-        if return_repr and return_atomic_reprs:
-            cls_atomic_reprs = [] 
-            atomic_symbols = []
-            for i in range(len(all_repr)):
-                atomic_reprs = encoder_rep[i, 1:lengths[i]+1, :]
-                atomic_symbol = []
-                for atomic_num in filtered_tensors[i]:
-                    atomic_symbol.append(self.dictionary.symbols[atomic_num])
-                atomic_symbols.append(atomic_symbol)
-                cls_atomic_reprs.append(atomic_reprs)
-            return {
-                'cls_repr': cls_repr, 
-                'atomic_symbol': atomic_symbols, 
-                'atomic_coords': filtered_coords, 
-                'atomic_reprs': cls_atomic_reprs
-                }        
-        if return_repr and not return_atomic_reprs:
-            return {'cls_repr': cls_repr}  
+            lengths = [len(filtered_tensor) for filtered_tensor in filtered_tensors] # Compute the lengths of the filtered tensors
+            if return_atomic_reprs:
+                cls_atomic_reprs = [] 
+                atomic_symbols = []
+                for i in range(len(all_repr)):
+                    atomic_reprs = encoder_rep[i, 1:lengths[i]+1, :]
+                    atomic_symbol = []
+                    for atomic_num in filtered_tensors[i]:
+                        atomic_symbol.append(self.dictionary.symbols[atomic_num])
+                    atomic_symbols.append(atomic_symbol)
+                    cls_atomic_reprs.append(atomic_reprs)
+                return {
+                    'cls_repr': cls_repr, 
+                    'atomic_symbol': atomic_symbols, 
+                    'atomic_coords': filtered_coords, 
+                    'atomic_reprs': cls_atomic_reprs
+                    }        
+            else:
+                return {'cls_repr': cls_repr}  
 
         logits = self.classification_head(cls_repr)
         return logits
