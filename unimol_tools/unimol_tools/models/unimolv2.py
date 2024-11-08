@@ -12,7 +12,6 @@ from ..utils import pad_1d_tokens, pad_2d, pad_coords
 import argparse
 import pathlib
 import os
-from unicore.modules import LayerNorm, init_bert_params
 
 from .transformersv2 import AtomFeature, EdgeFeature, SE3InvariantKernel, MovementPredictionHead
 from ..utils import logger
@@ -125,7 +124,6 @@ class UniMolV2Model(nn.Module):
 
         self.classification_heads = nn.ModuleDict()
         self.dtype = torch.float32
-        self.apply(init_bert_params)
 
         self.classification_head = ClassificationHead(
             input_dim=self.args.encoder_embed_dim,

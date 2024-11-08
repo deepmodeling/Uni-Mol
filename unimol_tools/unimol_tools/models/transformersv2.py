@@ -10,8 +10,32 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.checkpoint import checkpoint
 
-from unicore.modules import softmax_dropout, LayerNorm
-from unicore.utils import permute_final_dims
+def softmax_dropout(input, dropout_prob, is_training=True, mask=None, bias=None, inplace=True):
+    """softmax dropout, and mask, bias are optional.
+    Args:
+        input (torch.Tensor): input tensor
+        dropout_prob (float): dropout probability
+        is_training (bool, optional): is in training or not. Defaults to True.
+        mask (torch.Tensor, optional): the mask tensor, use as input + mask . Defaults to None.
+        bias (torch.Tensor, optional): the bias tensor, use as input + bias . Defaults to None.
+
+    Returns:
+        torch.Tensor: the result after softmax
+    """
+    input = input.contiguous()
+    if not inplace:
+        # copy a input for non-inplace case
+        input = input.clone()
+    if mask is not None:
+        input += mask
+    if bias is not None:
+        input += bias
+    return F.dropout(F.softmax(input, dim=-1), p=dropout_prob, training=is_training)
+
+def permute_final_dims(tensor: torch.Tensor, inds):
+    zero_index = -1 * len(inds)
+    first_inds = list(range(len(tensor.shape[:zero_index])))
+    return tensor.permute(first_inds + [zero_index + i for i in inds])
 
 class Dropout(nn.Module):
     def __init__(self, p):
@@ -400,7 +424,7 @@ class MovementPredictionHead(nn.Module):
         num_head: int,
     ):
         super().__init__()
-        self.layer_norm = LayerNorm(embed_dim)
+        self.layer_norm = nn.LayerNorm(embed_dim)
         self.embed_dim = embed_dim
         self.q_proj = Linear(embed_dim, embed_dim, bias=False, init="glorot")
         self.k_proj = Linear(embed_dim, embed_dim, bias=False, init="glorot")
@@ -409,7 +433,7 @@ class MovementPredictionHead(nn.Module):
         self.scaling = (embed_dim // num_head) ** -0.5
         self.force_proj1 = Linear(embed_dim, 1, init="final", bias=False)
         self.linear_bias = Linear(pair_dim, num_head)
-        self.pair_layer_norm = LayerNorm(pair_dim)
+        self.pair_layer_norm = nn.LayerNorm(pair_dim)
         self.dropout = 0.1
 
     def zero_init(self):
@@ -484,7 +508,7 @@ class TriangleMultiplication(nn.Module):
         self.linear_g = Linear(d_pair, d_pair, init="gating")
         self.linear_z = Linear(d_hid, d_pair, init="final")
 
-        self.layer_norm_out = LayerNorm(d_hid)
+        self.layer_norm_out = nn.LayerNorm(d_hid)
 
     def forward(
         self,
@@ -581,7 +605,7 @@ class TransformerEncoderLayerV2(nn.Module):
         )
 
         # layer norm associated with the self attention layer
-        self.self_attn_layer_norm = LayerNorm(self.embedding_dim)
+        self.self_attn_layer_norm = nn.LayerNorm(self.embedding_dim)
 
         self.ffn = Transition(
             self.embedding_dim,
@@ -590,13 +614,13 @@ class TransformerEncoderLayerV2(nn.Module):
         )
 
         # layer norm associated with the position wise feed-forward NN
-        self.final_layer_norm = LayerNorm(self.embedding_dim)
-        self.x_layer_norm_opm = LayerNorm(self.embedding_dim)
+        self.final_layer_norm = nn.LayerNorm(self.embedding_dim)
+        self.x_layer_norm_opm = nn.LayerNorm(self.embedding_dim)
 
         self.opm = OuterProduct(self.embedding_dim, pair_dim, d_hid=pair_hidden_dim)
-        # self.pair_layer_norm_opm = LayerNorm(pair_dim)
+        # self.pair_layer_norm_opm = nn.LayerNorm(pair_dim)
 
-        self.pair_layer_norm_ffn = LayerNorm(pair_dim)
+        self.pair_layer_norm_ffn = nn.LayerNorm(pair_dim)
         self.pair_ffn = Transition(
             pair_dim,
             1,
@@ -604,7 +628,7 @@ class TransformerEncoderLayerV2(nn.Module):
         )
 
         self.pair_dropout = pair_dropout
-        self.pair_layer_norm_trimul = LayerNorm(pair_dim)
+        self.pair_layer_norm_trimul = nn.LayerNorm(pair_dim)
         self.pair_tri_mul = TriangleMultiplication(pair_dim, pair_hidden_dim)
 
     def shared_dropout(self, x, shared_dim, dropout):
@@ -679,8 +703,8 @@ class TransformerEncoderWithPairV2(nn.Module):
         super().__init__()
         self.embedding_dim = embedding_dim
         self.num_head = num_attention_heads
-        self.layer_norm = LayerNorm(embedding_dim)
-        self.pair_layer_norm = LayerNorm(pair_dim)
+        self.layer_norm = nn.LayerNorm(embedding_dim)
+        self.pair_layer_norm = nn.LayerNorm(pair_dim)
         self.layers = nn.ModuleList([])
 
         if droppath_prob > 0:
