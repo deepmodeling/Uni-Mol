@@ -546,26 +546,31 @@ def molecule_architecture(model_size='84m'):
         args.encoder_embed_dim = getattr(args, "encoder_embed_dim", 768)
         args.num_attention_heads = getattr(args, "num_attention_heads", 48)
         args.ffn_embedding_dim = getattr(args, "ffn_embedding_dim", 768)
+        args.encoder_attention_heads = getattr(args, "encoder_attention_heads", 48)
     elif model_size == '164m':
         args.num_encoder_layers = getattr(args, "num_encoder_layers", 24)
         args.encoder_embed_dim = getattr(args, "encoder_embed_dim", 768)
         args.num_attention_heads = getattr(args, "num_attention_heads", 48)
         args.ffn_embedding_dim = getattr(args, "ffn_embedding_dim", 768)
+        args.encoder_attention_heads = getattr(args, "encoder_attention_heads", 48)
     elif model_size == '310m':
         args.num_encoder_layers = getattr(args, "num_encoder_layers", 32)
         args.encoder_embed_dim = getattr(args, "encoder_embed_dim", 1024)
         args.num_attention_heads = getattr(args, "num_attention_heads", 64)
         args.ffn_embedding_dim = getattr(args, "ffn_embedding_dim", 1024)
+        args.encoder_attention_heads = getattr(args, "encoder_attention_heads", 64)
     elif model_size == '570m':
         args.num_encoder_layers = getattr(args, "num_encoder_layers", 32)
         args.encoder_embed_dim = getattr(args, "encoder_embed_dim", 1536)
         args.num_attention_heads = getattr(args, "num_attention_heads", 96)
         args.ffn_embedding_dim = getattr(args, "ffn_embedding_dim", 1536)
+        args.encoder_attention_heads = getattr(args, "encoder_attention_heads", 96)
     elif model_size == '1.1B':
         args.num_encoder_layers = getattr(args, "num_encoder_layers", 64)
         args.encoder_embed_dim = getattr(args, "encoder_embed_dim", 1536)
         args.num_attention_heads = getattr(args, "num_attention_heads", 96)
         args.ffn_embedding_dim = getattr(args, "ffn_embedding_dim", 1536)
+        args.encoder_attention_heads = getattr(args, "encoder_attention_heads", 96)
     else:
         raise ValueError('Current not support data type: {}'.format(model_size))
     args.pair_embed_dim = getattr(args, "pair_embed_dim", 512)
@@ -580,7 +585,6 @@ def molecule_architecture(model_size='84m'):
     args.gaussian_std_width = getattr(args, "gaussian_std_width", 1.0)
     args.gaussian_mean_start = getattr(args, "gaussian_mean_start", 0.0)
     args.gaussian_mean_stop = getattr(args, "gaussian_mean_stop", 9.0)
-    args.encoder_attention_heads = getattr(args, "encoder_attention_heads", 48)
     args.pooler_dropout = getattr(args, "pooler_dropout", 0.0)
     args.pooler_activation_fn = getattr(args, "pooler_activation_fn", "tanh")
     return args
