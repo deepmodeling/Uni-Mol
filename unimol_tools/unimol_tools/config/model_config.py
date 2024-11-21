@@ -14,3 +14,13 @@ MODEL_CONFIG = {
         "oled": "oled.dict.txt",
     },
 }
+
+MODEL_CONFIG_V2 = {
+    'weight': {
+        '84m': 'modelzoo/84M/checkpoint.pt',
+        '164m': 'modelzoo/164M/checkpoint.pt',
+        '310m': 'modelzoo/310M/checkpoint.pt',
+        '570m': 'modelzoo/570M/checkpoint.pt',
+        '1.1B': 'modelzoo/1.1B/checkpoint.pt',
+    },
+}

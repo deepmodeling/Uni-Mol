@@ -1,1 +1,1 @@
-from .nnmodel import NNModel, UniMolModel
+from .nnmodel import NNModel, UniMolModel, UniMolV2Model

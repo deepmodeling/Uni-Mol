@@ -43,6 +43,8 @@ class MolTrain(object):
                 use_amp=True,
                 freeze_layers=None,               
                 freeze_layers_reversed=False,     
+                model_name='unimolv1',
+                model_size='84m',
                 **params,
                 ):
         """
@@ -85,6 +87,8 @@ class MolTrain(object):
         :param freeze_layers: str or list, frozen layers by startwith name list. ['encoder', 'gbf'] will freeze all the layers whose name start with 'encoder' or 'gbf'.
         :param freeze_layers_reversed: bool, default=False, inverse selection of frozen layers
         :param params: dict, default=None, other parameters.
+        :param model_name: str, default='unimolv1', currently support unimolv1, unimolv2.
+        :param model_size: str, default='84m', model size. work when model_name is unimolv2. avaliable: 84m, 164m, 310m, 570m, 1.1B.
 
         """
         config_path = os.path.join(os.path.dirname(__file__), 'config/default.yaml')
@@ -111,6 +115,8 @@ class MolTrain(object):
         config.use_amp = use_amp
         config.freeze_layers = freeze_layers
         config.freeze_layers_reversed = freeze_layers_reversed
+        config.model_name = model_name
+        config.model_size = model_size
         self.save_path = save_path
         self.config = config
 
