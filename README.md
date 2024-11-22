@@ -82,6 +82,8 @@ Check this [subfolder](./unimol2/) for more detalis.
 
 News
 ----
+**Sep 22 2024**: Uni-Mol2 is supported in unimol_tools, allowing you to utilize Uni-Mol2's representation and fine-tuning models in easy-use.
+
 **Oct 10 2024**: We release Uni-Mol2 with code, demo and pretraining weights, scales from 8.4M to 1.1B.
 
 **Sep 26 2024**: [Uni-Mol2](https://openreview.net/forum?id=64V40K2fDv) is accepted by NeurIPS 2024, our data, code, and model weights will be released soon.
