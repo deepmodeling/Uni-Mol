@@ -13,6 +13,7 @@ Welcome to the official repository for the Uni-Mol series methods!
 | [Uni-Mol+](./unimol_plus/) | Molecule Quantumn Chemical Modeling | Un-Mol+ is design for molecule quantumn chemical property prediction, and ranks the 1st in two well-known benchmarks, OGB-LSC and OC20. You can use Uni-Mol+ in molecule geometry related tasks, such as conformation generation and optimization, quantumn property prediction. Released with [Lu et al. 2023](https://www.nature.com/articles/s41467-024-51321-w) (Nat Comm, Aug 2024). |
 | [Uni-Mol Tools](./unimol_tools/) | Molecule Property Prediction Tools | Uni-Mol tools is a easy-use wrappers for automatic property prediction, representation with Uni-Mol. You can install with `pip install unimol-tools`. Released with [Gao et al. 2023](https://arxiv.org/pdf/2304.12239). (Arxiv Report, Apr 2023).|
 | [Uni-Mol Docking](./unimol_docking_v2/) | Protein Ligand Docking Tools | Uni-Mol Docking achieves industry-leading performance in complex structure prediction, comparable to AlphaFold3. You can use Uni-Mol Docking for target docking with given pockets. Released with [E Alcaide et al. 2024](https://arxiv.org/pdf/2405.11769). (Arxiv Report, May 2024).|
+| [Uni-Mol2](./unimol2/) | Scalable Molecular Pretraining Model | Uni-Mol2 is a flexible and scalable molecular pretraining model, with sizes ranging from 84 million to 1.1 billion parameters. This scalability allows users to select the model size that best suits a wide range of molecular tasks. Released with [Ji et al. 2024](https://arxiv.org/pdf/2406.14969). (NeurIPS 2024).|
 
 
 Uni-Mol: A Universal 3D Molecular Representation Learning Framework
@@ -66,8 +67,25 @@ Check this [subfolder](./unimol_docking_v2/) for more detalis.
 
 Service of Uni-Mol Docking V2 is avaiable at https://bohrium.dp.tech/apps/unimoldockingv2
 
+Uni-Mol2: Exploring Molecular Pretraining Model at Scale
+--------------------------------------------------------------------
+[![arXiv](https://img.shields.io/badge/arXiv-2406.14969-00ff00.svg)](https://arxiv.org/pdf/2406.14969)
+
+<p align="center">
+    <img src="unimol2/figure/unimol2_arch.jpg" alt="overview" width="800" />
+</p>
+
+We present Uni-Mol2 , an innovative molecular pretraining model that leverages a two-track transformer to effectively integrate features at the atomic level, graph level, and geometry structure level. Along with this, we systematically investigate the scaling law within molecular pretraining models, characterizing the power-law correlations between validation loss and model size, dataset size, and computational resources. Consequently, we successfully scale Uni-Mol2 to 1.1 billion parameters through pretraining on 800 million conformations, making it the largest molecular pretraining model to date.
+
+Check this [subfolder](./unimol2/) for more detalis.
+
+
 News
 ----
+**Sep 22 2024**: Uni-Mol2 is supported in unimol_tools, allowing you to utilize Uni-Mol2's representation and fine-tuning models in easy-use.
+
+**Oct 10 2024**: We release Uni-Mol2 with code, demo and pretraining weights, scales from 8.4M to 1.1B.
+
 **Sep 26 2024**: [Uni-Mol2](https://openreview.net/forum?id=64V40K2fDv) is accepted by NeurIPS 2024, our data, code, and model weights will be released soon.
 
 **Aug 19 2024**: Uni-Mol+ is accepted by Nature Communications, reference: [Data-driven quantum chemical property prediction leveraging 3D conformations with Uni-Mol+](https://www.nature.com/articles/s41467-024-51321-w).

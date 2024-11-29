@@ -13,11 +13,13 @@ from torch.utils.data import Dataset
 import numpy as np
 from ..utils import logger
 from .unimol import UniMolModel
+from .unimolv2 import UniMolV2Model
 from .loss import GHMC_Loss, FocalLossWithLogits, myCrossEntropyLoss, MAEwithNan
 
 
 NNMODEL_REGISTER = {
     'unimolv1': UniMolModel,
+    'unimolv2': UniMolV2Model,
 }
 
 LOSS_RREGISTER = {

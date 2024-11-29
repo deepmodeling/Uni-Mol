@@ -105,13 +105,11 @@ Please kindly cite our papers if you use the data/code/model.
   year={2023},
   url={https://openreview.net/forum?id=6K2RM6wVqKu}
 }
-@misc{lu2023highly,
-      title={Highly Accurate Quantum Chemical Property Prediction with Uni-Mol+}, 
-      author={Shuqi Lu and Zhifeng Gao and Di He and Linfeng Zhang and Guolin Ke},
-      year={2023},
-      eprint={2303.16982},
-      archivePrefix={arXiv},
-      primaryClass={physics.chem-ph}
+@article{gao2023uni,
+  title={Uni-qsar: an auto-ml tool for molecular property prediction},
+  author={Gao, Zhifeng and Ji, Xiaohong and Zhao, Guojiang and Wang, Hongshuai and Zheng, Hang and Ke, Guolin and Zhang, Linfeng},
+  journal={arXiv preprint arXiv:2304.12239},
+  year={2023}
 }
 ```
 

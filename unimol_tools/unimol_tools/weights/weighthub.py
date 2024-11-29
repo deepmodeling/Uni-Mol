@@ -39,6 +39,27 @@ def weight_download(pretrain, save_path, local_dir_use_symlinks=True):
         #max_workers=8
     )
 
+def weight_download_v2(pretrain, save_path, local_dir_use_symlinks=True):
+    """
+    Downloads the specified pretrained model weights.
+
+    :param pretrain: (str), The name of the pretrained model to download.
+    :param save_path: (str), The directory where the weights should be saved.
+    :param local_dir_use_symlinks: (bool, optional), Whether to use symlinks for the local directory. Defaults to True.
+    """
+    if os.path.exists(os.path.join(save_path, pretrain)):
+        logger.info(f'{pretrain} exists in {save_path}')
+        return
+    
+    logger.info(f'Downloading {pretrain}')
+    snapshot_download(
+        repo_id="dptech/Uni-Mol2",
+        local_dir=save_path,
+        allow_patterns=pretrain,
+        local_dir_use_symlinks=local_dir_use_symlinks,
+        #max_workers=8
+    )
+
 # Download all the weights when this script is run
 def download_all_weights(local_dir_use_symlinks=False):
     """
