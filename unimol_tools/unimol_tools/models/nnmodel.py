@@ -158,6 +158,19 @@ class NNModel(object):
             if fold > 0:
                 # need to initalize model for next fold training
                 self.model = self._init_model(**self.model_params)
+            if self.model_params.get('load_model_dir', None) is not None:
+                load_model_path = os.path.join(self.model_params['load_model_dir'], f'model_{fold}.pth')
+                model_dict = torch.load(load_model_path, map_location=self.model_params['device'])["model_state_dict"]
+                if model_dict['classification_head.out_proj.weight'].shape[0] != self.model.output_dim:
+                    current_model_dict = self.model.state_dict()
+                    model_dict = {k: v for k, v in model_dict.items() if k in current_model_dict and 'classification_head.out_proj' not in k}
+                    current_model_dict.update(model_dict)
+                    logger.info("The output_dim of the model is different from the loaded model, only load the common part of the model")
+                    self.model.load_state_dict(model_dict, strict=False)
+                else:
+                    self.model.load_state_dict(model_dict)
+
+                logger.info("load model success from {}".format(load_model_path))
             _y_pred = self.trainer.fit_predict(
                 self.model, traindataset, validdataset, self.loss_func, self.activation_fn, self.save_path, fold, self.target_scaler)
             y_pred[te_idx] = _y_pred

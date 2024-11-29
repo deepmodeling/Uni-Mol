@@ -7,7 +7,7 @@ Interface
 Train
 -----
 
-`unimol_tools.train.py <https://github.com/dptech-corp/Uni-Mol/blob/docs/unimol_tools/unimol_tools/train.py>`_ trains a Uni-Mol model.
+`unimol_tools.train.py <https://github.com/deepmodeling/Uni-Mol/tree/main/unimol_tools/unimol_tools/train.py>`_ trains a Uni-Mol model.
 
 .. automodule:: unimol_tools.train
    :members:
@@ -16,7 +16,7 @@ Train
 Predict
 ------------
 
-`unimol_tools.predictor.py <https://github.com/dptech-corp/Uni-Mol/blob/docs/unimol_tools/unimol_tools/predictor.py>`_ predict through a Uni-Mol model.
+`unimol_tools.predictor.py <https://github.com/deepmodeling/Uni-Mol/tree/main/unimol_tools/unimol_tools/predictor.py>`_ predict through a Uni-Mol model.
 
 .. automodule:: unimol_tools.predict
    :members:
@@ -25,7 +25,7 @@ Predict
 Uni-Mol representation
 ------------------------
 
-`unimol_tools.predictor.py <https://github.com/dptech-corp/Uni-Mol/blob/docs/unimol_tools/unimol_tools/predictor.py>`_ get the Uni-Mol representation.
+`unimol_tools.predictor.py <https://github.com/deepmodeling/Uni-Mol/tree/main/unimol_tools/unimol_tools/predictor.py>`_ get the Uni-Mol representation.
 
 .. automodule:: unimol_tools.predictor
    :members:

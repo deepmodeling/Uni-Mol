@@ -78,6 +78,10 @@ class MolDataReader(object):
         else:
             if target_cols is None:
                 target_cols = [item for item in data.columns if item.startswith(target_col_prefix)]
+            elif isinstance(target_cols, str):
+                target_cols = target_cols.split(',')
+            elif isinstance(target_cols, list):
+                pass
             else: 
                 for col in target_cols:
                     if col not in data.columns:

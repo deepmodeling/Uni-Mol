@@ -34,6 +34,7 @@ class MolTrain(object):
                 save_path='./exp',
                 remove_hs=False,
                 smiles_col='SMILES',
+                target_cols=None,
                 target_col_prefix='TARGET',
                 target_anomaly_check="filter",
                 smiles_check="filter",
@@ -43,6 +44,7 @@ class MolTrain(object):
                 use_amp=True,
                 freeze_layers=None,               
                 freeze_layers_reversed=False,     
+                load_model_dir=None,              # load model for transfer learning
                 model_name='unimolv1',
                 model_size='84m',
                 **params,
@@ -76,6 +78,7 @@ class MolTrain(object):
         :param save_path: str, default='./exp', path to save training results.
         :param remove_hs: bool, default=False, whether to remove hydrogens from molecules.
         :param smiles_col: str, default='SMILES', column name of SMILES.
+        :param target_cols: list or str, default=None, column names of target values.
         :param target_col_prefix: str, default='TARGET', prefix of target column name.
         :param target_anomaly_check: str, default='filter', how to deal with anomaly target values. currently support: filter, none.
         :param smiles_check: str, default='filter', how to deal with invalid SMILES. currently support: filter, none.
@@ -87,11 +90,16 @@ class MolTrain(object):
         :param freeze_layers: str or list, frozen layers by startwith name list. ['encoder', 'gbf'] will freeze all the layers whose name start with 'encoder' or 'gbf'.
         :param freeze_layers_reversed: bool, default=False, inverse selection of frozen layers
         :param params: dict, default=None, other parameters.
+        :param load_model_dir: str, default=None, path to load model for transfer learning.
         :param model_name: str, default='unimolv1', currently support unimolv1, unimolv2.
         :param model_size: str, default='84m', model size. work when model_name is unimolv2. avaliable: 84m, 164m, 310m, 570m, 1.1B.
 
         """
-        config_path = os.path.join(os.path.dirname(__file__), 'config/default.yaml')
+        if load_model_dir is not None:
+            config_path = os.path.join(load_model_dir, 'config.yaml')
+            logger.info('Load config file from {}'.format(config_path))
+        else:
+            config_path = os.path.join(os.path.dirname(__file__), 'config/default.yaml')
         self.yamlhandler = YamlHandler(config_path)
         config = self.yamlhandler.read_yaml()
         config.task = task
@@ -106,6 +114,7 @@ class MolTrain(object):
         config.kfold = kfold
         config.remove_hs = remove_hs
         config.smiles_col = smiles_col
+        config.target_cols = target_cols
         config.target_col_prefix = target_col_prefix
         config.anomaly_clean = target_anomaly_check in ['filter']
         config.smi_strict = smiles_check in ['filter']
@@ -115,6 +124,7 @@ class MolTrain(object):
         config.use_amp = use_amp
         config.freeze_layers = freeze_layers
         config.freeze_layers_reversed = freeze_layers_reversed
+        config.load_model_dir = load_model_dir
         config.model_name = model_name
         config.model_size = model_size
         self.save_path = save_path
