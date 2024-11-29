@@ -4,18 +4,21 @@
 
 from __future__ import absolute_import, division, print_function
 
+import numpy as np
 from sklearn.model_selection import (
     GroupKFold, 
     KFold, 
     StratifiedKFold,
 )
+from ..utils import logger
+
 
 class Splitter(object):
     """
     The Splitter class is responsible for splitting a dataset into train and test sets 
     based on the specified method.
     """
-    def __init__(self, split_method='5fold_random', seed=42):
+    def __init__(self, method='random', n_splits=5, seed=42, **params):
         """
         Initializes the Splitter with a specified split method and random seed.
 
@@ -23,7 +26,8 @@ class Splitter(object):
                              Defaults to '5fold_random'.
         :param seed: (int) Random seed for reproducibility in random splitting. Defaults to 42.
         """
-        self.n_splits, self.method = int(split_method.split('fold')[0]), split_method.split('_')[-1]    # Nfold_xxxx
+        self.method = method
+        self.n_splits = n_splits
         self.seed = seed
         self.splitter = self._init_split()
 
@@ -34,18 +38,22 @@ class Splitter(object):
         :return: The initialized splitter object.
         :raises ValueError: If an unknown splitting method is specified.
         """
+        if self.n_splits == 1:
+            return None
         if self.method == 'random':
             splitter = KFold(n_splits=self.n_splits, shuffle=True, random_state=self.seed)
         elif self.method == 'scaffold' or self.method == 'group':
             splitter = GroupKFold(n_splits=self.n_splits)
         elif self.method == 'stratified':
             splitter = StratifiedKFold(n_splits=self.n_splits, shuffle=True, random_state=self.seed)
+        elif self.method == 'select':
+            splitter = GroupKFold(n_splits=self.n_splits)
         else:
             raise ValueError('Unknown splitter method: {}fold - {}'.format(self.n_splits, self.method))
 
         return splitter
 
-    def split(self, data, target=None, group=None):
+    def split(self, smiles, target=None, group=None, scaffolds=None, **params):
         """
         Splits the dataset into train and test sets based on the initialized method.
 
@@ -56,7 +64,32 @@ class Splitter(object):
         :return: An iterator yielding train and test set indices for each fold.
         :raises ValueError: If the splitter method does not support the provided parameters.
         """
-        try:
-            return self.splitter.split(data, target, group)
-        except:
-            raise ValueError('Unknown splitter method: {}fold - {}'.format(self.n_splits, self.method))
+        if self.n_splits == 1:
+            logger.warning('Only one fold is used for training, no splitting is performed.')
+            return [(np.arange(len(smiles)), np.arange(len(smiles)))]
+        if self.method in ['random']:
+            self.skf = self.splitter.split(smiles)
+        elif self.method in ['scaffold']:
+            self.skf = self.splitter.split(smiles, target, scaffolds)
+        elif self.method in ['group']:
+            self.skf = self.splitter.split(smiles, target, group)
+        elif self.method in ['stratified']:
+            self.skf = self.splitter.split(smiles, group)
+        elif self.method in ['select']:
+            unique_groups = np.unique(group)
+            if len(unique_groups) == self.n_splits:
+                split_folds = []
+                for unique_group in unique_groups:
+                    train_idx = np.where(group != unique_group)[0]
+                    test_idx = np.where(group == unique_group)[0]
+                    split_folds.append((train_idx, test_idx))
+                self.split_folds = split_folds
+                return self.split_folds
+            else:
+                logger.error('The number of unique groups is not equal to the number of splits.')
+                exit(1)
+        else:
+            logger.error('Unknown splitter method: {}'.format(self.method))
+            exit(1)
+        self.split_folds = list(self.skf)
+        return self.split_folds

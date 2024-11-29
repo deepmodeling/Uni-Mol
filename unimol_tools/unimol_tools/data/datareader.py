@@ -82,17 +82,17 @@ class MolDataReader(object):
                 target_cols = target_cols.split(',')
             elif isinstance(target_cols, list):
                 pass
-            else: 
+
+            if is_train:
+                if anomaly_clean:
+                    data = self.anomaly_clean(data, task, target_cols)  
+                if task == 'multiclass':
+                    multiclass_cnt = int(data[target_cols].max() + 1)
+            else:
                 for col in target_cols:
                     if col not in data.columns:
                         data[target_cols] = -1.0
                         break
-
-            if is_train and anomaly_clean:
-                data = self.anomaly_clean(data, task, target_cols)
-            
-            if is_train and task == 'multiclass':
-                multiclass_cnt = int(data[target_cols].max() + 1)
 
             targets = data[target_cols].values.tolist()
             num_classes = len(target_cols)

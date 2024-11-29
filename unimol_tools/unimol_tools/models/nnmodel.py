@@ -70,7 +70,7 @@ class NNModel(object):
         self.data_type = params.get('data_type', 'molecule')
         self.loss_key = params.get('loss_key', None)
         self.trainer = trainer
-        self.splitter = self.trainer.splitter
+        #self.splitter = self.trainer.splitter
         self.model_params = params.copy()
         self.task = params['task']
         if self.task in OUTPUT_DIM:
@@ -150,7 +150,7 @@ class NNModel(object):
                 y.reshape(y.shape[0], self.num_classes)).astype(float)
         else:
             y_pred = np.zeros((y.shape[0], self.model_params['output_dim']))
-        for fold, (tr_idx, te_idx) in enumerate(self.splitter.split(X, y, group)):
+        for fold, (tr_idx, te_idx) in enumerate(self.data['split_nfolds']):
             X_train, y_train = X[tr_idx], y[tr_idx]
             X_valid, y_valid = X[te_idx], y[te_idx]
             traindataset = NNDataset(X_train, y_train)
@@ -220,7 +220,7 @@ class NNModel(object):
         """
         logger.info("start predict NNModel:{}".format(self.model_name))
         testdataset = NNDataset(self.features, np.asarray(self.data['target']))
-        for fold in range(self.splitter.n_splits):
+        for fold in range(self.data['n_splits']):
             model_path = os.path.join(checkpoints_path, f'model_{fold}.pth')
             self.model.load_state_dict(torch.load(
                 model_path, map_location=self.trainer.device)['model_state_dict'])
@@ -229,7 +229,7 @@ class NNModel(object):
             if fold == 0:
                 y_pred = np.zeros_like(_y_pred)
             y_pred += _y_pred
-        y_pred /= self.splitter.n_splits
+        y_pred /= self.data['n_splits']
         self.cv['test_pred'] = y_pred
 
     def count_parameters(self, model):
