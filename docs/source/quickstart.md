@@ -22,8 +22,7 @@ custom dict can also as the input. The dict format should be like
 ```python
 {'atoms':[['C','C'],['C','H','O']], 'coordinates':[coordinates_1,coordinates_2]}
 ```
-Here is an example to train a model and make a prediction.
-
+Here is an example to train a model and make a prediction. When using Unimol V2, set `model_name='unimolv2'`.
 ```python
 from unimol_tools import MolTrain, MolPredict
 clf = MolTrain(task='classification', 
@@ -31,6 +30,8 @@ clf = MolTrain(task='classification',
                 epochs=10, 
                 batch_size=16, 
                 metrics='auc',
+                model_name='unimolv1', # avaliable: unimolv1, unimolv2
+                model_size='84m', # work when model_name is unimolv2. avaliable: 84m, 164m, 310m, 570m, 1.1B.
                 )
 pred = clf.fit(data = train_data)
 # currently support data with smiles based csv/txt file
@@ -46,7 +47,11 @@ Uni-Mol representation can easily be achieved as follow.
 import numpy as np
 from unimol_tools import UniMolRepr
 # single smiles unimol representation
-clf = UniMolRepr(data_type='molecule', remove_hs=False)
+clf = UniMolRepr(data_type='molecule', 
+                 remove_hs=False,
+                 model_name='unimolv1', # avaliable: unimolv1, unimolv2
+                 model_size='84m', # work when model_name is unimolv2. avaliable: 84m, 164m, 310m, 570m, 1.1B.
+                 )
 smiles = 'c1ccc(cc1)C2=NCC(=O)Nc3c2cc(cc3)[N+](=O)[O]'
 smiles_list = [smiles]
 unimol_repr = clf.get_repr(smiles_list, return_atomic_reprs=True)
@@ -54,3 +59,30 @@ unimol_repr = clf.get_repr(smiles_list, return_atomic_reprs=True)
 print(np.array(unimol_repr['cls_repr']).shape)
 # atomic level repr, align with rdkit mol.GetAtoms()
 print(np.array(unimol_repr['atomic_reprs']).shape)
+```
+## Continue training (Re-train)
+
+```python
+clf = MolTrain(task='regression',
+                data_type='molecule',
+                epochs=10,
+                batch_size=16,
+                save_path='./model_dir',
+                remove_hs=False,
+                target_cols='TARGET',
+                )
+pred = clf.fit(data = train_data)
+# After train a model, set load_model_dir='./model_dir' to continue training
+
+clf2 = MolTrain(task='regression',
+                data_type='molecule',
+                epochs=10,
+                batch_size=16,
+                save_path='./retrain_model_dir',
+                remove_hs=False,
+                target_cols='TARGET',
+                load_model_dir='./model_dir',
+                )
+
+pred2 = clf.fit(data = retrain_data)                
+```
