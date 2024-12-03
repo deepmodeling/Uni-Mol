@@ -345,7 +345,7 @@ class UniMol2Model(BaseUnicoreModel):
                 encoder_distance = (pos.unsqueeze(1) - pos.unsqueeze(2)).norm(dim=-1)
 
         if classification_head_name is not None:
-            logits = self.classification_heads[classification_head_name](x[:, 1:, :])
+            logits = self.classification_heads[classification_head_name](x)
 
         if self.args.mode == 'infer':
             return x, pair
