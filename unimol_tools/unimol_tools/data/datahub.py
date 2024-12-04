@@ -97,16 +97,20 @@ class DataHub(object):
     def _init_split(self, **params):
 
         self.split_method = params.get('split_method','5fold_random')
-        self.n_splits, method = int(self.split_method.split('fold')[0]), self.split_method.split('_')[-1]    # Nfold_xxxx
+        kfold, method = int(self.split_method.split('fold')[0]), self.split_method.split('_')[-1]    # Nfold_xxxx
+        self.kfold = params.get('kfold', kfold)
         self.method = params.get('split', method)
         self.split_seed = params.get('split_seed', 42)
-        self.data['n_splits'] = self.n_splits
+        self.data['kfold'] = self.kfold
         if not self.is_train:
             return
-        self.splitter = Splitter(self.method, self.n_splits, seed=self.split_seed)
+        self.splitter = Splitter(self.method, self.kfold, seed=self.split_seed)
         split_nfolds = self.splitter.split(**self.data)
-        logger.info(f"Split method: {self.method}, fold: {self.n_splits}")
-        nfolds = np.zeros(len(split_nfolds[1][0])+len(split_nfolds[1][1]), dtype=int)
+        if self.kfold == 1:
+            logger.info(f"Kfold is 1, all data is used for training.")
+        else:
+            logger.info(f"Split method: {self.method}, fold: {self.kfold}")
+        nfolds = np.zeros(len(split_nfolds[0][0])+len(split_nfolds[0][1]), dtype=int)
         for enu, (tr_idx, te_idx) in enumerate(split_nfolds):
             nfolds[te_idx] = enu
         self.data['split_nfolds'] = split_nfolds

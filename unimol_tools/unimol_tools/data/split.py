@@ -18,7 +18,7 @@ class Splitter(object):
     The Splitter class is responsible for splitting a dataset into train and test sets 
     based on the specified method.
     """
-    def __init__(self, method='random', n_splits=5, seed=42, **params):
+    def __init__(self, method='random', kfold=5, seed=42, **params):
         """
         Initializes the Splitter with a specified split method and random seed.
 
@@ -27,7 +27,7 @@ class Splitter(object):
         :param seed: (int) Random seed for reproducibility in random splitting. Defaults to 42.
         """
         self.method = method
-        self.n_splits = n_splits
+        self.n_splits = kfold
         self.seed = seed
         self.splitter = self._init_split()
 
@@ -66,7 +66,7 @@ class Splitter(object):
         """
         if self.n_splits == 1:
             logger.warning('Only one fold is used for training, no splitting is performed.')
-            return [(np.arange(len(smiles)), np.arange(len(smiles)))]
+            return [(np.arange(len(smiles)), ())]
         if self.method in ['random']:
             self.skf = self.splitter.split(smiles)
         elif self.method in ['scaffold']:

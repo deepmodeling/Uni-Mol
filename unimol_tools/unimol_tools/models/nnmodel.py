@@ -220,7 +220,7 @@ class NNModel(object):
         """
         logger.info("start predict NNModel:{}".format(self.model_name))
         testdataset = NNDataset(self.features, np.asarray(self.data['target']))
-        for fold in range(self.data['n_splits']):
+        for fold in range(self.data['kfold']):
             model_path = os.path.join(checkpoints_path, f'model_{fold}.pth')
             self.model.load_state_dict(torch.load(
                 model_path, map_location=self.trainer.device)['model_state_dict'])
@@ -229,7 +229,7 @@ class NNModel(object):
             if fold == 0:
                 y_pred = np.zeros_like(_y_pred)
             y_pred += _y_pred
-        y_pred /= self.data['n_splits']
+        y_pred /= self.data['kfold']
         self.cv['test_pred'] = y_pred
 
     def count_parameters(self, model):
