@@ -1,0 +1,102 @@
+version: 2.1
+
+orbs:
+  python: circleci/python@2.1.1
+
+jobs:
+  setup:
+    executor:
+      name: python/default
+      tag: "3.10.15"
+    steps:
+      - checkout
+      - run:
+          name: Install uv
+          command: curl -LsSf https://astral.sh/uv/install.sh | sh
+      - persist_to_workspace:
+          root: /home/circleci
+          paths:
+            - "*"
+  test:
+    parameters:
+      package_subpath:
+        type: string
+    executor:
+      name: python/default
+      tag: "3.10.15"
+    steps:
+      - attach_workspace:
+          at: /home/circleci
+      - run:
+          name: Install deps
+          working_directory: /home/circleci/<< parameters.package_subpath >>
+          command: uv sync
+      - run:
+          name: Check formatting
+          working_directory: /home/circleci/<< parameters.package_subpath >>  
+          command: uv run ruff format --check .
+      - run:
+          name: Check lints
+          working_directory: /home/circleci/<< parameters.package_subpath >>
+          command: uv run ruff check .
+      - run:
+          name: Run pytest
+          working_directory: /home/circleci/<< parameters.package_subpath >>
+          command: uv run pytest
+  publish:
+    parameters:
+      package_subpath:
+        type: string
+    executor:
+      name: python/default
+      tag: "3.10.15"
+    steps:
+      - attach_workspace:
+          at: /home/circleci
+      - run:
+          name: Build package
+          working_directory: /home/circleci/<< parameters.package_subpath >>
+          command: uv build
+      - run:
+          name: Publish package
+          working_directory: /home/circleci/<< parameters.package_subpath >>
+          command: |
+            uv publish --publish-url $ALBERT_PYPI_URL --username $UV_INDEX_ALBERT_USERNAME \
+              --password $UV_INDEX_ALBERT_PASSWORD
+
+workflows:
+  main:
+    jobs:
+      - setup:
+          name: Setup
+          context: ds-dev
+      - test:
+          name: Test unimol
+          package_subpath: unimol
+          context: ds-dev
+          requires:
+            - Setup
+      - test:
+          name: Test unimol tools
+          package_subpath: unimol_tools
+          context: ds-dev
+          requires:
+            - Setup
+      - publish:
+          name: Publish unimol
+          package_subpath: unimol
+          context: ds-dev
+          requires:
+            - Test unimol
+          filters:
+            branches:
+              only: ["main"]
+      - publish:
+          name: Publish unimol tools
+          package_subpath: unimol_tools
+          context: ds-dev
+          requires:
+            - Test unimol tools
+          filters:
+            branches:
+              only: ["main"]

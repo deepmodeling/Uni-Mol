@@ -1,0 +1,64 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "unimol_tools"
+version = "0.2.0.post2"
+description = "Tools for Uni-Mol."
+license = "MIT"
+readme = "README.md"
+authors = [{ name = "DP Technology", email = "unimol@dp.tech" }]
+requires-python = ">=3.10,<4.0"
+dependencies = [
+    "numpy >=1.22.4,<3.0.0",
+    "pandas >=2.0.0, <3.0.0",
+    "torch >=2.4.1",
+    "joblib >=1.4.2",
+    "scikit-learn >=1.5.2",
+    "tqdm >=4.66.5",
+    "rdkit>=2024.3.5",
+    "pyyaml>=6.0.2",
+    "addict>=2.4.0",
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+
+[dependency-groups]
+dev = ["jupyter>=1.1.1", "pytest>=8.3.4", "ruff>=0.8.1"]
+
+[[tool.uv.index]]
+name = "albert"
+url = "https://pypi.ai.albertinvent.com"
+
+[tool.ruff]
+target-version = "py310"
+extend-exclude = [".circleci", ".vscode"]
+line-length = 99
+indent-width = 4
+
+[tool.ruff.lint]
+select = [
+    # Pyflakes
+    "F",
+    # pyupgrade
+    "UP",
+    # flake8-bugbear
+    "B",
+    # flake8-simplify
+    "SIM",
+    # isort
+    "I",
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["unimol_tools", "tests"]
