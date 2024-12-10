@@ -13,7 +13,6 @@ body:
     required: true
 
 - type: input
-    id: version
     attributes:
       label: Uni-Mol Version
       description: |
