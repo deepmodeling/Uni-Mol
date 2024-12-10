@@ -1,0 +1,31 @@
+name: Generic issue
+description: For issues that do not fit any of the other categories.
+title: _Replace With a Descriptive Title_
+labels: wontfix
+assignees: []
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: "Please provide a clear and concise description of what the question is."
+      placeholder:
+      value:
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Uni-Mol Version
+      description: "`Uni-Mol --version`"
+    validations:
+      required: true
+  - type: textarea
+    id: details
+    attributes:
+      label: Details
+      description: "Please explain the issue in detail here."
+      placeholder:
+      value:
+    validations:
+      required: true
