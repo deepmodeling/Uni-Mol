@@ -29,3 +29,7 @@ body:
       value:
     validations:
       required: true
+    - type: markdown
+    attributes:
+      value: >
+        Thanks for contributing 🎉!
