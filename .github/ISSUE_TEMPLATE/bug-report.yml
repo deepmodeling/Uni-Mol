@@ -1,0 +1,53 @@
+name: Bug report
+description: Create a bug report to help us eliminate issues and improve Uni-Mol.
+title: "[BUG] _Replace With Suitable Title_"
+labels: bug
+assignees: []
+body:
+  - type: textarea
+    attributes:
+      label: Describe the bug
+      description: |
+        A clear and concise description of what the bug is.
+    validations:
+      required: true
+  
+  - type: input
+    id: version
+    attributes:
+      label: Uni-Mol Version
+      description: "The version of Uni-Mol you are using, e.g. Uni-Mol, Uni-Mol2, Uni-Mol Tools, etc."
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Expected behavior
+      description: |
+        A clear and concise description of what you expected to happen.
+    validations:
+      required: true
+      
+  - type: textarea
+    attributes:
+      label: To Reproduce
+      description: |
+        It is recommended to attach your data, cases here for the developers to reproduce the bug.
+      
+  - type: textarea
+    attributes:
+      label: Environment
+      description: |
+        - OS: [e.g. Ubuntu 20.04]
+        - Dependencies: [e.g. PyTorch, SciPy, NumPy, ...]
+      
+  - type: textarea
+    attributes:
+      label: Additional Context
+      description: |
+        Add any other context about the problem here.
+      
+  - type: markdown
+    attributes:
+      value: >
+        Thanks for contributing 🎉!
