@@ -5,12 +5,12 @@ labels: bug
 assignees: []
 body:
   - type: textarea
-  attributes:
-    label: Describe the bug
-    description: |
-      A clear and concise description of what the bug is.
-  validations:
-    required: true
+    attributes:
+      label: Describe the bug
+      description: |
+        A clear and concise description of what the bug is.
+    validations:
+      required: true
   
   - type: input
     id: version
@@ -21,31 +21,31 @@ body:
       required: true
 
   - type: textarea
-  attributes:
-    label: Expected behavior
-    description: |
-      A clear and concise description of what you expected to happen.
+    attributes:
+      label: Expected behavior
+      description: |
+        A clear and concise description of what you expected to happen.
       
   - type: textarea
-  attributes:
-    label: To Reproduce
-    description: |
-      It is recommended to attach your data, cases here for the developers to reproduce the bug.
+    attributes:
+      label: To Reproduce
+      description: |
+        It is recommended to attach your data, cases here for the developers to reproduce the bug.
       
   - type: textarea
-  attributes:
-    label: Environment
-    description: |
-      - OS: [e.g. Ubuntu 20.04]
-      - Dependencies: [e.g. PyTorch, SciPy, NumPy, ...]
+    attributes:
+      label: Environment
+      description: |
+        - OS: [e.g. Ubuntu 20.04]
+        - Dependencies: [e.g. PyTorch, SciPy, NumPy, ...]
       
   - type: textarea
-  attributes:
-    label: Additional Context
-    description: |
-      Add any other context about the problem here.
+    attributes:
+      label: Additional Context
+      description: |
+        Add any other context about the problem here.
       
   - type: markdown
-  attributes:
-    value: >
-      Thanks for contributing 🎉!
+    attributes:
+      value: >
+        Thanks for contributing 🎉!
