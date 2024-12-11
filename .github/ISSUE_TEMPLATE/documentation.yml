@@ -1,6 +1,6 @@
 name: Docs
 description: For users or developers to report issues related to software documentation, such as missing or incomplete documentation, or documentation that is difficult to understand.
-labels: [documentation]
+labels: documentation
 assignees: []
 body:
 - type: textarea
