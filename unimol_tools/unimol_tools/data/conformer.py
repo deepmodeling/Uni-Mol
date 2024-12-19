@@ -291,6 +291,7 @@ class UniMolV2Feature(object):
         :return: A unimolecular data representation (dictionary) of the molecule.
         :raises ValueError: If the conformer generation method is unrecognized.
         """
+        torch.set_num_threads(1)
         if self.method == 'rdkit_random':
             mol = inner_smi2coords(smiles, seed=self.seed, mode=self.mode, remove_hs=self.remove_hs, return_mol=True)
             return mol2unimolv2(mol, self.max_atoms, remove_hs=self.remove_hs)
@@ -306,14 +307,11 @@ class UniMolV2Feature(object):
             return inputs
     
     def transform(self, smiles_list):
-        pool = Pool()
+        torch.set_num_threads(1)
+        pool = Pool(processes=min(8, os.cpu_count()))
         logger.info('Start generating conformers...')
         inputs = [item for item in tqdm(pool.imap(self.single_process, smiles_list))]
         pool.close()
-        # failed_cnt = np.mean([(item['src_coord']==0.0).all() for item in inputs])
-        # logger.info('Succeeded in generating conformers for {:.2f}% of molecules.'.format((1-failed_cnt)*100))
-        # failed_3d_cnt = np.mean([(item['src_coord'][:,2]==0.0).all() for item in inputs])
-        # logger.info('Succeeded in generating 3d conformers for {:.2f}% of molecules.'.format((1-failed_3d_cnt)*100))
         return inputs
 
 def create_mol_from_atoms_and_coords(atoms, coordinates):
