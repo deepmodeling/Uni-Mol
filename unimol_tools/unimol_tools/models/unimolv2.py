@@ -165,14 +165,14 @@ class UniMolV2Model(nn.Module):
         pair_type,
         attn_bias,
         src_tokens,
-        src_pos,
+        src_coord,
         return_repr=False,
         return_atomic_reprs=False,
         **kwargs
     ):
         
 
-        pos = src_pos
+        pos = src_coord
 
         n_mol, n_atom = atom_feat.shape[:2]
         token_feat = self.embed_tokens(src_tokens)
@@ -232,7 +232,7 @@ class UniMolV2Model(nn.Module):
             filtered_tensors = []
             filtered_coords = []
 
-            for tokens, coord in zip(src_tokens, src_pos):
+            for tokens, coord in zip(src_tokens, src_coord):
                 filtered_tensor = tokens[(tokens != 0) & (tokens != 1) & (tokens != 2)] # filter out BOS(0), EOS(1), PAD(2)
                 filtered_coord = coord[(tokens != 0) & (tokens != 1) & (tokens != 2)]
                 filtered_tensors.append(filtered_tensor)
@@ -315,7 +315,7 @@ class UniMolV2Model(nn.Module):
                 v = pad_2d([s[0][k] for s in samples], pad_idx=self.padding_idx)
             elif k == 'src_tokens':
                 v = pad_1d_tokens([s[0][k] for s in samples], pad_idx=self.padding_idx)
-            elif k == 'src_pos':
+            elif k == 'src_coord':
                 v = pad_coords([s[0][k] for s in samples], pad_idx=self.padding_idx)
             batch[k] = v
         try:

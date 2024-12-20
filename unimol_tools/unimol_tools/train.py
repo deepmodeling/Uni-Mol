@@ -72,9 +72,23 @@ class MolTrain(object):
 
             - multilabel_regression: mae, mse, r2.
 
-        :param split: str, default='random', split method of training dataset. currently support: random, scaffold, group, stratified.
+        :param split: str, default='random', split method of training dataset. currently support: random, scaffold, group, stratified, select.
+
+            - random: random split.
+
+            - scaffold: split by scaffold.
+
+            - group: split by group. `split_group_col` should be specified.
+
+            - stratified: stratified split. `split_group_col` should be specified.
+
+            - select: use `split_group_col` to manually select the split group. Column values of `split_group_col` should be range from 0 to kfold-1 to indicate the split group.
+
         :param split_group_col: str, default='scaffold', column name of group split.
         :param kfold: int, default=5, number of folds for k-fold cross validation.
+
+            - 1: no split. all data will be used for training.
+        
         :param save_path: str, default='./exp', path to save training results.
         :param remove_hs: bool, default=False, whether to remove hydrogens from molecules.
         :param smiles_col: str, default='SMILES', column name of SMILES.

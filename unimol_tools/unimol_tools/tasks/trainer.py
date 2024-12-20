@@ -15,7 +15,6 @@ from torch.nn.utils import clip_grad_norm_
 # from transformers.optimization import get_linear_schedule_with_warmup
 from ..utils import Metrics
 from ..utils import logger
-from .split import Splitter
 from tqdm import tqdm
 
 import time
@@ -46,7 +45,6 @@ class Trainer(object):
         self.split_seed = params.get('split_seed', 42)
         self.seed = params.get('seed', 42)
         self.set_seed(self.seed)
-        self.splitter = Splitter(self.split_method, self.split_seed)
         self.logger_level = int(params.get('logger_level', 1))
         ### init NN trainer params ###
         self.learning_rate = float(params.get('learning_rate', 1e-4))
