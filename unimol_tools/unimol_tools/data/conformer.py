@@ -291,6 +291,7 @@ class UniMolV2Feature(object):
         :return: A unimolecular data representation (dictionary) of the molecule.
         :raises ValueError: If the conformer generation method is unrecognized.
         """
+        torch.set_num_threads(1)
         if self.method == 'rdkit_random':
             mol = inner_smi2coords(smiles, seed=self.seed, mode=self.mode, remove_hs=self.remove_hs, return_mol=True)
             return mol2unimolv2(mol, self.max_atoms, remove_hs=self.remove_hs)
@@ -306,14 +307,26 @@ class UniMolV2Feature(object):
             return inputs
     
     def transform(self, smiles_list):
-        pool = Pool()
+        torch.set_num_threads(1)
+        pool = Pool(processes=min(8, os.cpu_count()))
         logger.info('Start generating conformers...')
         inputs = [item for item in tqdm(pool.imap(self.single_process, smiles_list))]
         pool.close()
-        # failed_cnt = np.mean([(item['src_coord']==0.0).all() for item in inputs])
-        # logger.info('Succeeded in generating conformers for {:.2f}% of molecules.'.format((1-failed_cnt)*100))
-        # failed_3d_cnt = np.mean([(item['src_coord'][:,2]==0.0).all() for item in inputs])
-        # logger.info('Succeeded in generating 3d conformers for {:.2f}% of molecules.'.format((1-failed_3d_cnt)*100))
+
+        failed_conf = [(item['src_coord']==0.0).all() for item in inputs]
+        logger.info('Succeeded in generating conformers for {:.2f}% of molecules.'.format((1-np.mean(failed_conf))*100))
+        failed_conf_indices = [index for index, value in enumerate(failed_conf) if value]
+        if len(failed_conf_indices) > 0:
+            logger.info('Failed conformers indices: {}'.format(failed_conf_indices))
+            logger.debug('Failed conformers SMILES: {}'.format([smiles_list[index] for index in failed_conf_indices]))
+
+        failed_conf_3d = [(item['src_coord'][:,2]==0.0).all() for item in inputs]
+        logger.info('Succeeded in generating 3d conformers for {:.2f}% of molecules.'.format((1-np.mean(failed_conf_3d))*100))
+        failed_conf_3d_indices = [index for index, value in enumerate(failed_conf_3d) if value]
+        if len(failed_conf_3d_indices) > 0:
+            logger.info('Failed 3d conformers indices: {}'.format(failed_conf_3d_indices))
+            logger.debug('Failed 3d conformers SMILES: {}'.format([smiles_list[index] for index in failed_conf_3d_indices]))
+
         return inputs
 
 def create_mol_from_atoms_and_coords(atoms, coordinates):
@@ -365,13 +378,13 @@ def mol2unimolv2(mol, max_atoms=128, remove_hs=True, **params):
         coordinates = coordinates[idx]
     # tokens padding
     src_tokens = torch.tensor([AllChem.GetPeriodicTable().GetAtomicNumber(item) for item in atoms])
-    src_pos = torch.tensor(coordinates)
+    src_coord = torch.tensor(coordinates)
     # change AllChem.RemoveHs to AllChem.RemoveAllHs
     mol = AllChem.RemoveAllHs(mol)
     node_attr, edge_index, edge_attr = get_graph(mol)
     feat = get_graph_features(edge_attr, edge_index, node_attr, drop_feat=0)
     feat['src_tokens'] = src_tokens
-    feat['src_pos'] = src_pos
+    feat['src_coord'] = src_coord
     return feat
 
 def safe_index(l, e):

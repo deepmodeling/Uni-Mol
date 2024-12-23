@@ -7,6 +7,9 @@ import numpy as np
 from .datareader import MolDataReader
 from .datascaler import TargetScaler
 from .conformer import ConformerGen, UniMolV2Feature
+from .split import Splitter
+from ..utils import logger
+
 
 class DataHub(object):
     """
@@ -31,6 +34,7 @@ class DataHub(object):
         self.multiclass_cnt = params.get('multiclass_cnt', None)
         self.ss_method = params.get('target_normalize', 'none')
         self._init_data(**params)
+        self._init_split(**params)
     
     def _init_data(self, **params):
         """
@@ -89,3 +93,25 @@ class DataHub(object):
                 no_h_list = UniMolV2Feature().transform(smiles_list)
 
         self.data['unimol_input'] = no_h_list
+
+    def _init_split(self, **params):
+
+        self.split_method = params.get('split_method','5fold_random')
+        kfold, method = int(self.split_method.split('fold')[0]), self.split_method.split('_')[-1]    # Nfold_xxxx
+        self.kfold = params.get('kfold', kfold)
+        self.method = params.get('split', method)
+        self.split_seed = params.get('split_seed', 42)
+        self.data['kfold'] = self.kfold
+        if not self.is_train:
+            return
+        self.splitter = Splitter(self.method, self.kfold, seed=self.split_seed)
+        split_nfolds = self.splitter.split(**self.data)
+        if self.kfold == 1:
+            logger.info(f"Kfold is 1, all data is used for training.")
+        else:
+            logger.info(f"Split method: {self.method}, fold: {self.kfold}")
+        nfolds = np.zeros(len(split_nfolds[0][0])+len(split_nfolds[0][1]), dtype=int)
+        for enu, (tr_idx, te_idx) in enumerate(split_nfolds):
+            nfolds[te_idx] = enu
+        self.data['split_nfolds'] = split_nfolds
+        return split_nfolds
