@@ -94,6 +94,12 @@ class ConformerGen(object):
             weight_download(self.dict_name, WEIGHT_DIR)
         self.dictionary = Dictionary.load(os.path.join(WEIGHT_DIR, self.dict_name))
         self.dictionary.add_symbol("[MASK]", is_special=True)
+        if os.name == 'posix':
+            self.multi_process = params.get('multi_process', True)
+        else:
+            self.multi_process = params.get('multi_process', False)
+            if self.multi_process:
+                logger.warning('Please use "if __name__ == "__main__":" to wrap the main function when using multi_process on Windows.')
 
     def single_process(self, smiles):
         """
@@ -117,10 +123,13 @@ class ConformerGen(object):
         return inputs
 
     def transform(self, smiles_list):
-        pool = Pool()
         logger.info('Start generating conformers...')
-        inputs = [item for item in tqdm(pool.imap(self.single_process, smiles_list))]
-        pool.close()
+        if self.multi_process:
+            pool = Pool(processes=min(8, os.cpu_count()))
+            inputs = [item for item in tqdm(pool.imap(self.single_process, smiles_list))]
+            pool.close()
+        else:
+            inputs = [self.single_process(smiles) for smiles in tqdm(smiles_list)]
         
         failed_conf = [(item['src_coord']==0.0).all() for item in inputs]
         logger.info('Succeeded in generating conformers for {:.2f}% of molecules.'.format((1-np.mean(failed_conf))*100))
@@ -291,6 +300,12 @@ class UniMolV2Feature(object):
         self.method = params.get('method', 'rdkit_random')
         self.mode = params.get('mode', 'fast')
         self.remove_hs = params.get('remove_hs', True)
+        if os.name == 'posix':
+            self.multi_process = params.get('multi_process', True)
+        else:
+            self.multi_process = params.get('multi_process', False)
+            if self.multi_process:
+                logger.warning('Please use "if __name__ == "__main__":" to wrap the main function when using multi_process on Windows.')
 
     def single_process(self, smiles):
         """
@@ -315,10 +330,13 @@ class UniMolV2Feature(object):
             return inputs
     
     def transform(self, smiles_list):
-        pool = Pool(processes=min(8, os.cpu_count()))
         logger.info('Start generating conformers...')
-        inputs = [item for item in tqdm(pool.imap(self.single_process, smiles_list))]
-        pool.close()
+        if self.multi_process:
+            pool = Pool(processes=min(8, os.cpu_count()))
+            inputs = [item for item in tqdm(pool.imap(self.single_process, smiles_list))]
+            pool.close()
+        else:
+            inputs = [self.single_process(smiles) for smiles in tqdm(smiles_list)]
 
         failed_conf = [(item['src_coord']==0.0).all() for item in inputs]
         logger.info('Succeeded in generating conformers for {:.2f}% of molecules.'.format((1-np.mean(failed_conf))*100))
