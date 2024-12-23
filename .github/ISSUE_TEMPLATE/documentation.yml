@@ -1,0 +1,16 @@
+name: Docs
+description: For users or developers to report issues related to software documentation, such as missing or incomplete documentation, or documentation that is difficult to understand.
+labels: documentation
+assignees: []
+body:
+- type: textarea
+  attributes:
+    label: Details
+    description: |
+      Please provide details about the documentation issue you are experiencing. Include any relevant information such as the specific section of the documentation, the information that is missing or unclear, and any suggestions for improvement. 
+  validations:
+      required: true
+- type: markdown
+  attributes:
+    value: >
+      Thank you for reporting this documentation issue. We will review and update the documentation as necessary. 📚
