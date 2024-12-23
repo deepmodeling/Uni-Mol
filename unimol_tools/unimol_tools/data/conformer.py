@@ -121,10 +121,20 @@ class ConformerGen(object):
         logger.info('Start generating conformers...')
         inputs = [item for item in tqdm(pool.imap(self.single_process, smiles_list))]
         pool.close()
-        failed_cnt = np.mean([(item['src_coord']==0.0).all() for item in inputs])
-        logger.info('Succeeded in generating conformers for {:.2f}% of molecules.'.format((1-failed_cnt)*100))
-        failed_3d_cnt = np.mean([(item['src_coord'][:,2]==0.0).all() for item in inputs])
-        logger.info('Succeeded in generating 3d conformers for {:.2f}% of molecules.'.format((1-failed_3d_cnt)*100))
+        
+        failed_conf = [(item['src_coord']==0.0).all() for item in inputs]
+        logger.info('Succeeded in generating conformers for {:.2f}% of molecules.'.format((1-np.mean(failed_conf))*100))
+        failed_conf_indices = [index for index, value in enumerate(failed_conf) if value]
+        if len(failed_conf_indices) > 0:
+            logger.info('Failed conformers indices: {}'.format(failed_conf_indices))
+            logger.debug('Failed conformers SMILES: {}'.format([smiles_list[index] for index in failed_conf_indices]))
+
+        failed_conf_3d = [(item['src_coord'][:,2]==0.0).all() for item in inputs]
+        logger.info('Succeeded in generating 3d conformers for {:.2f}% of molecules.'.format((1-np.mean(failed_conf_3d))*100))
+        failed_conf_3d_indices = [index for index, value in enumerate(failed_conf_3d) if value]
+        if len(failed_conf_3d_indices) > 0:
+            logger.info('Failed 3d conformers indices: {}'.format(failed_conf_3d_indices))
+            logger.debug('Failed 3d conformers SMILES: {}'.format([smiles_list[index] for index in failed_conf_3d_indices]))
         return inputs
 
 
