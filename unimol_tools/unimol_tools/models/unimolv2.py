@@ -300,23 +300,23 @@ class UniMolV2Model(nn.Module):
         batch = {}
         for k in samples[0][0].keys():
             if k == 'atom_feat':
-                v = pad_coords([s[0][k] for s in samples], pad_idx=self.padding_idx, dim=8)
+                v = pad_coords([torch.tensor(s[0][k]) for s in samples], pad_idx=self.padding_idx, dim=8)
             elif k == 'atom_mask':
-                v = pad_1d_tokens([s[0][k] for s in samples], pad_idx=self.padding_idx)
+                v = pad_1d_tokens([torch.tensor(s[0][k]) for s in samples], pad_idx=self.padding_idx)
             elif k == 'edge_feat':
-                v = pad_2d([s[0][k] for s in samples], pad_idx=self.padding_idx, dim=3)
+                v = pad_2d([torch.tensor(s[0][k]) for s in samples], pad_idx=self.padding_idx, dim=3)
             elif k == 'shortest_path':
-                v = pad_2d([s[0][k] for s in samples], pad_idx=self.padding_idx)
+                v = pad_2d([torch.tensor(s[0][k]) for s in samples], pad_idx=self.padding_idx)
             elif k == 'degree':
-                v = pad_1d_tokens([s[0][k] for s in samples], pad_idx=self.padding_idx)
+                v = pad_1d_tokens([torch.tensor(s[0][k]) for s in samples], pad_idx=self.padding_idx)
             elif k == 'pair_type':
-                v = pad_2d([s[0][k] for s in samples], pad_idx=self.padding_idx, dim=2)
+                v = pad_2d([torch.tensor(s[0][k]) for s in samples], pad_idx=self.padding_idx, dim=2)
             elif k == 'attn_bias':
-                v = pad_2d([s[0][k] for s in samples], pad_idx=self.padding_idx)
+                v = pad_2d([torch.tensor(s[0][k]) for s in samples], pad_idx=self.padding_idx)
             elif k == 'src_tokens':
-                v = pad_1d_tokens([s[0][k] for s in samples], pad_idx=self.padding_idx)
+                v = pad_1d_tokens([torch.tensor(s[0][k]) for s in samples], pad_idx=self.padding_idx)
             elif k == 'src_coord':
-                v = pad_coords([s[0][k] for s in samples], pad_idx=self.padding_idx)
+                v = pad_coords([torch.tensor(s[0][k]) for s in samples], pad_idx=self.padding_idx)
             batch[k] = v
         try:
             label = torch.tensor([s[1] for s in samples])

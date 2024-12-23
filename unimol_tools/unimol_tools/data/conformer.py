@@ -16,7 +16,6 @@ warnings.filterwarnings(action='ignore')
 from .dictionary import Dictionary
 from multiprocessing import Pool
 from tqdm import tqdm
-import torch
 from numba import njit
 
 from ..utils import logger
@@ -291,7 +290,6 @@ class UniMolV2Feature(object):
         :return: A unimolecular data representation (dictionary) of the molecule.
         :raises ValueError: If the conformer generation method is unrecognized.
         """
-        torch.set_num_threads(1)
         if self.method == 'rdkit_random':
             mol = inner_smi2coords(smiles, seed=self.seed, mode=self.mode, remove_hs=self.remove_hs, return_mol=True)
             return mol2unimolv2(mol, self.max_atoms, remove_hs=self.remove_hs)
@@ -307,7 +305,6 @@ class UniMolV2Feature(object):
             return inputs
     
     def transform(self, smiles_list):
-        torch.set_num_threads(1)
         pool = Pool(processes=min(8, os.cpu_count()))
         logger.info('Start generating conformers...')
         inputs = [item for item in tqdm(pool.imap(self.single_process, smiles_list))]
@@ -377,8 +374,8 @@ def mol2unimolv2(mol, max_atoms=128, remove_hs=True, **params):
         atoms = atoms[idx]
         coordinates = coordinates[idx]
     # tokens padding
-    src_tokens = torch.tensor([AllChem.GetPeriodicTable().GetAtomicNumber(item) for item in atoms])
-    src_coord = torch.tensor(coordinates)
+    src_tokens = [AllChem.GetPeriodicTable().GetAtomicNumber(item) for item in atoms]
+    src_coord = coordinates
     # change AllChem.RemoveHs to AllChem.RemoveAllHs
     mol = AllChem.RemoveAllHs(mol)
     node_attr, edge_index, edge_attr = get_graph(mol)
@@ -511,22 +508,22 @@ def get_graph_features(edge_attr, edge_index, node_attr, drop_feat):
 
     # combine, plus 1 for padding
     feat = {}
-    feat["atom_feat"] = torch.from_numpy(atom_feat).long()
-    feat["atom_mask"] = torch.ones(N).long()
-    feat["edge_feat"] = torch.from_numpy(edge_feat).long()
-    feat["shortest_path"] = torch.from_numpy((shortest_path_result)).long()
-    feat["degree"] = torch.from_numpy(degree).long().view(-1)
+    feat["atom_feat"] = atom_feat
+    feat["atom_mask"] = np.ones(N, dtype=np.int64)
+    feat["edge_feat"] = edge_feat
+    feat["shortest_path"] = shortest_path_result
+    feat["degree"] = degree.reshape(-1)
     # pair-type
     atoms = feat["atom_feat"][..., 0]
-    pair_type = torch.cat(
-        [
-            atoms.view(-1, 1, 1).expand(-1, N, -1),
-            atoms.view(1, -1, 1).expand(N, -1, -1),
-        ],
-        dim=-1,
-    )
+    pair_type = np.concatenate(
+            [
+                np.expand_dims(atoms, axis=(1, 2)).repeat(N, axis=1),
+                np.expand_dims(atoms, axis=(0, 2)).repeat(N, axis=0),
+            ],
+            axis=-1,
+        )
     feat["pair_type"] = convert_to_single_emb(pair_type, [128, 128])
-    feat["attn_bias"] = torch.zeros((N + 1, N + 1), dtype=torch.float32)
+    feat["attn_bias"] = np.zeros((N + 1, N + 1), dtype=np.float32)
     return feat
 
 def convert_to_single_emb(x, sizes):
