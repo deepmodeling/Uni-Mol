@@ -383,31 +383,31 @@ def mol2unimolv2(mol, max_atoms=128, remove_hs=True, **params):
 
     :param mol: (rdkit.Chem.Mol) The molecule object containing atom symbols and coordinates.
     :param max_atoms: (int) The maximum number of atoms to consider for the molecule.
-    :param remove_hs: (bool) Whether to remove hydrogen atoms from the representation.
+    :param remove_hs: (bool) Whether to remove hydrogen atoms from the representation. This must be True for UniMolV2.
     :param params: Additional parameters.
 
     :return: A batched data containing the molecular representation.
     """
     
-    mol = AllChem.AddHs(mol, addCoords=True)
-    atoms_h = np.array([atom.GetSymbol() for atom in mol.GetAtoms()])
-    nH_idx = [i for i, atom in enumerate(atoms_h) if atom != 'H']
-    atoms = atoms_h[nH_idx]
-    coordinates_h = mol.GetConformer().GetPositions().astype(np.float32)
-    coordinates = coordinates_h[nH_idx]
+    mol = AllChem.RemoveAllHs(mol)
+    atoms = np.array([atom.GetSymbol() for atom in mol.GetAtoms()])
+    coordinates = mol.GetConformer().GetPositions().astype(np.float32)
 
     # cropping atoms and coordinates
     if len(atoms) > max_atoms:
-        idx = np.random.choice(len(atoms), max_atoms, replace=False)
-        atoms = atoms[idx]
-        coordinates = coordinates[idx]
+        mask = np.zeros(len(atoms), dtype=bool)
+        mask[:max_atoms] = True
+        np.random.shuffle(mask) # shuffle the mask
+        atoms = atoms[mask]
+        coordinates = coordinates[mask]
+    else:
+        mask = np.ones(len(atoms), dtype=bool)
     # tokens padding
     src_tokens = [AllChem.GetPeriodicTable().GetAtomicNumber(item) for item in atoms]
     src_coord = coordinates
-    # change AllChem.RemoveHs to AllChem.RemoveAllHs
-    mol = AllChem.RemoveAllHs(mol)
+    # 
     node_attr, edge_index, edge_attr = get_graph(mol)
-    feat = get_graph_features(edge_attr, edge_index, node_attr, drop_feat=0)
+    feat = get_graph_features(edge_attr, edge_index, node_attr, drop_feat=0, mask=mask)
     feat['src_tokens'] = src_tokens
     feat['src_coord'] = src_coord
     return feat
@@ -499,7 +499,7 @@ def get_graph(mol):
         edge_attr = np.empty((0, num_bond_features), dtype=np.int32)
     return x, edge_index, edge_attr
 
-def get_graph_features(edge_attr, edge_index, node_attr, drop_feat):
+def get_graph_features(edge_attr, edge_index, node_attr, drop_feat, mask):
     # atom_feat_sizes = [128] + [16 for _ in range(8)]
     atom_feat_sizes = [16 for _ in range(8)]
     edge_feat_sizes = [16, 16, 16]
@@ -536,13 +536,13 @@ def get_graph_features(edge_attr, edge_index, node_attr, drop_feat):
 
     # combine, plus 1 for padding
     feat = {}
-    feat["atom_feat"] = atom_feat
-    feat["atom_mask"] = np.ones(N, dtype=np.int64)
-    feat["edge_feat"] = edge_feat
-    feat["shortest_path"] = shortest_path_result
-    feat["degree"] = degree.reshape(-1)
+    feat["atom_feat"] = atom_feat[mask]
+    feat["atom_mask"] = np.ones(N, dtype=np.int64)[mask]
+    feat["edge_feat"] = edge_feat[mask][:, mask]
+    feat["shortest_path"] = shortest_path_result[mask][:, mask]
+    feat["degree"] = degree.reshape(-1)[mask]
     # pair-type
-    atoms = feat["atom_feat"][..., 0]
+    atoms = atom_feat[..., 0]
     pair_type = np.concatenate(
             [
                 np.expand_dims(atoms, axis=(1, 2)).repeat(N, axis=1),
@@ -550,8 +550,9 @@ def get_graph_features(edge_attr, edge_index, node_attr, drop_feat):
             ],
             axis=-1,
         )
+    pair_type = pair_type[mask][:, mask]
     feat["pair_type"] = convert_to_single_emb(pair_type, [128, 128])
-    feat["attn_bias"] = np.zeros((N + 1, N + 1), dtype=np.float32)
+    feat["attn_bias"] = np.zeros((mask.sum() + 1, mask.sum() + 1), dtype=np.float32)
     return feat
 
 def convert_to_single_emb(x, sizes):
