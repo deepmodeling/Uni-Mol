@@ -5,7 +5,7 @@ from setuptools import setup
 
 setup(
     name="unimol_tools",
-    version="0.1.2",
+    version="0.1.2.post1",
     description=("unimol_tools is a Python package for property prediciton with Uni-Mol in molecule, materials and protein."),
     long_description=open('README.md').read(),
     long_description_content_type='text/markdown',
@@ -28,6 +28,7 @@ setup(
                       "pyyaml",
                       "addict",
                       "scikit-learn",
+                      "numba",
                       "tqdm"],
     python_requires=">=3.6",
     include_package_data=True,

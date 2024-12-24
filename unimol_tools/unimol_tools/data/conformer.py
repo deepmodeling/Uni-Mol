@@ -16,7 +16,6 @@ warnings.filterwarnings(action='ignore')
 from .dictionary import Dictionary
 from multiprocessing import Pool
 from tqdm import tqdm
-import torch
 from numba import njit
 
 from ..utils import logger
@@ -95,6 +94,12 @@ class ConformerGen(object):
             weight_download(self.dict_name, WEIGHT_DIR)
         self.dictionary = Dictionary.load(os.path.join(WEIGHT_DIR, self.dict_name))
         self.dictionary.add_symbol("[MASK]", is_special=True)
+        if os.name == 'posix':
+            self.multi_process = params.get('multi_process', True)
+        else:
+            self.multi_process = params.get('multi_process', False)
+            if self.multi_process:
+                logger.warning('Please use "if __name__ == "__main__":" to wrap the main function when using multi_process on Windows.')
 
     def single_process(self, smiles):
         """
@@ -118,14 +123,27 @@ class ConformerGen(object):
         return inputs
 
     def transform(self, smiles_list):
-        pool = Pool()
         logger.info('Start generating conformers...')
-        inputs = [item for item in tqdm(pool.imap(self.single_process, smiles_list))]
-        pool.close()
-        failed_cnt = np.mean([(item['src_coord']==0.0).all() for item in inputs])
-        logger.info('Succeeded in generating conformers for {:.2f}% of molecules.'.format((1-failed_cnt)*100))
-        failed_3d_cnt = np.mean([(item['src_coord'][:,2]==0.0).all() for item in inputs])
-        logger.info('Succeeded in generating 3d conformers for {:.2f}% of molecules.'.format((1-failed_3d_cnt)*100))
+        if self.multi_process:
+            pool = Pool(processes=min(8, os.cpu_count()))
+            inputs = [item for item in tqdm(pool.imap(self.single_process, smiles_list))]
+            pool.close()
+        else:
+            inputs = [self.single_process(smiles) for smiles in tqdm(smiles_list)]
+        
+        failed_conf = [(item['src_coord']==0.0).all() for item in inputs]
+        logger.info('Succeeded in generating conformers for {:.2f}% of molecules.'.format((1-np.mean(failed_conf))*100))
+        failed_conf_indices = [index for index, value in enumerate(failed_conf) if value]
+        if len(failed_conf_indices) > 0:
+            logger.info('Failed conformers indices: {}'.format(failed_conf_indices))
+            logger.debug('Failed conformers SMILES: {}'.format([smiles_list[index] for index in failed_conf_indices]))
+
+        failed_conf_3d = [(item['src_coord'][:,2]==0.0).all() for item in inputs]
+        logger.info('Succeeded in generating 3d conformers for {:.2f}% of molecules.'.format((1-np.mean(failed_conf_3d))*100))
+        failed_conf_3d_indices = [index for index, value in enumerate(failed_conf_3d) if value]
+        if len(failed_conf_3d_indices) > 0:
+            logger.info('Failed 3d conformers indices: {}'.format(failed_conf_3d_indices))
+            logger.debug('Failed 3d conformers SMILES: {}'.format([smiles_list[index] for index in failed_conf_3d_indices]))
         return inputs
 
 
@@ -282,6 +300,12 @@ class UniMolV2Feature(object):
         self.method = params.get('method', 'rdkit_random')
         self.mode = params.get('mode', 'fast')
         self.remove_hs = params.get('remove_hs', True)
+        if os.name == 'posix':
+            self.multi_process = params.get('multi_process', True)
+        else:
+            self.multi_process = params.get('multi_process', False)
+            if self.multi_process:
+                logger.warning('Please use "if __name__ == "__main__":" to wrap the main function when using multi_process on Windows.')
 
     def single_process(self, smiles):
         """
@@ -291,7 +315,6 @@ class UniMolV2Feature(object):
         :return: A unimolecular data representation (dictionary) of the molecule.
         :raises ValueError: If the conformer generation method is unrecognized.
         """
-        torch.set_num_threads(1)
         if self.method == 'rdkit_random':
             mol = inner_smi2coords(smiles, seed=self.seed, mode=self.mode, remove_hs=self.remove_hs, return_mol=True)
             return mol2unimolv2(mol, self.max_atoms, remove_hs=self.remove_hs)
@@ -307,11 +330,13 @@ class UniMolV2Feature(object):
             return inputs
     
     def transform(self, smiles_list):
-        torch.set_num_threads(1)
-        pool = Pool(processes=min(8, os.cpu_count()))
         logger.info('Start generating conformers...')
-        inputs = [item for item in tqdm(pool.imap(self.single_process, smiles_list))]
-        pool.close()
+        if self.multi_process:
+            pool = Pool(processes=min(8, os.cpu_count()))
+            inputs = [item for item in tqdm(pool.imap(self.single_process, smiles_list))]
+            pool.close()
+        else:
+            inputs = [self.single_process(smiles) for smiles in tqdm(smiles_list)]
 
         failed_conf = [(item['src_coord']==0.0).all() for item in inputs]
         logger.info('Succeeded in generating conformers for {:.2f}% of molecules.'.format((1-np.mean(failed_conf))*100))
@@ -358,31 +383,31 @@ def mol2unimolv2(mol, max_atoms=128, remove_hs=True, **params):
 
     :param mol: (rdkit.Chem.Mol) The molecule object containing atom symbols and coordinates.
     :param max_atoms: (int) The maximum number of atoms to consider for the molecule.
-    :param remove_hs: (bool) Whether to remove hydrogen atoms from the representation.
+    :param remove_hs: (bool) Whether to remove hydrogen atoms from the representation. This must be True for UniMolV2.
     :param params: Additional parameters.
 
     :return: A batched data containing the molecular representation.
     """
     
-    mol = AllChem.AddHs(mol, addCoords=True)
-    atoms_h = np.array([atom.GetSymbol() for atom in mol.GetAtoms()])
-    nH_idx = [i for i, atom in enumerate(atoms_h) if atom != 'H']
-    atoms = atoms_h[nH_idx]
-    coordinates_h = mol.GetConformer().GetPositions().astype(np.float32)
-    coordinates = coordinates_h[nH_idx]
+    mol = AllChem.RemoveAllHs(mol)
+    atoms = np.array([atom.GetSymbol() for atom in mol.GetAtoms()])
+    coordinates = mol.GetConformer().GetPositions().astype(np.float32)
 
     # cropping atoms and coordinates
     if len(atoms) > max_atoms:
-        idx = np.random.choice(len(atoms), max_atoms, replace=False)
-        atoms = atoms[idx]
-        coordinates = coordinates[idx]
+        mask = np.zeros(len(atoms), dtype=bool)
+        mask[:max_atoms] = True
+        np.random.shuffle(mask) # shuffle the mask
+        atoms = atoms[mask]
+        coordinates = coordinates[mask]
+    else:
+        mask = np.ones(len(atoms), dtype=bool)
     # tokens padding
-    src_tokens = torch.tensor([AllChem.GetPeriodicTable().GetAtomicNumber(item) for item in atoms])
-    src_coord = torch.tensor(coordinates)
-    # change AllChem.RemoveHs to AllChem.RemoveAllHs
-    mol = AllChem.RemoveAllHs(mol)
+    src_tokens = [AllChem.GetPeriodicTable().GetAtomicNumber(item) for item in atoms]
+    src_coord = coordinates
+    # 
     node_attr, edge_index, edge_attr = get_graph(mol)
-    feat = get_graph_features(edge_attr, edge_index, node_attr, drop_feat=0)
+    feat = get_graph_features(edge_attr, edge_index, node_attr, drop_feat=0, mask=mask)
     feat['src_tokens'] = src_tokens
     feat['src_coord'] = src_coord
     return feat
@@ -474,7 +499,7 @@ def get_graph(mol):
         edge_attr = np.empty((0, num_bond_features), dtype=np.int32)
     return x, edge_index, edge_attr
 
-def get_graph_features(edge_attr, edge_index, node_attr, drop_feat):
+def get_graph_features(edge_attr, edge_index, node_attr, drop_feat, mask):
     # atom_feat_sizes = [128] + [16 for _ in range(8)]
     atom_feat_sizes = [16 for _ in range(8)]
     edge_feat_sizes = [16, 16, 16]
@@ -511,22 +536,23 @@ def get_graph_features(edge_attr, edge_index, node_attr, drop_feat):
 
     # combine, plus 1 for padding
     feat = {}
-    feat["atom_feat"] = torch.from_numpy(atom_feat).long()
-    feat["atom_mask"] = torch.ones(N).long()
-    feat["edge_feat"] = torch.from_numpy(edge_feat).long()
-    feat["shortest_path"] = torch.from_numpy((shortest_path_result)).long()
-    feat["degree"] = torch.from_numpy(degree).long().view(-1)
+    feat["atom_feat"] = atom_feat[mask]
+    feat["atom_mask"] = np.ones(N, dtype=np.int64)[mask]
+    feat["edge_feat"] = edge_feat[mask][:, mask]
+    feat["shortest_path"] = shortest_path_result[mask][:, mask]
+    feat["degree"] = degree.reshape(-1)[mask]
     # pair-type
-    atoms = feat["atom_feat"][..., 0]
-    pair_type = torch.cat(
-        [
-            atoms.view(-1, 1, 1).expand(-1, N, -1),
-            atoms.view(1, -1, 1).expand(N, -1, -1),
-        ],
-        dim=-1,
-    )
+    atoms = atom_feat[..., 0]
+    pair_type = np.concatenate(
+            [
+                np.expand_dims(atoms, axis=(1, 2)).repeat(N, axis=1),
+                np.expand_dims(atoms, axis=(0, 2)).repeat(N, axis=0),
+            ],
+            axis=-1,
+        )
+    pair_type = pair_type[mask][:, mask]
     feat["pair_type"] = convert_to_single_emb(pair_type, [128, 128])
-    feat["attn_bias"] = torch.zeros((N + 1, N + 1), dtype=torch.float32)
+    feat["attn_bias"] = np.zeros((mask.sum() + 1, mask.sum() + 1), dtype=np.float32)
     return feat
 
 def convert_to_single_emb(x, sizes):
