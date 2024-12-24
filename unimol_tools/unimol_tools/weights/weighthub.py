@@ -11,11 +11,10 @@ except:
 
 WEIGHT_DIR = os.environ.get('UNIMOL_WEIGHT_DIR', os.path.dirname(os.path.abspath(__file__)))
 
-if __name__ == "__main__":
-    if 'UNIMOL_WEIGHT_DIR' in os.environ:
-        logger.warning(f'Using custom weight directory from UNIMOL_WEIGHT_DIR: {WEIGHT_DIR}')
-    else:
-        logger.info(f'Weights will be downloaded to default directory: {WEIGHT_DIR}')
+if 'UNIMOL_WEIGHT_DIR' in os.environ:
+    logger.warning(f'Using custom weight directory from UNIMOL_WEIGHT_DIR: {WEIGHT_DIR}')
+else:
+    logger.info(f'Weights will be downloaded to default directory: {WEIGHT_DIR}')
 
 os.environ["HF_ENDPOINT"] = "https://hf-mirror.com" # use mirror to download weights
 
