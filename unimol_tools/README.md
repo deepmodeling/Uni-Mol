@@ -6,10 +6,10 @@ Documentation of Uni-Mol tools is available at https://unimol.readthedocs.io/en/
 - pytorch is required, please install pytorch according to your environment. if you are using cuda, please install pytorch with cuda. More details can be found at https://pytorch.org/get-started/locally/
 - currently, rdkit needs with numpy<2.0.0, please install rdkit with numpy<2.0.0.
 
-### Option 1: Installing from PyPi (Recommended)
+### Option 1: Installing from PyPi (Recommended, for stable version)
 
 ```bash
-pip install unimol_tools
+pip install unimol_tools --upgrade
 ```
 
 We recommend installing ```huggingface_hub``` so that the required unimol models can be automatically downloaded at runtime! It can be install by
@@ -18,9 +18,9 @@ We recommend installing ```huggingface_hub``` so that the required unimol models
 pip install huggingface_hub
 ```
 
-`huggingface_hub` allows you to easily download and manage models from the Hugging Face Hub, which is key for using UniMol models.
+`huggingface_hub` allows you to easily download and manage models from the Hugging Face Hub, which is key for using Uni-Mol models.
 
-### Option 2: Installing from source
+### Option 2: Installing from source (for latest version)
 
 ```python
 ## Dependencies installation
