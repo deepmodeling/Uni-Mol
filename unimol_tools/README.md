@@ -2,10 +2,6 @@
 
 Documentation of Uni-Mol tools is available at https://unimol.readthedocs.io/en/latest/
 
-## Details can be found in bohrium notebook
-* [unimol property predict](https://bohrium.dp.tech/notebook/298bcead4f614971bb62fbeef2e9db16)
-* [unimol representation](https://bohrium.dp.tech/notebook/f39a7a8836134cca8e22c099dc9654f8)
-
 ## Install
 - pytorch is required, please install pytorch according to your environment. if you are using cuda, please install pytorch with cuda. More details can be found at https://pytorch.org/get-started/locally/
 - currently, rdkit needs with numpy<2.0.0, please install rdkit with numpy<2.0.0.
