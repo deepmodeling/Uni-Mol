@@ -192,7 +192,7 @@ class FinetuneSmoothMAELoss(FinetuneMSELoss):
                 .numpy()
                 .mean(axis=1)
             )
-            agg_mae = np.abs(y_pred - y_true).mean(axis=0).mean(axis=1)
+            agg_mae = np.abs(y_pred - y_true).mean()
             metrics.log_scalar(f"{split}_agg_mae", agg_mae, sample_size, round=4)
 
 
