@@ -278,6 +278,12 @@ For QM7, QM8 and QM9, we set `loss_func=finetune_smooth_mae`.
 Molecular conformation generation
 ------------------
 
+**NOTE**: If you would like to reproduce the results from the paper, you can switch to commit 37b0198 or an earlier commit by using the following command:
+```
+git checkout 37b0198cf68a349a854410a06777c2e7dacbce5e
+```
+**Reproduction**
+
 1. Finetune Uni-Mol pretrained model on the training set of the conformation generation task: 
 
 ```bash
