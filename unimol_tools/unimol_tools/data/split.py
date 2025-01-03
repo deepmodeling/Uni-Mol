@@ -67,6 +67,9 @@ class Splitter(object):
         if self.n_splits == 1:
             logger.warning('Only one fold is used for training, no splitting is performed.')
             return [(np.arange(len(smiles)), ())]
+        if smiles is None and 'atoms' in params:
+            smiles = params['atoms']
+            logger.warning('Atoms are used as SMILES for splitting.')
         if self.method in ['random']:
             self.skf = self.splitter.split(smiles)
         elif self.method in ['scaffold']:
