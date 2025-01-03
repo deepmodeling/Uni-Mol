@@ -84,18 +84,17 @@ class MolDataReader(object):
                 pass
             else:
                 raise ValueError('Unknown target_cols type: {}'.format(type(target_cols)))
-            
-            for col in target_cols:
-                if col not in data.columns:
-                    data[target_cols] = -1.0
-                    break
-                    
+                              
             if is_train:
                 if anomaly_clean:
                     data = self.anomaly_clean(data, task, target_cols)  
                 if task == 'multiclass':
                     multiclass_cnt = int(data[target_cols].max() + 1)
-
+            else:
+                for col in target_cols:
+                    if col not in data.columns or data[col].isnull().any():
+                        data[col] = -1.0
+                    
             targets = data[target_cols].values.tolist()
             num_classes = len(target_cols)
         
