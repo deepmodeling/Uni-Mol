@@ -47,7 +47,7 @@ class MolPredict(object):
 
             - classification: auc, auprc, log_loss, acc, f1_score, mcc, precision, recall, cohen_kappa. 
 
-            - regression: mse, pearsonr, spearmanr, mse, r2.
+            - regression: mae, pearsonr, spearmanr, mse, r2.
 
             - multiclass: log_loss, acc.
 
