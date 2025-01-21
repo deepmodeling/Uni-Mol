@@ -134,9 +134,12 @@ class UniMolV2Model(nn.Module):
             pooler_dropout=self.args.pooler_dropout,
         )
         """
+        if 'pooler_dropout' in params:
+            self.args.pooler_dropout = params['pooler_dropout']
         self.classification_head = LinearHead(
             input_dim=self.args.encoder_embed_dim,
             num_classes=self.output_dim,
+            pooler_dropout=self.args.pooler_dropout,
         )
         self.load_pretrained_weights(path=self.pretrain_path)
 
@@ -355,6 +358,7 @@ class LinearHead(nn.Module):
         self,
         input_dim,
         num_classes,
+        pooler_dropout,
     ):
         """
         Initialize the Linear head.
@@ -364,6 +368,7 @@ class LinearHead(nn.Module):
         """
         super().__init__()
         self.out_proj = nn.Linear(input_dim, num_classes)
+        self.dropout = nn.Dropout(p=pooler_dropout)
 
     def forward(self, features, **kwargs):
         """
@@ -374,6 +379,7 @@ class LinearHead(nn.Module):
         :return: Output from the Linear head.
         """
         x = features
+        x = self.dropout(x)
         x = self.out_proj(x)
         return x
 

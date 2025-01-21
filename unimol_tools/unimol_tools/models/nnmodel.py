@@ -103,6 +103,11 @@ class NNModel(object):
         :return: An instance of the specified neural network model.
         :raises ValueError: If the model name is not recognized.
         """
+        if self.task in ['regression', 'multilabel_regression']:
+            params['pooler_dropout'] = 0
+            logger.debug("set pooler_dropout to 0 for regression task")
+        else:
+            pass
         freeze_layers = params.get('freeze_layers', None)
         freeze_layers_reversed = params.get('freeze_layers_reversed', False)
         if model_name in NNMODEL_REGISTER:
