@@ -39,7 +39,7 @@ class Logger(object):
         """
         self.logger = logging.getLogger(logger_name)
         logging.root.setLevel(logging.NOTSET)
-        self.log_file_name = 'uniqsar_{0}.log'.format(
+        self.log_file_name = 'unimol_tools_{0}.log'.format(
             datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
         )
 
@@ -85,7 +85,7 @@ class Logger(object):
             self.logger.addHandler(file_handler)
         return self.logger
     
-# 自定义格式化器以高亮显示警告消息
+# add highlight formatter to logger
 class HighlightFormatter(logging.Formatter):
     def format(self, record):
         if record.levelno == logging.WARNING:
@@ -95,7 +95,7 @@ class HighlightFormatter(logging.Formatter):
 logger = Logger('Uni-Mol Tools').get_logger()
 logger.setLevel(logging.INFO)
 
-# 替换终端处理器的格式化器
+# highlight warning messages in console
 for handler in logger.handlers:
     if isinstance(handler, logging.StreamHandler):
         handler.setFormatter(HighlightFormatter(Logger.LOG_FORMAT, Logger.DATE_FORMAT))
