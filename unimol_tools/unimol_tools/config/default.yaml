@@ -2,7 +2,7 @@
 smiles_col: "SMILES"
 target_col_prefix: "TARGET"
 target_normalize: "auto"
-anomaly_clean: True
+anomaly_clean: False
 smi_strict: False
 ### model
 model_name: "unimolv1"

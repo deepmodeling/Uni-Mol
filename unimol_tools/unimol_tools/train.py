@@ -36,7 +36,7 @@ class MolTrain(object):
                 smiles_col='SMILES',
                 target_cols=None,
                 target_col_prefix='TARGET',
-                target_anomaly_check="filter",
+                target_anomaly_check=False,
                 smiles_check="filter",
                 target_normalize="auto",
                 max_norm=5.0,
@@ -94,7 +94,7 @@ class MolTrain(object):
         :param smiles_col: str, default='SMILES', column name of SMILES.
         :param target_cols: list or str, default=None, column names of target values.
         :param target_col_prefix: str, default='TARGET', prefix of target column name.
-        :param target_anomaly_check: str, default='filter', how to deal with anomaly target values. currently support: filter, none.
+        :param target_anomaly_check: str, default=False, how to deal with anomaly target values. currently support: filter, none.
         :param smiles_check: str, default='filter', how to deal with invalid SMILES. currently support: filter, none.
         :param target_normalize: str, default='auto', how to normalize target values. 'auto' means we will choose the normalize strategy by automatic. \
             currently support: auto, minmax, standard, robust, log1p, none.
@@ -130,7 +130,7 @@ class MolTrain(object):
         config.smiles_col = smiles_col
         config.target_cols = target_cols
         config.target_col_prefix = target_col_prefix
-        config.anomaly_clean = target_anomaly_check in ['filter']
+        config.anomaly_clean = target_anomaly_check or target_anomaly_check in ['filter']
         config.smi_strict = smiles_check in ['filter']
         config.target_normalize = target_normalize
         config.max_norm = max_norm
