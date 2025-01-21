@@ -31,13 +31,15 @@ class PackagePathFilter(logging.Filter):
 
 class Logger(object):
     """A custom logger class that provides logging functionality to console and file."""
+    DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
+    LOG_FORMAT = "%(asctime)s | %(relativepath)s | %(lineno)s | %(levelname)s | %(name)s | %(message)s"
     def __init__(self, logger_name='None'):
         """
         :param logger_name: (str) The name of the logger (default: 'None')
         """
         self.logger = logging.getLogger(logger_name)
         logging.root.setLevel(logging.NOTSET)
-        self.log_file_name = 'uniqsar_{0}.log'.format(
+        self.log_file_name = 'unimol_tools_{0}.log'.format(
             datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
         )
 
@@ -50,9 +52,9 @@ class Logger(object):
 
         self.console_output_level = 'INFO'
         self.file_output_level = 'INFO'
-        self.DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
+
         self.formatter = logging.Formatter(
-            "%(asctime)s | %(relativepath)s | %(lineno)s | %(levelname)s | %(name)s | %(message)s",
+            self.LOG_FORMAT,
             self.DATE_FORMAT
         )
 
@@ -82,6 +84,18 @@ class Logger(object):
             file_handler.setLevel(self.file_output_level)
             self.logger.addHandler(file_handler)
         return self.logger
-
+    
+# add highlight formatter to logger
+class HighlightFormatter(logging.Formatter):
+    def format(self, record):
+        if record.levelno == logging.WARNING:
+            record.msg = "\033[93m{}\033[0m".format(record.msg)  # 黄色高亮
+        return super().format(record)
+    
 logger = Logger('Uni-Mol Tools').get_logger()
 logger.setLevel(logging.INFO)
+
+# highlight warning messages in console
+for handler in logger.handlers:
+    if isinstance(handler, logging.StreamHandler):
+        handler.setFormatter(HighlightFormatter(Logger.LOG_FORMAT, Logger.DATE_FORMAT))

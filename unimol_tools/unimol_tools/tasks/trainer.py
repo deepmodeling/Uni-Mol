@@ -292,9 +292,7 @@ class Trainer(object):
         model = model.to(self.device)
         if load_model == True:
             load_model_path = os.path.join(dump_dir, f'model_{fold}.pth')
-            model_dict = torch.load(load_model_path, map_location=self.device)[
-                "model_state_dict"]
-            model.load_state_dict(model_dict)
+            model.load_pretrained_weights(load_model_path, strict=True)
             logger.info("load model success!")
         dataloader = NNDataLoader(
             feature_name=feature_name,

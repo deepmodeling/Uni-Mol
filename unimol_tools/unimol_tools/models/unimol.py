@@ -101,6 +101,8 @@ class UniMolModel(nn.Module):
             self.gbf = GaussianLayer(K, n_edge_type)
         else:
             self.gbf = NumericalEmbed(K, n_edge_type)
+        """
+        # To be deprecated in the future.
         self.classification_head = ClassificationHead(
             input_dim=self.args.encoder_embed_dim,
             inner_dim=self.args.encoder_embed_dim,
@@ -108,9 +110,17 @@ class UniMolModel(nn.Module):
             activation_fn=self.args.pooler_activation_fn,
             pooler_dropout=self.args.pooler_dropout,
         )
+        """
+        if 'pooler_dropout' in params:
+            self.args.pooler_dropout = params['pooler_dropout']
+        self.classification_head = LinearHead(
+            input_dim=self.args.encoder_embed_dim,
+            num_classes=self.output_dim,
+            pooler_dropout=self.args.pooler_dropout,
+        )
         self.load_pretrained_weights(path=self.pretrain_path)
 
-    def load_pretrained_weights(self, path):
+    def load_pretrained_weights(self, path, strict=False):
         """
         Loads pretrained weights into the model.
 
@@ -119,7 +129,25 @@ class UniMolModel(nn.Module):
         if path is not None:
             logger.info("Loading pretrained weights from {}".format(path))
             state_dict = torch.load(path, map_location=lambda storage, loc: storage)
-            self.load_state_dict(state_dict['model'], strict=False)
+            if 'model' in state_dict:
+                state_dict = state_dict['model']
+            elif 'model_state_dict' in state_dict:
+                state_dict = state_dict['model_state_dict']
+            try:
+                self.load_state_dict(state_dict, strict=strict)
+            except RuntimeError as e:
+                if 'classification_head.dense.weight' in state_dict:
+                    self.classification_head = ClassificationHead(
+                        input_dim=self.args.encoder_embed_dim,
+                        inner_dim=self.args.encoder_embed_dim,
+                        num_classes=self.output_dim,
+                        activation_fn=self.args.pooler_activation_fn,
+                        pooler_dropout=self.args.pooler_dropout,
+                    )
+                    self.load_state_dict(state_dict, strict=strict)
+                    logger.warning("This model is trained with the previous version. The classification_head is reset to previous version to load the model. This will be deprecated in the future. We recommend using the latest version of the model.")
+                else:
+                    raise e
 
     @classmethod
     def build_model(cls, args):
@@ -236,6 +264,38 @@ class UniMolModel(nn.Module):
         except:
             label = None
         return batch, label
+
+class LinearHead(nn.Module):
+    """Linear head."""
+
+    def __init__(
+        self,
+        input_dim,
+        num_classes,
+        pooler_dropout,
+    ):
+        """
+        Initialize the Linear head.
+
+        :param input_dim: Dimension of input features.
+        :param num_classes: Number of classes for output.
+        """
+        super().__init__()
+        self.out_proj = nn.Linear(input_dim, num_classes)
+        self.dropout = nn.Dropout(p=pooler_dropout)
+
+    def forward(self, features, **kwargs):
+        """
+        Forward pass for the Linear head.
+
+        :param features: Input features.
+
+        :return: Output from the Linear head.
+        """
+        x = features
+        x = self.dropout(x)
+        x = self.out_proj(x)
+        return x
 
 class ClassificationHead(nn.Module):
     """Head for sentence-level classification tasks."""

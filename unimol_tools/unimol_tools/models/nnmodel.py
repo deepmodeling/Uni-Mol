@@ -103,6 +103,11 @@ class NNModel(object):
         :return: An instance of the specified neural network model.
         :raises ValueError: If the model name is not recognized.
         """
+        if self.task in ['regression', 'multilabel_regression']:
+            params['pooler_dropout'] = 0
+            logger.debug("set pooler_dropout to 0 for regression task")
+        else:
+            pass
         freeze_layers = params.get('freeze_layers', None)
         freeze_layers_reversed = params.get('freeze_layers_reversed', False)
         if model_name in NNMODEL_REGISTER:
@@ -158,6 +163,8 @@ class NNModel(object):
             if fold > 0:
                 # need to initalize model for next fold training
                 self.model = self._init_model(**self.model_params)
+
+            # TODO: move the following code to model.load_pretrained_weights
             if self.model_params.get('load_model_dir', None) is not None:
                 load_model_path = os.path.join(self.model_params['load_model_dir'], f'model_{fold}.pth')
                 model_dict = torch.load(load_model_path, map_location=self.model_params['device'])["model_state_dict"]
@@ -222,8 +229,7 @@ class NNModel(object):
         testdataset = NNDataset(self.features, np.asarray(self.data['target']))
         for fold in range(self.data['kfold']):
             model_path = os.path.join(checkpoints_path, f'model_{fold}.pth')
-            self.model.load_state_dict(torch.load(
-                model_path, map_location=self.trainer.device)['model_state_dict'])
+            self.model.load_pretrained_weights(model_path, strict=True)
             _y_pred, _, __ = trainer.predict(self.model, testdataset, self.loss_func, self.activation_fn,
                                              self.save_path, fold, self.target_scaler, epoch=1, load_model=True)
             if fold == 0:
