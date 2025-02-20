@@ -168,7 +168,7 @@ class Trainer(object):
             
                 try:
                     y_preds = shared_queue.get(timeout=1)
-                    print(f"Main function returned: {y_preds}")
+                    # print(f"Main function returned: {y_preds}")
                 except:
                     print("No return value received from main function.")
                 return y_preds
