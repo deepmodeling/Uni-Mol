@@ -5,24 +5,22 @@
 from __future__ import absolute_import, division, print_function
 
 import numpy as np
-from sklearn.model_selection import (
-    GroupKFold, 
-    KFold, 
-    StratifiedKFold,
-)
+from sklearn.model_selection import GroupKFold, KFold, StratifiedKFold
+
 from ..utils import logger
 
 
 class Splitter(object):
     """
-    The Splitter class is responsible for splitting a dataset into train and test sets 
+    The Splitter class is responsible for splitting a dataset into train and test sets
     based on the specified method.
     """
+
     def __init__(self, method='random', kfold=5, seed=42, **params):
         """
         Initializes the Splitter with a specified split method and random seed.
 
-        :param split_method: (str) The method for splitting the dataset, in the format 'Nfold_method'. 
+        :param split_method: (str) The method for splitting the dataset, in the format 'Nfold_method'.
                              Defaults to '5fold_random'.
         :param seed: (int) Random seed for reproducibility in random splitting. Defaults to 42.
         """
@@ -41,15 +39,23 @@ class Splitter(object):
         if self.n_splits == 1:
             return None
         if self.method == 'random':
-            splitter = KFold(n_splits=self.n_splits, shuffle=True, random_state=self.seed)
+            splitter = KFold(
+                n_splits=self.n_splits, shuffle=True, random_state=self.seed
+            )
         elif self.method == 'scaffold' or self.method == 'group':
             splitter = GroupKFold(n_splits=self.n_splits)
         elif self.method == 'stratified':
-            splitter = StratifiedKFold(n_splits=self.n_splits, shuffle=True, random_state=self.seed)
+            splitter = StratifiedKFold(
+                n_splits=self.n_splits, shuffle=True, random_state=self.seed
+            )
         elif self.method == 'select':
             splitter = GroupKFold(n_splits=self.n_splits)
         else:
-            raise ValueError('Unknown splitter method: {}fold - {}'.format(self.n_splits, self.method))
+            raise ValueError(
+                'Unknown splitter method: {}fold - {}'.format(
+                    self.n_splits, self.method
+                )
+            )
 
         return splitter
 
@@ -65,7 +71,9 @@ class Splitter(object):
         :raises ValueError: If the splitter method does not support the provided parameters.
         """
         if self.n_splits == 1:
-            logger.warning('Only one fold is used for training, no splitting is performed.')
+            logger.warning(
+                'Only one fold is used for training, no splitting is performed.'
+            )
             return [(np.arange(len(smiles)), ())]
         if smiles is None and 'atoms' in params:
             smiles = params['atoms']
@@ -89,7 +97,9 @@ class Splitter(object):
                 self.split_folds = split_folds
                 return self.split_folds
             else:
-                logger.error('The number of unique groups is not equal to the number of splits.')
+                logger.error(
+                    'The number of unique groups is not equal to the number of splits.'
+                )
                 exit(1)
         else:
             logger.error('Unknown splitter method: {}'.format(self.method))

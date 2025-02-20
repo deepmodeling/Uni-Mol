@@ -4,13 +4,14 @@
 
 from hashlib import md5
 
+
 def pad_1d_tokens(
     values,
     pad_idx,
     left_pad=False,
     pad_to_length=None,
     pad_to_multiple=1,
-    ):
+):
     """
     padding one dimension tokens inputs.
 
@@ -45,7 +46,7 @@ def pad_2d(
     left_pad=False,
     pad_to_length=None,
     pad_to_multiple=1,
-    ):
+):
     """
     padding two dimension tensor inputs.
 
@@ -72,7 +73,14 @@ def pad_2d(
         dst.copy_(src)
 
     for i, v in enumerate(values):
-        copy_tensor(v, res[i][size - len(v) :, size - len(v) :] if left_pad else res[i][: len(v), : len(v)])
+        copy_tensor(
+            v,
+            (
+                res[i][size - len(v) :, size - len(v) :]
+                if left_pad
+                else res[i][: len(v), : len(v)]
+            ),
+        )
     return res
 
 
@@ -83,7 +91,7 @@ def pad_coords(
     left_pad=False,
     pad_to_length=None,
     pad_to_multiple=1,
-    ):
+):
     """
     padding two dimension tensor coords which the third dimension is 3.
 
@@ -106,5 +114,5 @@ def pad_coords(
         dst.copy_(src)
 
     for i, v in enumerate(values):
-        copy_tensor(v, res[i][size - len(v) :, :] if left_pad else res[i][: len(v),:])
+        copy_tensor(v, res[i][size - len(v) :, :] if left_pad else res[i][: len(v), :])
     return res

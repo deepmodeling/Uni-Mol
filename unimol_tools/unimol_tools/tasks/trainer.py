@@ -5,32 +5,59 @@
 from __future__ import absolute_import, division, print_function
 
 import os
+import time
+from functools import partial
+
 import numpy as np
 import torch
-import torch.nn as nn
-from torch.utils.data import DataLoader as TorchDataLoader
-from torch.optim import Adam
-from torch.optim.lr_scheduler import LambdaLR
-from functools import partial
-from torch.nn.utils import clip_grad_norm_
-# from transformers.optimization import get_linear_schedule_with_warmup
-from ..utils import Metrics
-from ..utils import logger
-from tqdm import tqdm
 import torch.distributed as dist
 import torch.multiprocessing as mp
-from torch.utils.data.distributed import DistributedSampler
+import torch.nn as nn
 from torch.nn.parallel import DistributedDataParallel
-import time
+from torch.nn.utils import clip_grad_norm_
+from torch.optim import Adam
+from torch.optim.lr_scheduler import LambdaLR
+from torch.utils.data import DataLoader as TorchDataLoader
+from torch.utils.data.distributed import DistributedSampler
+from tqdm import tqdm
 
-def fit_predict_wrapper(local_rank,shared_queue, trainer, model, train_dataset, valid_dataset, loss_func, activation_fn, dump_dir, fold, target_scaler, feature_name=None):
-    y_preds = trainer.fit_predict_with_ddp(local_rank, model, train_dataset, valid_dataset, loss_func, activation_fn, dump_dir, fold, target_scaler, feature_name)
+# from transformers.optimization import get_linear_schedule_with_warmup
+from ..utils import Metrics, logger
+
+
+def fit_predict_wrapper(
+    local_rank,
+    shared_queue,
+    trainer,
+    model,
+    train_dataset,
+    valid_dataset,
+    loss_func,
+    activation_fn,
+    dump_dir,
+    fold,
+    target_scaler,
+    feature_name=None,
+):
+    y_preds = trainer.fit_predict_with_ddp(
+        local_rank,
+        model,
+        train_dataset,
+        valid_dataset,
+        loss_func,
+        activation_fn,
+        dump_dir,
+        fold,
+        target_scaler,
+        feature_name,
+    )
     if local_rank == 0:
         shared_queue.put(y_preds)
 
 
 class Trainer(object):
     """A :class:`Trainer` class is responsible for initializing the model, and managing its training, validation, and testing phases."""
+
     def __init__(self, save_path=None, **params):
         """
         :param save_path: Path for saving the training outputs. Defaults to None.
@@ -85,8 +112,8 @@ class Trainer(object):
             logger.info(f"Number of GPUs available: {world_size}")
             if world_size > 1 and self.distributed:
                 os.environ['MASTER_ADDR'] = 'localhost'
-                os.environ['MASTER_PORT'] = '19198' 
-                os.environ['CUDA_VISIBLE_DEVICES'] = gpu 
+                os.environ['MASTER_PORT'] = '19198'
+                os.environ['CUDA_VISIBLE_DEVICES'] = gpu
                 os.environ['WORLD_SIZE'] = str(world_size)
             else:
                 self.device = torch.device("cuda:0")
@@ -94,10 +121,10 @@ class Trainer(object):
         else:
             self.device = torch.device("cpu")
             self.distributed = False
-        return 
+        return
 
     def init_ddp(self, local_rank):
-        torch.cuda.set_device(local_rank)  
+        torch.cuda.set_device(local_rank)
         os.environ['RANK'] = str(local_rank)
         dist.init_process_group(backend='nccl', init_method='env://')
         self.device = torch.device("cuda", local_rank)
@@ -106,7 +133,7 @@ class Trainer(object):
         """
         Prepares a batch of data for processing by the model. This method is a wrapper that
         delegates to a specific batch decoration method based on the data type.
-        
+
         :param batch: The batch of data to be processed.
         :param feature_name: (str, optional) Name of the feature used in batch decoration. Defaults to None.
 
@@ -116,15 +143,16 @@ class Trainer(object):
 
     def decorate_graph_batch(self, batch):
         """
-        Prepares a graph-based batch of data for processing by the model. Specifically handles 
+        Prepares a graph-based batch of data for processing by the model. Specifically handles
         graph-based data structures.
-        
+
         :param batch: The batch of graph-based data to be processed.
 
         :return: A tuple of (net_input, net_target) for model processing.
         """
-        net_input, net_target = {'net_input': batch.to(
-            self.device)}, batch.y.to(self.device)
+        net_input, net_target = {'net_input': batch.to(self.device)}, batch.y.to(
+            self.device
+        )
         if self.task in ['classification', 'multiclass', 'multilabel_classification']:
             net_target = net_target.long()
         else:
@@ -142,10 +170,12 @@ class Trainer(object):
         net_input, net_target = batch
         if isinstance(net_input, dict):
             net_input, net_target = {
-                k: v.to(self.device) for k, v in net_input.items()}, net_target.to(self.device)
+                k: v.to(self.device) for k, v in net_input.items()
+            }, net_target.to(self.device)
         else:
-            net_input, net_target = {'net_input': net_input.to(
-                self.device)}, net_target.to(self.device)
+            net_input, net_target = {
+                'net_input': net_input.to(self.device)
+            }, net_target.to(self.device)
         if self.task == 'repr':
             net_target = None
         elif self.task in ['classification', 'multiclass', 'multilabel_classification']:
@@ -154,7 +184,18 @@ class Trainer(object):
             net_target = net_target.float()
         return net_input, net_target
 
-    def fit_predict(self, model, train_dataset, valid_dataset, loss_func, activation_fn, dump_dir, fold, target_scaler, feature_name=None):
+    def fit_predict(
+        self,
+        model,
+        train_dataset,
+        valid_dataset,
+        loss_func,
+        activation_fn,
+        dump_dir,
+        fold,
+        target_scaler,
+        feature_name=None,
+    ):
         """
         Trains the model on the given dataset.
 
@@ -164,8 +205,23 @@ class Trainer(object):
         if torch.cuda.device_count() and self.distributed:
             with mp.Manager() as manager:
                 shared_queue = manager.Queue()
-                mp.spawn(self.fit_predict_with_ddp, args=(shared_queue, model, train_dataset, valid_dataset, loss_func, activation_fn, dump_dir, fold, target_scaler, feature_name), nprocs=torch.cuda.device_count())
-            
+                mp.spawn(
+                    self.fit_predict_with_ddp,
+                    args=(
+                        shared_queue,
+                        model,
+                        train_dataset,
+                        valid_dataset,
+                        loss_func,
+                        activation_fn,
+                        dump_dir,
+                        fold,
+                        target_scaler,
+                        feature_name,
+                    ),
+                    nprocs=torch.cuda.device_count(),
+                )
+
                 try:
                     y_preds = shared_queue.get(timeout=1)
                     # print(f"Main function returned: {y_preds}")
@@ -173,9 +229,30 @@ class Trainer(object):
                     print("No return value received from main function.")
                 return y_preds
         else:
-            return self.fit_predict_wo_ddp(model, train_dataset, valid_dataset, loss_func, activation_fn, dump_dir, fold, target_scaler, feature_name)
+            return self.fit_predict_wo_ddp(
+                model,
+                train_dataset,
+                valid_dataset,
+                loss_func,
+                activation_fn,
+                dump_dir,
+                fold,
+                target_scaler,
+                feature_name,
+            )
 
-    def fit_predict_wo_ddp(self, model, train_dataset, valid_dataset, loss_func, activation_fn, dump_dir, fold, target_scaler, feature_name=None):
+    def fit_predict_wo_ddp(
+        self,
+        model,
+        train_dataset,
+        valid_dataset,
+        loss_func,
+        activation_fn,
+        dump_dir,
+        fold,
+        target_scaler,
+        feature_name=None,
+    ):
         """
         Trains the model on the given training dataset and evaluates it on the validation dataset.
 
@@ -188,7 +265,7 @@ class Trainer(object):
         :param fold: The fold number in a cross-validation setting.
         :param target_scaler: Scaler used for scaling the target variable.
         :param feature_name: (optional) Name of the feature used in data loading. Defaults to None.
-        
+
         :return: Predictions made by the model on the validation dataset.
         """
         model = model.to(self.device)
@@ -201,23 +278,74 @@ class Trainer(object):
             distributed=False,
             drop_last=True,
         )
-        optimizer, scheduler = self._initialize_optimizer_scheduler(model, train_dataloader)
-        early_stopper = EarlyStopper(self.patience, dump_dir, fold, self.metrics, self.metrics_str)
+        optimizer, scheduler = self._initialize_optimizer_scheduler(
+            model, train_dataloader
+        )
+        early_stopper = EarlyStopper(
+            self.patience, dump_dir, fold, self.metrics, self.metrics_str
+        )
 
         for epoch in range(self.max_epochs):
-            total_trn_loss = self._train_one_epoch(model, train_dataloader, optimizer, scheduler, loss_func, feature_name, epoch)
+            total_trn_loss = self._train_one_epoch(
+                model,
+                train_dataloader,
+                optimizer,
+                scheduler,
+                loss_func,
+                feature_name,
+                epoch,
+            )
 
-            y_preds, val_loss, metric_score = self.predict(model, valid_dataset, loss_func, activation_fn, dump_dir, fold, target_scaler, epoch, load_model=False, feature_name=feature_name)
+            y_preds, val_loss, metric_score = self.predict(
+                model,
+                valid_dataset,
+                loss_func,
+                activation_fn,
+                dump_dir,
+                fold,
+                target_scaler,
+                epoch,
+                load_model=False,
+                feature_name=feature_name,
+            )
 
-            self._log_epoch_results(epoch, total_trn_loss, np.mean(val_loss), metric_score, optimizer)
+            self._log_epoch_results(
+                epoch, total_trn_loss, np.mean(val_loss), metric_score, optimizer
+            )
 
-            if early_stopper.early_stop_choice(model, epoch, np.mean(val_loss), metric_score):
+            if early_stopper.early_stop_choice(
+                model, epoch, np.mean(val_loss), metric_score
+            ):
                 break
 
-        y_preds, _, _ = self.predict(model, valid_dataset, loss_func, activation_fn, dump_dir, fold, target_scaler, epoch, load_model=True, feature_name=feature_name)
+        y_preds, _, _ = self.predict(
+            model,
+            valid_dataset,
+            loss_func,
+            activation_fn,
+            dump_dir,
+            fold,
+            target_scaler,
+            epoch,
+            load_model=True,
+            feature_name=feature_name,
+        )
         return y_preds
-    
-    def fit_predict_with_ddp(self, local_rank, shared_queue, model, train_dataset, valid_dataset, loss_func, activation_fn, dump_dir, fold, target_scaler, feature_name=None):
+
+    def fit_predict_with_ddp(
+        self,
+        local_rank,
+        shared_queue,
+        model,
+        train_dataset,
+        valid_dataset,
+        loss_func,
+        activation_fn,
+        dump_dir,
+        fold,
+        target_scaler,
+        feature_name=None,
+    ):
         """
         Trains the model on the given training dataset and evaluates it on the validation dataset.
 
@@ -230,7 +358,7 @@ class Trainer(object):
         :param fold: The fold number in a cross-validation setting.
         :param target_scaler: Scaler used for scaling the target variable.
         :param feature_name: (optional) Name of the feature used in data loading. Defaults to None.
-        
+
         :return: Predictions made by the model on the validation dataset.
         """
         self.init_ddp(local_rank)
@@ -245,20 +373,47 @@ class Trainer(object):
             distributed=True,
             drop_last=True,
         )
-        optimizer, scheduler = self._initialize_optimizer_scheduler(model, train_dataloader)
-        early_stopper = EarlyStopper(self.patience, dump_dir, fold, self.metrics, self.metrics_str)
+        optimizer, scheduler = self._initialize_optimizer_scheduler(
+            model, train_dataloader
+        )
+        early_stopper = EarlyStopper(
+            self.patience, dump_dir, fold, self.metrics, self.metrics_str
+        )
         for epoch in range(self.max_epochs):
-            total_trn_loss = self._train_one_epoch(model, train_dataloader, optimizer, scheduler, loss_func, feature_name, epoch)
+            total_trn_loss = self._train_one_epoch(
+                model,
+                train_dataloader,
+                optimizer,
+                scheduler,
+                loss_func,
+                feature_name,
+                epoch,
+            )
 
-            y_preds, val_loss, metric_score = self.predict(model, valid_dataset, loss_func, activation_fn, dump_dir, fold, target_scaler, epoch, load_model=False, feature_name=feature_name)
-            
+            y_preds, val_loss, metric_score = self.predict(
+                model,
+                valid_dataset,
+                loss_func,
+                activation_fn,
+                dump_dir,
+                fold,
+                target_scaler,
+                epoch,
+                load_model=False,
+                feature_name=feature_name,
+            )
+
             total_trn_loss = self.reduce_array(total_trn_loss)
-            total_val_loss = self.reduce_array(np.mean(val_loss)) 
+            total_val_loss = self.reduce_array(np.mean(val_loss))
 
             if local_rank == 0:
-                self._log_epoch_results(epoch, total_trn_loss, total_val_loss, metric_score, optimizer)
-                
-                is_early_stop = early_stopper.early_stop_choice(model, epoch, total_val_loss, metric_score)
+                self._log_epoch_results(
+                    epoch, total_trn_loss, total_val_loss, metric_score, optimizer
+                )
+
+                is_early_stop = early_stopper.early_stop_choice(
+                    model, epoch, total_val_loss, metric_score
+                )
                 if is_early_stop:
                     stop_flag = torch.tensor(1, device=self.device)
                 else:
@@ -272,8 +427,18 @@ class Trainer(object):
 
             dist.barrier()
 
-        y_preds, _, _ = self.predict(model, valid_dataset, loss_func, activation_fn,
-                                     dump_dir, fold, target_scaler, epoch, load_model=False, feature_name=feature_name)
+        y_preds, _, _ = self.predict(
+            model,
+            valid_dataset,
+            loss_func,
+            activation_fn,
+            dump_dir,
+            fold,
+            target_scaler,
+            epoch,
+            load_model=False,
+            feature_name=feature_name,
+        )
         y_preds = self.gather_predictions(y_preds)
         dist.destroy_process_group()
         if local_rank == 0:
@@ -284,13 +449,31 @@ class Trainer(object):
         num_training_steps = len(train_dataloader) * self.max_epochs
         num_warmup_steps = int(num_training_steps * self.warmup_ratio)
         optimizer = Adam(model.parameters(), lr=self.learning_rate, eps=1e-6)
-        scheduler = get_linear_schedule_with_warmup(optimizer, num_warmup_steps, num_training_steps)
+        scheduler = get_linear_schedule_with_warmup(
+            optimizer, num_warmup_steps, num_training_steps
+        )
         return optimizer, scheduler
 
-    def _train_one_epoch(self, model, train_dataloader, optimizer, scheduler, loss_func, feature_name, epoch):
+    def _train_one_epoch(
+        self,
+        model,
+        train_dataloader,
+        optimizer,
+        scheduler,
+        loss_func,
+        feature_name,
+        epoch,
+    ):
         model.train()
         trn_loss = []
-        batch_bar = tqdm(total=len(train_dataloader), dynamic_ncols=True, leave=False, position=0, desc='Train', ncols=5)
+        batch_bar = tqdm(
+            total=len(train_dataloader),
+            dynamic_ncols=True,
+            leave=False,
+            position=0,
+            desc='Train',
+            ncols=5,
+        )
         for i, batch in enumerate(train_dataloader):
             net_input, net_target = self.decorate_batch(batch, feature_name)
             optimizer.zero_grad()
@@ -298,7 +481,11 @@ class Trainer(object):
             trn_loss.append(float(loss.data))
             self._backward_and_step(optimizer, loss, model)
             scheduler.step()
-            batch_bar.set_postfix(Epoch=f"Epoch {epoch+1}/{self.max_epochs}", loss=f"{float(sum(trn_loss) / (i + 1)):.04f}", lr=f"{float(optimizer.param_groups[0]['lr']):.04f}")
+            batch_bar.set_postfix(
+                Epoch=f"Epoch {epoch+1}/{self.max_epochs}",
+                loss=f"{float(sum(trn_loss) / (i + 1)):.04f}",
+                lr=f"{float(optimizer.param_groups[0]['lr']):.04f}",
+            )
             batch_bar.update()
         batch_bar.close()
         return np.mean(trn_loss)
@@ -313,7 +500,7 @@ class Trainer(object):
                 outputs = model(**net_input)
                 loss = loss_func(outputs, net_target)
         return loss
-    
+
     def _backward_and_step(self, optimizer, loss, model):
         if self.scaler and self.device.type == 'cuda':
             self.scaler.scale(loss).backward()
@@ -326,7 +513,9 @@ class Trainer(object):
             clip_grad_norm_(model.parameters(), self.max_norm)
             optimizer.step()
 
-    def _log_epoch_results(self, epoch, total_trn_loss, total_val_loss, metric_score, optimizer):
+    def _log_epoch_results(
+        self, epoch, total_trn_loss, total_val_loss, metric_score, optimizer
+    ):
         _score = list(metric_score.values())[0]
         _metric = list(metric_score.keys())[0]
         message = f'Epoch [{epoch+1}/{self.max_epochs}] train_loss: {total_trn_loss:.4f}, val_loss: {total_val_loss:.4f}, val_{_metric}: {_score:.4f}, lr: {optimizer.param_groups[0]["lr"]:.6f}'
@@ -342,12 +531,26 @@ class Trainer(object):
 
     def gather_predictions(self, y_preds):
         y_preds_tensor = torch.tensor(y_preds, device=self.device)
-        gathered_y_preds = [torch.zeros_like(y_preds_tensor) for _ in range(dist.get_world_size())]
+        gathered_y_preds = [
+            torch.zeros_like(y_preds_tensor) for _ in range(dist.get_world_size())
+        ]
         dist.all_gather(gathered_y_preds, y_preds_tensor)
         gathered_y_preds = torch.cat(gathered_y_preds, dim=0)
         return gathered_y_preds.cpu().numpy()
 
-    def predict(self, model, dataset, loss_func, activation_fn, dump_dir, fold, target_scaler=None, epoch=1, load_model=False, feature_name=None):
+    def predict(
+        self,
+        model,
+        dataset,
+        loss_func,
+        activation_fn,
+        dump_dir,
+        fold,
+        target_scaler=None,
+        epoch=1,
+        load_model=False,
+        feature_name=None,
+    ):
         """
         Executes the prediction on a given dataset using the specified model.
 
@@ -362,7 +565,7 @@ class Trainer(object):
         :param load_model: (bool) Whether to load the model from a saved state. Defaults to False.
         :param feature_name: (str, optional) Name of the feature for data processing. Defaults to None.
 
-        :return: A tuple (y_preds, val_loss, metric_score), where y_preds are the predicted outputs, 
+        :return: A tuple (y_preds, val_loss, metric_score), where y_preds are the predicted outputs,
                  val_loss is the validation loss, and metric_score is the calculated metric score.
         """
         model = self._prepare_model_for_prediction(model, dump_dir, fold, load_model)
@@ -378,9 +581,13 @@ class Trainer(object):
             collate_fn=batch_collate_fn,
             distributed=self.distributed,
         )
-        y_preds, val_loss, y_truths = self._perform_prediction(model, dataloader, loss_func, activation_fn, load_model, epoch, feature_name)
+        y_preds, val_loss, y_truths = self._perform_prediction(
+            model, dataloader, loss_func, activation_fn, load_model, epoch, feature_name
+        )
 
-        metric_score = self._calculate_metrics(y_preds, y_truths, target_scaler, model, load_model)
+        metric_score = self._calculate_metrics(
+            y_preds, y_truths, target_scaler, model, load_model
+        )
         return y_preds, val_loss, metric_score
 
     def _prepare_model_for_prediction(self, model, dump_dir, fold, load_model):
@@ -391,9 +598,25 @@ class Trainer(object):
             logger.info("load model success!")
         return model
 
-    def _perform_prediction(self, model, dataloader, loss_func, activation_fn, load_model, epoch, feature_name):
+    def _perform_prediction(
+        self,
+        model,
+        dataloader,
+        loss_func,
+        activation_fn,
+        load_model,
+        epoch,
+        feature_name,
+    ):
         model = model.eval()
-        batch_bar = tqdm(total=len(dataloader), dynamic_ncols=True, position=0, leave=False, desc='val', ncols=5)
+        batch_bar = tqdm(
+            total=len(dataloader),
+            dynamic_ncols=True,
+            position=0,
+            leave=False,
+            desc='val',
+            ncols=5,
+        )
         val_loss = []
         y_preds = []
         y_truths = []
@@ -408,8 +631,9 @@ class Trainer(object):
             y_truths.append(net_target.detach().cpu().numpy())
             if not load_model:
                 batch_bar.set_postfix(
-                    Epoch="Epoch {}/{}".format(epoch+1, self.max_epochs),
-                    loss="{:.04f}".format(float(np.sum(val_loss) / (i + 1))))
+                    Epoch="Epoch {}/{}".format(epoch + 1, self.max_epochs),
+                    loss="{:.04f}".format(float(np.sum(val_loss) / (i + 1))),
+                )
             batch_bar.update()
         batch_bar.close()
         y_preds = np.concatenate(y_preds)
@@ -424,14 +648,29 @@ class Trainer(object):
         if target_scaler is not None:
             inverse_y_preds = target_scaler.inverse_transform(y_preds)
             inverse_y_truths = target_scaler.inverse_transform(y_truths)
-            metric_score = self.metrics.cal_metric(
-                inverse_y_truths, inverse_y_preds, label_cnt=label_cnt) if not load_model else None
+            metric_score = (
+                self.metrics.cal_metric(
+                    inverse_y_truths, inverse_y_preds, label_cnt=label_cnt
+                )
+                if not load_model
+                else None
+            )
         else:
-            metric_score = self.metrics.cal_metric(
-                y_truths, y_preds, label_cnt=label_cnt) if not load_model else None
+            metric_score = (
+                self.metrics.cal_metric(y_truths, y_preds, label_cnt=label_cnt)
+                if not load_model
+                else None
+            )
         return metric_score
 
-    def inference(self, model, dataset, return_repr=False, return_atomic_reprs=False, feature_name=None):
+    def inference(
+        self,
+        model,
+        dataset,
+        return_repr=False,
+        return_atomic_reprs=False,
+        feature_name=None,
+    ):
         """
         Runs inference on the given dataset using the provided model. This method can return
         various representations based on the model's output.
@@ -443,7 +682,7 @@ class Trainer(object):
         :param feature_name: (str, optional) Name of the feature used for data loading. Defaults to None.
 
         :return: A dictionary containing different types of representations based on the model's output and the
-                 specified parameters. This can include class-level representations, atomic coordinates, 
+                 specified parameters. This can include class-level representations, atomic coordinates,
                  atomic representations, and atomic symbols.
         """
         model = model.to(self.device)
@@ -456,20 +695,33 @@ class Trainer(object):
             distributed=self.distributed,
         )
         model = model.eval()
-        repr_dict = {"cls_repr": [], "atomic_coords": [], "atomic_reprs": [], "atomic_symbol": []}
+        repr_dict = {
+            "cls_repr": [],
+            "atomic_coords": [],
+            "atomic_reprs": [],
+            "atomic_symbol": [],
+        }
         for batch in tqdm(dataloader):
             net_input, _ = self.decorate_batch(batch, feature_name)
             with torch.no_grad():
-                outputs = model(**net_input,
-                                return_repr=return_repr,
-                                return_atomic_reprs=return_atomic_reprs)
+                outputs = model(
+                    **net_input,
+                    return_repr=return_repr,
+                    return_atomic_reprs=return_atomic_reprs,
+                )
                 assert isinstance(outputs, dict)
-                repr_dict["cls_repr"].extend(item.cpu().numpy() for item in outputs["cls_repr"])
+                repr_dict["cls_repr"].extend(
+                    item.cpu().numpy() for item in outputs["cls_repr"]
+                )
                 if return_atomic_reprs:
                     repr_dict["atomic_symbol"].extend(outputs["atomic_symbol"])
-                    repr_dict['atomic_coords'].extend(item.cpu().numpy() for item in outputs['atomic_coords'])
-                    repr_dict['atomic_reprs'].extend(item.cpu().numpy() for item in outputs['atomic_reprs'])
-                    
+                    repr_dict['atomic_coords'].extend(
+                        item.cpu().numpy() for item in outputs['atomic_coords']
+                    )
+                    repr_dict['atomic_reprs'].extend(
+                        item.cpu().numpy() for item in outputs['atomic_reprs']
+                    )
+
         return repr_dict
 
     def set_seed(self, seed):
@@ -481,6 +733,7 @@ class Trainer(object):
         torch.cuda.manual_seed(seed)
         torch.cuda.manual_seed_all(seed)
         np.random.seed(seed)
+
 
 class EarlyStopper:
     def __init__(self, patience, dump_dir, fold, metrics, metrics_str):
@@ -511,10 +764,23 @@ class EarlyStopper:
 
         :return: A boolean indicating whether early stopping should occur.
         """
-        if not isinstance(self.metrics_str, str) or self.metrics_str in ['loss', 'none', '']:
+        if not isinstance(self.metrics_str, str) or self.metrics_str in [
+            'loss',
+            'none',
+            '',
+        ]:
             return self._judge_early_stop_loss(loss, model, epoch)
         else:
-            return self.metrics._early_stop_choice(self.wait, self.min_loss, metric_score, model, self.dump_dir, self.fold, self.patience, epoch)
+            return self.metrics._early_stop_choice(
+                self.wait,
+                self.min_loss,
+                metric_score,
+                model,
+                self.dump_dir,
+                self.fold,
+                self.patience,
+                epoch,
+            )
 
     def _judge_early_stop_loss(self, loss, model, epoch):
         """
@@ -541,7 +807,16 @@ class EarlyStopper:
                 self.is_early_stop = True
         return self.is_early_stop
 
-def NNDataLoader(feature_name=None, dataset=None, batch_size=None, shuffle=False, collate_fn=None, drop_last=False, distributed=False):
+
+def NNDataLoader(
+    feature_name=None,
+    dataset=None,
+    batch_size=None,
+    shuffle=False,
+    collate_fn=None,
+    drop_last=False,
+    distributed=False,
+):
     """
     Creates a DataLoader for neural network training or inference. This
     function is a wrapper around the standard PyTorch DataLoader, allowing
@@ -558,7 +833,7 @@ def NNDataLoader(feature_name=None, dataset=None, batch_size=None, shuffle=False
 
     :return: DataLoader configured according to the provided parameters.
     """
-    
+
     if distributed:
         sampler = DistributedSampler(dataset)
         g = get_ddp_generator()
@@ -566,16 +841,17 @@ def NNDataLoader(feature_name=None, dataset=None, batch_size=None, shuffle=False
         sampler = None
         g = None
 
-    dataloader = TorchDataLoader(dataset=dataset,
-                                 batch_size=batch_size,
-                                 shuffle=shuffle,
-                                 collate_fn=collate_fn,
-                                 drop_last=drop_last,
-                                 #num_workers=4,
-                                 pin_memory=True,
-                                 sampler=sampler,
-                                 generator=g,
-                                 )
+    dataloader = TorchDataLoader(
+        dataset=dataset,
+        batch_size=batch_size,
+        shuffle=shuffle,
+        collate_fn=collate_fn,
+        drop_last=drop_last,
+        # num_workers=4,
+        pin_memory=True,
+        sampler=sampler,
+        generator=g,
+    )
     return dataloader
 
 
@@ -584,13 +860,24 @@ def get_ddp_generator(seed=3407):
     g = torch.Generator()
     g.manual_seed(seed + local_rank)
     return g
+
+
 # source from https://github.com/huggingface/transformers/blob/main/src/transformers/optimization.py#L108C1-L132C54
-def _get_linear_schedule_with_warmup_lr_lambda(current_step: int, *, num_warmup_steps: int, num_training_steps: int):
+def _get_linear_schedule_with_warmup_lr_lambda(
+    current_step: int, *, num_warmup_steps: int, num_training_steps: int
+):
     if current_step < num_warmup_steps:
         return float(current_step) / float(max(1, num_warmup_steps))
-    return max(0.0, float(num_training_steps - current_step) / float(max(1, num_training_steps - num_warmup_steps)))
+    return max(
+        0.0,
+        float(num_training_steps - current_step)
+        / float(max(1, num_training_steps - num_warmup_steps)),
+    )
 
-def get_linear_schedule_with_warmup(optimizer, num_warmup_steps, num_training_steps, last_epoch=-1):
+
+def get_linear_schedule_with_warmup(
+    optimizer, num_warmup_steps, num_training_steps, last_epoch=-1
+):
     """
     Create a schedule with a learning rate that decreases linearly from the initial lr set in the optimizer to 0, after
     a warmup period during which it increases linearly from 0 to the initial lr set in the optimizer.

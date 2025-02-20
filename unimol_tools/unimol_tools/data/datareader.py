@@ -5,17 +5,21 @@
 from __future__ import absolute_import, division, print_function
 
 import os
-import pandas as pd
-import numpy as np
-from rdkit import Chem
-from ..utils import logger
 import pathlib
+
+import numpy as np
+import pandas as pd
+from rdkit import Chem
 from rdkit.Chem.Scaffolds import MurckoScaffold
+
+from ..utils import logger
+
 
 class MolDataReader(object):
     '''A class to read Mol Data.'''
+
     def read_data(self, data=None, is_train=True, **params):
-        # TO DO 
+        # TO DO
         # 1. add anomaly detection & outlier removal.
         # 2. add support for other file format.
         # 3. add support for multi tasks.
@@ -26,7 +30,7 @@ class MolDataReader(object):
         1. if target_cols is not None, use target_cols as target columns.
         2. if target_cols is None, use all columns with prefix 'target_col_prefix' as target columns.
         3. use given target_cols as target columns placeholder with value -1.0 for predict
-        
+
         :param data: The input molecular data. Can be a file path (str), a dictionary, or a list of SMILES strings.
         :param is_train: (bool) A flag indicating if the operation is for training. Determines data processing steps.
         :param params: A dictionary of additional parameters for data processing.
@@ -50,21 +54,21 @@ class MolDataReader(object):
             # load from dict
             if 'target' in data:
                 label = np.array(data['target'])
-                if len(label.shape)==1 or label.shape[1] == 1:
+                if len(label.shape) == 1 or label.shape[1] == 1:
                     data[target_col_prefix] = label.reshape(-1)
                 else:
                     for i in range(label.shape[1]):
-                        data[target_col_prefix + str(i)] = label[:,i]
+                        data[target_col_prefix + str(i)] = label[:, i]
 
             _ = data.pop('target', None)
             data = pd.DataFrame(data).rename(columns={smiles_col: 'SMILES'})
-        
+
         elif isinstance(data, list) or isinstance(data, np.ndarray):
             # load from smiles list
             data = pd.DataFrame(data, columns=['SMILES'])
         else:
             raise ValueError('Unknown data type: {}'.format(type(data)))
-        
+
         #### parsing target columns
         #### 1. if target_cols is not None, use target_cols as target columns.
         #### 2. if target_cols is None, use all columns with prefix 'target_col_prefix' as target columns.
@@ -77,37 +81,45 @@ class MolDataReader(object):
             multiclass_cnt = None
         else:
             if target_cols is None:
-                target_cols = [item for item in data.columns if item.startswith(target_col_prefix)]
+                target_cols = [
+                    item for item in data.columns if item.startswith(target_col_prefix)
+                ]
             elif isinstance(target_cols, str):
                 target_cols = target_cols.split(',')
             elif isinstance(target_cols, list):
                 pass
             else:
-                raise ValueError('Unknown target_cols type: {}'.format(type(target_cols)))
-                              
+                raise ValueError(
+                    'Unknown target_cols type: {}'.format(type(target_cols))
+                )
+
             if is_train:
                 if anomaly_clean:
-                    data = self.anomaly_clean(data, task, target_cols)  
+                    data = self.anomaly_clean(data, task, target_cols)
                 if task == 'multiclass':
                     multiclass_cnt = int(data[target_cols].max() + 1)
             else:
                 for col in target_cols:
                     if col not in data.columns or data[col].isnull().any():
                         data[col] = -1.0
-                    
+
             targets = data[target_cols].values.tolist()
             num_classes = len(target_cols)
-        
+
         dd = {
             'raw_data': data,
             'raw_target': targets,
             'num_classes': num_classes,
             'target_cols': target_cols,
-            'multiclass_cnt': multiclass_cnt if task == 'multiclass' and is_train else None
+            'multiclass_cnt': (
+                multiclass_cnt if task == 'multiclass' and is_train else None
+            ),
         }
         if smiles_col in data.columns:
-            mask = data[smiles_col].apply(lambda smi: self.check_smiles(smi, is_train, smi_strict))
-            data = data[mask]  
+            mask = data[smiles_col].apply(
+                lambda smi: self.check_smiles(smi, is_train, smi_strict)
+            )
+            data = data[mask]
             dd['smiles'] = data[smiles_col].tolist()
             dd['scaffolds'] = data[smiles_col].map(self.smi2scaffold).tolist()
         else:
@@ -127,7 +139,7 @@ class MolDataReader(object):
 
         return dd
 
-    def check_smiles(self,smi, is_train, smi_strict):
+    def check_smiles(self, smi, is_train, smi_strict):
         """
         Validates a SMILES string and decides whether it should be included based on training mode and strictness.
 
@@ -144,9 +156,9 @@ class MolDataReader(object):
                 return False
             else:
                 raise ValueError(f'SMILES rule is illegal: {smi}')
-        return True    
-    
-    def smi2scaffold(self,smi):
+        return True
+
+    def smi2scaffold(self, smi):
         """
         Converts a SMILES string to its corresponding scaffold.
 
@@ -155,10 +167,12 @@ class MolDataReader(object):
         :return: (str) The scaffold of the SMILES string, or the original SMILES if conversion fails.
         """
         try:
-            return MurckoScaffold.MurckoScaffoldSmiles(smiles=smi, includeChirality=True)
+            return MurckoScaffold.MurckoScaffoldSmiles(
+                smiles=smi, includeChirality=True
+            )
         except:
             return smi
-    
+
     def anomaly_clean(self, data, task, target_cols):
         """
         Performs anomaly cleaning on the data based on the specified task.
@@ -170,13 +184,18 @@ class MolDataReader(object):
         :return: (DataFrame) The cleaned dataset.
         :raises ValueError: If the provided task is not recognized.
         """
-        if task in ['classification', 'multiclass', 'multilabel_classification', 'multilabel_regression']:
+        if task in [
+            'classification',
+            'multiclass',
+            'multilabel_classification',
+            'multilabel_regression',
+        ]:
             return data
         if task == 'regression':
             return self.anomaly_clean_regression(data, target_cols)
         else:
             raise ValueError('Unknown task: {}'.format(task))
-    
+
     def anomaly_clean_regression(self, data, target_cols):
         """
         Performs anomaly cleaning specifically for regression tasks using a 3-sigma threshold.
@@ -189,6 +208,11 @@ class MolDataReader(object):
         sz = data.shape[0]
         target_col = target_cols[0]
         _mean, _std = data[target_col].mean(), data[target_col].std()
-        data = data[(data[target_col] > _mean - 3 * _std) & (data[target_col] < _mean + 3 * _std)]
-        logger.info('Anomaly clean with 3 sigma threshold: {} -> {}'.format(sz, data.shape[0]))
+        data = data[
+            (data[target_col] > _mean - 3 * _std)
+            & (data[target_col] < _mean + 3 * _std)
+        ]
+        logger.info(
+            'Anomaly clean with 3 sigma threshold: {} -> {}'.format(sz, data.shape[0])
+        )
         return data

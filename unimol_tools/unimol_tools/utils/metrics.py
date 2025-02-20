@@ -1,27 +1,16 @@
-import torch
+import copy
+import os
+
 import numpy as np
 import pandas as pd
-import os
-import copy
+import torch
+from scipy.stats import pearsonr, spearmanr
+from sklearn.metrics import (accuracy_score, average_precision_score,
+                             cohen_kappa_score, f1_score, log_loss,
+                             matthews_corrcoef, mean_absolute_error,
+                             mean_squared_error, precision_score, r2_score,
+                             recall_score, roc_auc_score)
 
-from sklearn.metrics import (
-    mean_absolute_error,
-    mean_squared_error,
-    r2_score,
-    roc_auc_score,
-    accuracy_score,
-    log_loss,
-    f1_score,
-    matthews_corrcoef,
-    precision_score,
-    average_precision_score,
-    recall_score,
-    cohen_kappa_score,
-)
-from scipy.stats import (
-    spearmanr,
-    pearsonr
-)
 from .base_logger import logger
 
 
@@ -44,8 +33,7 @@ def cal_nan_metric(y_true, y_pred, nan_value=None, metric_func=None):
     for i in range(sz):
         _mask = mask[:, i]
         if not (~_mask).all():
-            result.append(metric_func(
-                y_true[:, i][_mask], y_pred[:, i][_mask]))
+            result.append(metric_func(y_true[:, i][_mask], y_pred[:, i][_mask]))
     return np.mean(result)
 
 
@@ -61,11 +49,14 @@ def log_loss_with_label(y_true, y_pred, labels=None):
     else:
         return log_loss(y_true, y_pred, labels=labels)
 
+
 def reg_preasonr(y_true, y_pred):
     return pearsonr(y_true, y_pred)[0]
 
+
 def reg_spearmanr(y_true, y_pred):
     return spearmanr(y_true, y_pred)[0]
+
 
 # metric_func, is_increase, value_type
 METRICS_REGISTER = {
@@ -85,7 +76,7 @@ METRICS_REGISTER = {
         "f1_score": [f1_score, True, 'int'],
         "mcc": [matthews_corrcoef, True, 'int'],
         "precision": [precision_score, True, 'int'],
-        "recall": [recall_score,  True, 'int'],
+        "recall": [recall_score, True, 'int'],
         "cohen_kappa": [cohen_kappa_score, True, 'int'],
     },
     'multiclass': {
@@ -104,12 +95,20 @@ METRICS_REGISTER = {
         "mae": [mean_absolute_error, False, 'float'],
         "mse": [mean_squared_error, False, 'float'],
         "r2": [r2_score, True, 'float'],
-    }
+    },
 }
 
 DEFAULT_METRICS = {
     'regression': ['mse', 'mae', 'r2', 'spearmanr', 'pearsonr'],
-    'classification': ['log_loss', 'auc', 'f1_score', 'mcc', 'acc', 'precision', 'recall'],
+    'classification': [
+        'log_loss',
+        'auc',
+        'f1_score',
+        'mcc',
+        'acc',
+        'precision',
+        'recall',
+    ],
     'multiclass': ['log_loss', 'acc'],
     "multilabel_classification": ['log_loss', 'auc', 'auprc'],
     "multilabel_regression": ['mse', 'mae', 'r2'],
@@ -127,47 +126,55 @@ class Metrics(object):
 
     def __init__(self, task=None, metrics_str=None, **params):
         self.task = task
-        self.threshold = np.arange(0, 1., 0.1)
+        self.threshold = np.arange(0, 1.0, 0.1)
         self.metric_dict = self._init_metrics(self.task, metrics_str, **params)
         self.METRICS_REGISTER = METRICS_REGISTER[task]
 
     def _init_metrics(self, task, metrics_str, **params):
         if task not in METRICS_REGISTER:
             raise ValueError('Unknown task: {}'.format(self.task))
-        if not isinstance(metrics_str, str) or metrics_str == '' or metrics_str == 'none':
-            metric_dict = {key: METRICS_REGISTER[task][key]
-                           for key in DEFAULT_METRICS[task]}
+        if (
+            not isinstance(metrics_str, str)
+            or metrics_str == ''
+            or metrics_str == 'none'
+        ):
+            metric_dict = {
+                key: METRICS_REGISTER[task][key] for key in DEFAULT_METRICS[task]
+            }
         else:
             for key in metrics_str.split(','):
                 if key not in METRICS_REGISTER[task]:
                     raise ValueError('Unknown metric: {}'.format(key))
 
             priority_metric_list = metrics_str.split(',')
-            metric_list = priority_metric_list + \
-                [key for key in METRICS_REGISTER[task]
-                    if key not in priority_metric_list]
-            metric_dict = {
-                key: METRICS_REGISTER[task][key] for key in metric_list}
+            metric_list = priority_metric_list + [
+                key for key in METRICS_REGISTER[task] if key not in priority_metric_list
+            ]
+            metric_dict = {key: METRICS_REGISTER[task][key] for key in metric_list}
 
         return metric_dict
 
     def cal_classification_metric(self, label, predict, nan_value=-1.0, threshold=None):
         """
-            :param label: the labels of the dataset.
-            :param predict: the predict values of the model.
+        :param label: the labels of the dataset.
+        :param predict: the predict values of the model.
         """
         res_dict = {}
         for metric_type, metric_value in self.metric_dict.items():
             metric, _, value_type = metric_value
-            def nan_metric(label, predict): return cal_nan_metric(
-                label, predict, nan_value, metric)
+
+            def nan_metric(label, predict):
+                return cal_nan_metric(label, predict, nan_value, metric)
+
             if value_type == 'float':
                 res_dict[metric_type] = nan_metric(
-                    label.astype(int), predict.astype(np.float32))
+                    label.astype(int), predict.astype(np.float32)
+                )
             elif value_type == 'int':
                 thre = 0.5 if threshold is None else threshold
                 res_dict[metric_type] = nan_metric(
-                    label.astype(int), (predict > thre).astype(int))
+                    label.astype(int), (predict > thre).astype(int)
+                )
 
         # TO DO : add more metrics by grid search threshold
 
@@ -175,22 +182,24 @@ class Metrics(object):
 
     def cal_reg_metric(self, label, predict, nan_value=-1.0):
         """
-            :param label: the labels of the dataset.
-            :param predict: the predict values of the model.
+        :param label: the labels of the dataset.
+        :param predict: the predict values of the model.
         """
         res_dict = {}
         for metric_type, metric_value in self.metric_dict.items():
             metric, _, _ = metric_value
-            def nan_metric(label, predict): return cal_nan_metric(
-                label, predict, nan_value, metric)
+
+            def nan_metric(label, predict):
+                return cal_nan_metric(label, predict, nan_value, metric)
+
             res_dict[metric_type] = nan_metric(label, predict)
 
         return res_dict
 
     def cal_multiclass_metric(self, label, predict, nan_value=-1.0, label_cnt=-1):
         """
-            :param label: the labels of the dataset.
-            :param predict: the predict values of the model.
+        :param label: the labels of the dataset.
+        :param predict: the predict values of the model.
         """
         res_dict = {}
         for metric_type, metric_value in self.metric_dict.items():
@@ -213,19 +222,34 @@ class Metrics(object):
         else:
             raise ValueError("We will add more tasks soon")
 
-    def _early_stop_choice(self, wait, min_score, metric_score, max_score, model, dump_dir, fold, patience, epoch):
+    def _early_stop_choice(
+        self,
+        wait,
+        min_score,
+        metric_score,
+        max_score,
+        model,
+        dump_dir,
+        fold,
+        patience,
+        epoch,
+    ):
         score = list(metric_score.values())[0]
         judge_metric = list(metric_score.keys())[0]
         is_increase = METRICS_REGISTER[self.task][judge_metric][1]
         if is_increase:
             is_early_stop, max_score, wait = self._judge_early_stop_increase(
-                wait, score, max_score, model, dump_dir, fold, patience, epoch)
+                wait, score, max_score, model, dump_dir, fold, patience, epoch
+            )
         else:
             is_early_stop, min_score, wait = self._judge_early_stop_decrease(
-                wait, score, min_score, model, dump_dir, fold, patience, epoch)
+                wait, score, min_score, model, dump_dir, fold, patience, epoch
+            )
         return is_early_stop, min_score, wait, max_score
 
-    def _judge_early_stop_decrease(self, wait, score, min_score, model, dump_dir, fold, patience, epoch):
+    def _judge_early_stop_decrease(
+        self, wait, score, min_score, model, dump_dir, fold, patience, epoch
+    ):
         is_early_stop = False
         if score <= min_score:
             min_score = score
@@ -240,7 +264,9 @@ class Metrics(object):
                 is_early_stop = True
         return is_early_stop, min_score, wait
 
-    def _judge_early_stop_increase(self, wait, score, max_score, model, dump_dir, fold, patience, epoch):
+    def _judge_early_stop_increase(
+        self, wait, score, max_score, model, dump_dir, fold, patience, epoch
+    ):
         is_early_stop = False
         if score >= max_score:
             max_score = score
@@ -255,7 +281,9 @@ class Metrics(object):
                 is_early_stop = True
         return is_early_stop, max_score, wait
 
-    def calculate_single_classification_threshold(self, target, pred, metrics_key=None, step=20):
+    def calculate_single_classification_threshold(
+        self, target, pred, metrics_key=None, step=20
+    ):
         data = copy.deepcopy(pred)
         range_min = np.min(data).item()
         range_max = np.max(data).item()
@@ -268,8 +296,7 @@ class Metrics(object):
         # default threshold metrics
         if metrics_key is None:
             metrics_key = METRICS_REGISTER['classification']['f1_score']
-        logger.info("metrics for threshold: {0}".format(
-            metrics_key[0].__name__))
+        logger.info("metrics for threshold: {0}".format(metrics_key[0].__name__))
         metrics = metrics_key[0]
         if metrics_key[1]:
             # increase metric
@@ -282,8 +309,9 @@ class Metrics(object):
                 if metric(target, pred_label) > best_metric:
                     best_metric = metric(target, pred_label)
                     best_threshold = threshold
-            logger.info("best threshold: {0}, metrics: {1}".format(
-                best_threshold, best_metric))
+            logger.info(
+                "best threshold: {0}, metrics: {1}".format(best_threshold, best_metric)
+            )
         else:
             # increase metric
             best_metric = float('inf')
@@ -294,14 +322,19 @@ class Metrics(object):
                 if metric(target, pred_label) < best_metric:
                     best_metric = metric(target, pred_label)
                     best_threshold = threshold
-            logger.info("best threshold: {0}, metrics: {1}".format(
-                best_threshold, best_metric))
+            logger.info(
+                "best threshold: {0}, metrics: {1}".format(best_threshold, best_metric)
+            )
 
         return best_threshold
 
     def calculate_classification_threshold(self, target, pred):
         threshold = np.zeros(target.shape[1])
         for idx in range(target.shape[1]):
-            threshold[idx] = self.calculate_single_classification_threshold(target[:, idx].reshape(-1, 1),
-                                                                            pred[:, idx].reshape(-1, 1), metrics_key=None, step=20)
+            threshold[idx] = self.calculate_single_classification_threshold(
+                target[:, idx].reshape(-1, 1),
+                pred[:, idx].reshape(-1, 1),
+                metrics_key=None,
+                step=20,
+            )
         return threshold

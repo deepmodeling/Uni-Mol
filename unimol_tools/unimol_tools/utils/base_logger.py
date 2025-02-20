@@ -3,10 +3,11 @@
 # LICENSE file in the root directory of this source tree.
 
 from __future__ import absolute_import, division, print_function
+
+import datetime
 import logging
 import os
 import sys
-import datetime
 from logging.handlers import TimedRotatingFileHandler
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -14,9 +15,9 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 class PackagePathFilter(logging.Filter):
     """A custom logging filter for adding the relative path to the log record."""
+
     def filter(self, record):
-        """add relative path to record
-        """
+        """add relative path to record"""
         pathname = record.pathname
         record.relativepath = None
         abs_sys_paths = map(os.path.abspath, sys.path)
@@ -31,8 +32,10 @@ class PackagePathFilter(logging.Filter):
 
 class Logger(object):
     """A custom logger class that provides logging functionality to console and file."""
+
     DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
     LOG_FORMAT = "%(asctime)s | %(relativepath)s | %(lineno)s | %(levelname)s | %(name)s | %(message)s"
+
     def __init__(self, logger_name='None'):
         """
         :param logger_name: (str) The name of the logger (default: 'None')
@@ -53,10 +56,7 @@ class Logger(object):
         self.console_output_level = 'INFO'
         self.file_output_level = 'INFO'
 
-        self.formatter = logging.Formatter(
-            self.LOG_FORMAT,
-            self.DATE_FORMAT
-        )
+        self.formatter = logging.Formatter(self.LOG_FORMAT, self.DATE_FORMAT)
 
     def get_logger(self):
         """
@@ -73,25 +73,27 @@ class Logger(object):
             self.logger.addHandler(console_handler)
 
             file_handler = TimedRotatingFileHandler(
-                    filename=os.path.join(self.log_path, self.log_file_name),
-                    when='D',
-                    interval=1,
-                    backupCount=self.backup_count,
-                    delay=True,
-                    encoding='utf-8'
-                )
+                filename=os.path.join(self.log_path, self.log_file_name),
+                when='D',
+                interval=1,
+                backupCount=self.backup_count,
+                delay=True,
+                encoding='utf-8',
+            )
             file_handler.setFormatter(self.formatter)
             file_handler.setLevel(self.file_output_level)
             self.logger.addHandler(file_handler)
         return self.logger
-    
+
+
 # add highlight formatter to logger
 class HighlightFormatter(logging.Formatter):
     def format(self, record):
         if record.levelno == logging.WARNING:
             record.msg = "\033[93m{}\033[0m".format(record.msg)  # 黄色高亮
         return super().format(record)
-    
+
+
 logger = Logger('Uni-Mol Tools').get_logger()
 logger.setLevel(logging.INFO)
 
