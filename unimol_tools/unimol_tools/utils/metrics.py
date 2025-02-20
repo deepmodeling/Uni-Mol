@@ -61,13 +61,18 @@ def log_loss_with_label(y_true, y_pred, labels=None):
     else:
         return log_loss(y_true, y_pred, labels=labels)
 
+def reg_preasonr(y_true, y_pred):
+    return pearsonr(y_true, y_pred)[0]
+
+def reg_spearmanr(y_true, y_pred):
+    return spearmanr(y_true, y_pred)[0]
 
 # metric_func, is_increase, value_type
 METRICS_REGISTER = {
     'regression': {
         "mae": [mean_absolute_error, False, 'float'],
-        "pearsonr": [lambda y_true, y_pred: pearsonr(y_true, y_pred)[0], True, 'float'],
-        "spearmanr": [lambda y_ture, y_pred: spearmanr(y_ture, y_pred)[0], True, 'float'],
+        "pearsonr": [reg_preasonr, True, 'float'],
+        "spearmanr": [reg_spearmanr, True, 'float'],
         "mse": [mean_squared_error, False, 'float'],
         "r2": [r2_score, True, 'float'],
     },

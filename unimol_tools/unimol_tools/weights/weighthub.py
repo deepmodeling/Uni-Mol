@@ -11,12 +11,16 @@ except:
 
 WEIGHT_DIR = os.environ.get('UNIMOL_WEIGHT_DIR', os.path.dirname(os.path.abspath(__file__)))
 
-if 'UNIMOL_WEIGHT_DIR' in os.environ:
-    logger.warning(f'Using custom weight directory from UNIMOL_WEIGHT_DIR: {WEIGHT_DIR}')
-else:
-    logger.info(f'Weights will be downloaded to default directory: {WEIGHT_DIR}')
-
 os.environ["HF_ENDPOINT"] = "https://hf-mirror.com" # use mirror to download weights
+
+def log_weights_dir():
+    """
+    Logs the directory where the weights are stored.
+    """
+    if 'UNIMOL_WEIGHT_DIR' in os.environ:
+        logger.warning(f'Using custom weight directory from UNIMOL_WEIGHT_DIR: {WEIGHT_DIR}')
+    else:
+        logger.info(f'Weights will be downloaded to default directory: {WEIGHT_DIR}')
 
 def weight_download(pretrain, save_path, local_dir_use_symlinks=True):
     """
@@ -26,6 +30,8 @@ def weight_download(pretrain, save_path, local_dir_use_symlinks=True):
     :param save_path: (str), The directory where the weights should be saved.
     :param local_dir_use_symlinks: (bool, optional), Whether to use symlinks for the local directory. Defaults to True.
     """
+    log_weights_dir()
+
     if os.path.exists(os.path.join(save_path, pretrain)):
         logger.info(f'{pretrain} exists in {save_path}')
         return
@@ -47,6 +53,8 @@ def weight_download_v2(pretrain, save_path, local_dir_use_symlinks=True):
     :param save_path: (str), The directory where the weights should be saved.
     :param local_dir_use_symlinks: (bool, optional), Whether to use symlinks for the local directory. Defaults to True.
     """
+    log_weights_dir()
+
     if os.path.exists(os.path.join(save_path, pretrain)):
         logger.info(f'{pretrain} exists in {save_path}')
         return
@@ -67,6 +75,8 @@ def download_all_weights(local_dir_use_symlinks=False):
     
     :param local_dir_use_symlinks: (bool, optional), Whether to use symlinks for the local directory. Defaults to False.
     """
+    log_weights_dir()
+    
     logger.info(f'Downloading all weights to {WEIGHT_DIR}')
     snapshot_download(
         repo_id="dptech/Uni-Mol-Models",

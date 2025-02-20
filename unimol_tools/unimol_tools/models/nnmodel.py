@@ -33,16 +33,27 @@ LOSS_RREGISTER = {
     },
     'multilabel_regression': MAEwithNan,
 }
+def classification_activation(x):
+    return F.softmax(x, dim=-1)[:, 1:]
+
+def multiclass_activation(x):
+    return F.softmax(x, dim=-1)
+
+def regression_activation(x):
+    return x
+
+def multilabel_classification_activation(x):
+    return F.sigmoid(x)
+
+def multilabel_regression_activation(x):
+    return x
+
 ACTIVATION_FN = {
-    # predict prob shape should be (N, K), especially for binary classification, K equals to 1.
-    'classification': lambda x: F.softmax(x, dim=-1)[:, 1:],
-    # softmax is used for multiclass classification
-    'multiclass': lambda x: F.softmax(x, dim=-1),
-    'regression': lambda x: x,
-    # sigmoid is used for multilabel classification
-    'multilabel_classification': lambda x: F.sigmoid(x),
-    # no activation function is used for multilabel regression
-    'multilabel_regression': lambda x: x,
+    'classification': classification_activation,
+    'multiclass': multiclass_activation,
+    'regression': regression_activation,
+    'multilabel_classification': multilabel_classification_activation,
+    'multilabel_regression': multilabel_regression_activation,
 }
 OUTPUT_DIM = {
     'classification': 2,

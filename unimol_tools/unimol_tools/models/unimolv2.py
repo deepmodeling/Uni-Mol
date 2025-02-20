@@ -9,7 +9,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from .transformersv2 import TransformerEncoderWithPairV2
 from ..utils import pad_1d_tokens, pad_2d, pad_coords
-import argparse
+from addict import Dict
 import pathlib
 import os
 
@@ -599,52 +599,52 @@ class NumericalEmbed(nn.Module):
         return h
 
 def molecule_architecture(model_size='84m'):
-    args = argparse.ArgumentParser()
+    args = Dict()
     if model_size == '84m':  
-        args.num_encoder_layers = getattr(args, "num_encoder_layers", 12)
-        args.encoder_embed_dim = getattr(args, "encoder_embed_dim", 768)
-        args.num_attention_heads = getattr(args, "num_attention_heads", 48)
-        args.ffn_embedding_dim = getattr(args, "ffn_embedding_dim", 768)
-        args.encoder_attention_heads = getattr(args, "encoder_attention_heads", 48)
+        args.num_encoder_layers = 12
+        args.encoder_embed_dim = 768
+        args.num_attention_heads = 48
+        args.ffn_embedding_dim = 768
+        args.encoder_attention_heads = 48
     elif model_size == '164m':
-        args.num_encoder_layers = getattr(args, "num_encoder_layers", 24)
-        args.encoder_embed_dim = getattr(args, "encoder_embed_dim", 768)
-        args.num_attention_heads = getattr(args, "num_attention_heads", 48)
-        args.ffn_embedding_dim = getattr(args, "ffn_embedding_dim", 768)
-        args.encoder_attention_heads = getattr(args, "encoder_attention_heads", 48)
+        args.num_encoder_layers = 24
+        args.encoder_embed_dim = 768
+        args.num_attention_heads = 48
+        args.ffn_embedding_dim = 768
+        args.encoder_attention_heads = 48
     elif model_size == '310m':
-        args.num_encoder_layers = getattr(args, "num_encoder_layers", 32)
-        args.encoder_embed_dim = getattr(args, "encoder_embed_dim", 1024)
-        args.num_attention_heads = getattr(args, "num_attention_heads", 64)
-        args.ffn_embedding_dim = getattr(args, "ffn_embedding_dim", 1024)
-        args.encoder_attention_heads = getattr(args, "encoder_attention_heads", 64)
+        args.num_encoder_layers = 32
+        args.encoder_embed_dim = 1024
+        args.num_attention_heads = 64
+        args.ffn_embedding_dim = 1024
+        args.encoder_attention_heads = 64
     elif model_size == '570m':
-        args.num_encoder_layers = getattr(args, "num_encoder_layers", 32)
-        args.encoder_embed_dim = getattr(args, "encoder_embed_dim", 1536)
-        args.num_attention_heads = getattr(args, "num_attention_heads", 96)
-        args.ffn_embedding_dim = getattr(args, "ffn_embedding_dim", 1536)
-        args.encoder_attention_heads = getattr(args, "encoder_attention_heads", 96)
+        args.num_encoder_layers = 32
+        args.encoder_embed_dim = 1536
+        args.num_attention_heads = 96
+        args.ffn_embedding_dim = 1536
+        args.encoder_attention_heads = 96
     elif model_size == '1.1B':
-        args.num_encoder_layers = getattr(args, "num_encoder_layers", 64)
-        args.encoder_embed_dim = getattr(args, "encoder_embed_dim", 1536)
-        args.num_attention_heads = getattr(args, "num_attention_heads", 96)
-        args.ffn_embedding_dim = getattr(args, "ffn_embedding_dim", 1536)
-        args.encoder_attention_heads = getattr(args, "encoder_attention_heads", 96)
+        args.num_encoder_layers = 64
+        args.encoder_embed_dim = 1536
+        args.num_attention_heads = 96
+        args.ffn_embedding_dim = 1536
+        args.encoder_attention_heads = 96
     else:
         raise ValueError('Current not support data type: {}'.format(model_size))
-    args.pair_embed_dim = getattr(args, "pair_embed_dim", 512)
-    args.pair_hidden_dim = getattr(args, "pair_hidden_dim", 64)
-    args.dropout = getattr(args, "dropout", 0.1)
-    args.attention_dropout = getattr(args, "attention_dropout", 0.1)
-    args.activation_dropout = getattr(args, "activation_dropout", 0.0)
-    args.activation_fn = getattr(args, "activation_fn", "gelu")
-    args.droppath_prob = getattr(args, "droppath_prob", 0.0)
-    args.pair_dropout = getattr(args, "pair_dropout", 0.25)
-    args.backbone = getattr(args, "backbone", "transformer")
-    args.gaussian_std_width = getattr(args, "gaussian_std_width", 1.0)
-    args.gaussian_mean_start = getattr(args, "gaussian_mean_start", 0.0)
-    args.gaussian_mean_stop = getattr(args, "gaussian_mean_stop", 9.0)
-    args.pooler_dropout = getattr(args, "pooler_dropout", 0.0)
-    args.pooler_activation_fn = getattr(args, "pooler_activation_fn", "tanh")
+    args.pair_embed_dim = 512
+    args.pair_hidden_dim = 64
+    args.dropout = 0.1
+    args.attention_dropout = 0.1
+    args.activation_dropout = 0.0
+    args.activation_fn = "gelu"
+    args.droppath_prob = 0.0
+    args.pair_dropout = 0.25
+    args.backbone = "transformer"
+    args.gaussian_std_width = 1.0
+    args.gaussian_mean_start = 0.0
+    args.gaussian_mean_stop = 9.0
+    args.pooler_dropout = 0.0
+    args.pooler_activation_fn = "tanh"
     return args
 

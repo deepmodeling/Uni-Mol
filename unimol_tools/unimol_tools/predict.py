@@ -62,7 +62,7 @@ class MolPredict(object):
             self.config.metrics = metrics
         ## load test data
         self.datahub = DataHub(data = data, is_train = False, save_path=self.load_model, **self.config)
-        self.trainer = Trainer(save_path=self.load_model, **self.config)
+        self.trainer = Trainer(save_path=self.load_model, distributed=False, **self.config)
         self.model = NNModel(self.datahub.data, self.trainer, **self.config)
         self.model.evaluate(self.trainer, self.load_model)
 
