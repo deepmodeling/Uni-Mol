@@ -40,19 +40,20 @@ class UniMolRepr(object):
         remove_hs=False,
         model_name='unimolv1',
         model_size='84m',
-        use_gpu=True,
+        use_cuda=True,
     ):
         """
         Initialize a :class:`UniMolRepr` class.
 
         :param data_type: str, default='molecule', currently support molecule, oled.
         :param remove_hs: bool, default=False, whether to remove hydrogens in molecular.
-        :param use_gpu: bool, default=True, whether to use gpu.
+        :param use_cuda: bool, default=True, whether to use gpu.
         :param model_name: str, default='unimolv1', currently support unimolv1, unimolv2.
         :param model_size: str, default='84m', model size of unimolv2.
         """
+        self.use_cuda = use_cuda
         self.device = torch.device(
-            "cuda:0" if torch.cuda.is_available() and use_gpu else "cpu"
+            "cuda:0" if torch.cuda.is_available() and use_cuda else "cpu"
         )
         if model_name == 'unimolv1':
             self.model = UniMolModel(
@@ -110,7 +111,7 @@ class UniMolRepr(object):
             **self.params,
         )
         dataset = MolDataset(datahub.data['unimol_input'])
-        self.trainer = Trainer(task='repr', cuda=self.device)
+        self.trainer = Trainer(task='repr', use_cuda=self.use_cuda, **self.params)
         repr_output = self.trainer.inference(
             self.model,
             return_repr=True,
