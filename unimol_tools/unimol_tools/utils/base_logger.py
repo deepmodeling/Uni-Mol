@@ -8,6 +8,7 @@ import datetime
 import logging
 import os
 import sys
+import threading
 from logging.handlers import TimedRotatingFileHandler
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -33,8 +34,18 @@ class PackagePathFilter(logging.Filter):
 class Logger(object):
     """A custom logger class that provides logging functionality to console and file."""
 
+    _instance = None
+    _lock = threading.Lock()
+
     DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
     LOG_FORMAT = "%(asctime)s | %(relativepath)s | %(lineno)s | %(levelname)s | %(name)s | %(message)s"
+
+    def __new__(cls, *args, **kwargs):
+        if not cls._instance:
+            with cls._lock:
+                if not cls._instance:
+                    cls._instance = super(Logger, cls).__new__(cls)
+        return cls._instance
 
     def __init__(self, logger_name='None'):
         """

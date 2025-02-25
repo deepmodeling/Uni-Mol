@@ -378,10 +378,9 @@ class Trainer(object):
             total_val_loss = self.reduce_array(np.mean(val_loss))
 
             if local_rank == 0:
-                self._log_epoch_results(
-                    epoch, total_trn_loss, total_val_loss, metric_score, optimizer
-                )
-
+                # self._log_epoch_results(
+                #     epoch, total_trn_loss, total_val_loss, metric_score, optimizer
+                # ) # TODO: this will generate redundant log files.
                 is_early_stop = early_stopper.early_stop_choice(
                     model, epoch, total_val_loss, metric_score
                 )
