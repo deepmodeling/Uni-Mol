@@ -46,6 +46,8 @@ class MolTrain(object):
         max_norm=5.0,
         use_cuda=True,
         use_amp=True,
+        use_ddp=False,
+        use_gpu="all",
         freeze_layers=None,
         freeze_layers_reversed=False,
         load_model_dir=None,  # load model for transfer learning
@@ -105,6 +107,8 @@ class MolTrain(object):
         :param max_norm: float, default=5.0, max norm of gradient clipping.
         :param use_cuda: bool, default=True, whether to use GPU.
         :param use_amp: bool, default=True, whether to use automatic mixed precision.
+        :param use_ddp: bool, default=True, whether to use distributed data parallel.
+        :param use_gpu: str, default='all', which GPU to use. 'all' means use all GPUs. '0,1,2' means use GPU 0, 1, 2.
         :param freeze_layers: str or list, frozen layers by startwith name list. ['encoder', 'gbf'] will freeze all the layers whose name start with 'encoder' or 'gbf'.
         :param freeze_layers_reversed: bool, default=False, inverse selection of frozen layers
         :param params: dict, default=None, other parameters.
@@ -142,6 +146,8 @@ class MolTrain(object):
         config.max_norm = max_norm
         config.use_cuda = use_cuda
         config.use_amp = use_amp
+        config.use_ddp = use_ddp
+        config.use_gpu = use_gpu
         config.freeze_layers = freeze_layers
         config.freeze_layers_reversed = freeze_layers_reversed
         config.load_model_dir = load_model_dir

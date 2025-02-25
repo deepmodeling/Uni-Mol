@@ -17,5 +17,7 @@ learning_rate: 1e-4
 warmup_ratio: 0.03
 batch_size: 16
 max_norm: 5.0
-cuda: True
-amp: True
+use_cuda: True
+use_amp: True
+use_ddp: True
+use_gpu: 0, 1

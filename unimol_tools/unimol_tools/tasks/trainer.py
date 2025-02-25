@@ -62,15 +62,11 @@ class Trainer(object):
         self._init_dist(params)
 
     def _init_dist(self, params):
-        self.cuda = params.get('cuda', False)
-        self.amp = params.get('amp', False)
-        self.distributed = params.get('distributed', True)
-        self.gpu = params.get('gpu', "0, 1")
+        self.cuda = params.get('use_cuda', True)
+        self.amp = params.get('use_amp', True)
+        self.ddp = params.get('use_ddp', False)
+        self.gpu = params.get('use_gpu', "all")
 
-        if self.gpu is not None:
-            gpu = self.gpu
-        else:
-            gpu = "0"
         if torch.cuda.is_available() and self.cuda:
             if self.amp:
                 self.scaler = torch.cuda.amp.GradScaler()
@@ -79,19 +75,30 @@ class Trainer(object):
             self.device = torch.device("cuda")
             world_size = torch.cuda.device_count()
             logger.info(f"Number of GPUs available: {world_size}")
-            gpu_count = len(gpu.split(","))
-            logger.info(f"Number of GPUs requested: {gpu_count}")
-            if world_size > 1 and self.distributed and gpu_count > 1:
+            if self.gpu is not None:
+                if self.gpu == "all":
+                    gpu = ",".join(str(i) for i in range(world_size))
+                else:
+                    gpu = self.gpu
+            else:
+                gpu = "0"
+            gpu_count = len(str(gpu).split(","))
+
+            if world_size > 1 and self.ddp and gpu_count > 1:
+                gpu = str(gpu).replace(" ", "")
                 os.environ['MASTER_ADDR'] = 'localhost'
                 os.environ['MASTER_PORT'] = '19198'
                 os.environ['CUDA_VISIBLE_DEVICES'] = gpu
                 os.environ['WORLD_SIZE'] = str(world_size)
+                logger.info(f"Using DistributedDataParallel for multi-GPU training. GPUs: {gpu}")
             else:
                 self.device = torch.device("cuda:0")
-                self.distributed = False
+                self.ddp = False
+                logger.info("Using single GPU for training.")
         else:
             self.device = torch.device("cpu")
-            self.distributed = False
+            self.ddp = False
+            logger.info("Using CPU for training.")
         return
 
     def init_ddp(self, local_rank):
@@ -173,7 +180,7 @@ class Trainer(object):
         :param local_rank: (int) The local rank of the current process.
         :param args: Additional arguments for training.
         """
-        if torch.cuda.device_count() and self.distributed:
+        if torch.cuda.device_count() and self.ddp:
             with mp.Manager() as manager:
                 shared_queue = manager.Queue()
                 mp.spawn(
@@ -552,7 +559,7 @@ class Trainer(object):
             batch_size=self.batch_size,
             shuffle=False,
             collate_fn=batch_collate_fn,
-            distributed=self.distributed,
+            distributed=self.ddp,
             valid_mode=True,
         )
         y_preds, val_loss, y_truths = self._perform_prediction(
@@ -666,7 +673,7 @@ class Trainer(object):
             batch_size=self.batch_size,
             shuffle=False,
             collate_fn=model.batch_collate_fn,
-            distributed=self.distributed,
+            distributed=self.ddp,
         )
         model = model.eval()
         repr_dict = {

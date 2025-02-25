@@ -282,8 +282,6 @@ class NNModel(object):
         logger.info("start predict NNModel:{}".format(self.model_name))
         testdataset = NNDataset(self.features, np.asarray(self.data['target']))
         for fold in range(self.data['kfold']):
-            model_path = os.path.join(checkpoints_path, f'model_{fold}.pth')
-            self.model.load_pretrained_weights(model_path, strict=True)
             _y_pred, _, __ = trainer.predict(
                 self.model,
                 testdataset,
