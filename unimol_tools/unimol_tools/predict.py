@@ -5,6 +5,7 @@
 from __future__ import absolute_import, division, print_function
 
 import os
+import json
 
 import joblib
 import numpy as np
@@ -101,6 +102,8 @@ class MolPredict(object):
             logger.info("final predict metrics score: \n{}".format(metrics))
             if self.save_path:
                 joblib.dump(metrics, os.path.join(self.save_path, 'test_metric.result'))
+                with open(os.path.join(self.save_path, 'test_metric.json'), 'w') as f:
+                    json.dump(metrics, f)
         else:
             df.drop(self.target_cols, axis=1, inplace=True)
         if self.save_path:

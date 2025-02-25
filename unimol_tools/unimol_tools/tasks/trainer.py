@@ -24,37 +24,6 @@ from tqdm import tqdm
 # from transformers.optimization import get_linear_schedule_with_warmup
 from ..utils import Metrics, logger
 
-
-def fit_predict_wrapper(
-    local_rank,
-    shared_queue,
-    trainer,
-    model,
-    train_dataset,
-    valid_dataset,
-    loss_func,
-    activation_fn,
-    dump_dir,
-    fold,
-    target_scaler,
-    feature_name=None,
-):
-    y_preds = trainer.fit_predict_with_ddp(
-        local_rank,
-        model,
-        train_dataset,
-        valid_dataset,
-        loss_func,
-        activation_fn,
-        dump_dir,
-        fold,
-        target_scaler,
-        feature_name,
-    )
-    if local_rank == 0:
-        shared_queue.put(y_preds)
-
-
 class Trainer(object):
     """A :class:`Trainer` class is responsible for initializing the model, and managing its training, validation, and testing phases."""
 
@@ -110,7 +79,9 @@ class Trainer(object):
             self.device = torch.device("cuda")
             world_size = torch.cuda.device_count()
             logger.info(f"Number of GPUs available: {world_size}")
-            if world_size > 1 and self.distributed:
+            gpu_count = len(gpu.split(","))
+            logger.info(f"Number of GPUs requested: {gpu_count}")
+            if world_size > 1 and self.distributed and gpu_count > 1:
                 os.environ['MASTER_ADDR'] = 'localhost'
                 os.environ['MASTER_PORT'] = '19198'
                 os.environ['CUDA_VISIBLE_DEVICES'] = gpu
@@ -439,7 +410,7 @@ class Trainer(object):
             load_model=False,
             feature_name=feature_name,
         )
-        y_preds = self.gather_predictions(y_preds)
+        y_preds = self.gather_predictions(y_preds, len_valid_dataset=len(valid_dataset))
         dist.destroy_process_group()
         if local_rank == 0:
             shared_queue.put(y_preds)
@@ -529,13 +500,16 @@ class Trainer(object):
         rt /= dist.get_world_size()
         return rt.item()
 
-    def gather_predictions(self, y_preds):
+    def gather_predictions(self, y_preds, len_valid_dataset):
         y_preds_tensor = torch.tensor(y_preds, device=self.device)
         gathered_y_preds = [
             torch.zeros_like(y_preds_tensor) for _ in range(dist.get_world_size())
         ]
         dist.all_gather(gathered_y_preds, y_preds_tensor)
-        gathered_y_preds = torch.cat(gathered_y_preds, dim=0)
+        gathered_y_preds = torch.stack(gathered_y_preds, dim=1).view(-1).unsqueeze(-1)
+        
+        if len(gathered_y_preds) != len_valid_dataset:
+            gathered_y_preds = gathered_y_preds[:len_valid_dataset] # remove padding when using DDP
         return gathered_y_preds.cpu().numpy()
 
     def predict(
@@ -580,6 +554,7 @@ class Trainer(object):
             shuffle=False,
             collate_fn=batch_collate_fn,
             distributed=self.distributed,
+            valid_mode=True,
         )
         y_preds, val_loss, y_truths = self._perform_prediction(
             model, dataloader, loss_func, activation_fn, load_model, epoch, feature_name
@@ -816,6 +791,7 @@ def NNDataLoader(
     collate_fn=None,
     drop_last=False,
     distributed=False,
+    valid_mode=False,
 ):
     """
     Creates a DataLoader for neural network training or inference. This
@@ -835,10 +811,13 @@ def NNDataLoader(
     """
 
     if distributed:
-        sampler = DistributedSampler(dataset)
+        sampler = DistributedSampler(dataset, shuffle=shuffle)
         g = get_ddp_generator()
     else:
         sampler = None
+        g = None
+    
+    if valid_mode:
         g = None
 
     dataloader = TorchDataLoader(
