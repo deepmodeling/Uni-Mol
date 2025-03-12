@@ -16,18 +16,6 @@ from sklearn.preprocessing import (FunctionTransformer, MaxAbsScaler,
 
 from ..utils import logger
 
-SCALER_MODE = {
-    'minmax': MinMaxScaler,
-    'standard': StandardScaler,
-    'robust': RobustScaler,
-    'maxabs': MaxAbsScaler,
-    'quantile': QuantileTransformer,
-    'power_trans': PowerTransformer,
-    'normalizer': Normalizer,
-    'log1p': FunctionTransformer,
-}
-
-
 class TargetScaler(object):
     '''
     A class to scale the target.
@@ -92,20 +80,20 @@ class TargetScaler(object):
         elif self.ss_method == 'auto':
             if self.task == 'regression':
                 if self.is_skewed(target):
-                    self.scaler = SCALER_MODE['robust']()
+                    self.scaler = FunctionTransformer(func=np.log1p, inverse_func=np.expm1)
                     logger.info('Auto select robust transformer.')
                 else:
-                    self.scaler = SCALER_MODE['standard']()
+                    self.scaler = StandardScaler()
                 self.scaler.fit(target)
             elif self.task == 'multilabel_regression':
                 self.scaler = []
                 target = np.ma.masked_invalid(target)  # mask NaN value
                 for i in range(target.shape[1]):
                     if self.is_skewed(target[:, i]):
-                        self.scaler.append(SCALER_MODE['robust']())
+                        self.scaler.append(FunctionTransformer(func=np.log1p, inverse_func=np.expm1))
                         logger.info('Auto select robust transformer.')
                     else:
-                        self.scaler.append(SCALER_MODE['standard']())
+                        self.scaler.append(StandardScaler())
                     self.scaler[-1].fit(target[:, i : i + 1])
         else:
             if self.task == 'regression':
@@ -152,16 +140,28 @@ class TargetScaler(object):
         :param target: (array-like) The target values to fit the scaler.
         :return: The fitted scaler object.
         """
-        if method == 'power_trans':
+        if method == 'minmax':
+            scaler = MinMaxScaler()
+        elif method == 'standard':
+            scaler = StandardScaler()
+        elif method == 'robust':
+            scaler = RobustScaler()
+        elif method == 'maxabs':
+            scaler = MaxAbsScaler()
+        elif method == 'quantile':
+            scaler = QuantileTransformer()
+        elif method == 'power_trans':
             scaler = (
-                SCALER_MODE[method](method='box-cox')
+                PowerTransformer(method='box-cox')
                 if min(target) > 0
-                else SCALER_MODE[method](method='yeo-johnson')
+                else PowerTransformer(method='yeo-johnson')
             )
+        elif method == 'normalizer':
+            scaler = Normalizer()
         elif method == 'log1p':
-            scaler = SCALER_MODE[method](np.log1p)
+            scaler = FunctionTransformer(func=np.log1p, inverse_func=np.expm1)
         else:
-            scaler = SCALER_MODE[method]()
+            raise ValueError('Unknown scaler method: {}'.format(method))
         return scaler
 
     def inverse_transform(self, target):
