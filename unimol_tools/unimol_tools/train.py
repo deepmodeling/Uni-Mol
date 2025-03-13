@@ -4,51 +4,57 @@
 
 from __future__ import absolute_import, division, print_function
 
-import logging
-import copy
-import os
 import argparse
+import copy
 import json
+import logging
+import os
+
+import joblib
 import numpy as np
 import pandas as pd
-import joblib
+
 from .data import DataHub
 from .models import NNModel
 from .tasks import Trainer
-from .utils import YamlHandler
-from .utils import logger
+from .utils import YamlHandler, logger
+
 
 class MolTrain(object):
     """A :class:`MolTrain` class is responsible for interface of training process of molecular data."""
-    def __init__(self, 
-                task='classification',
-                data_type='molecule',
-                epochs=10,
-                learning_rate=1e-4,
-                batch_size=16,
-                early_stopping=5,
-                metrics= "none",
-                split='random',                   # random, scaffold, group, stratified
-                split_group_col='scaffold',       # only active with group split
-                kfold=5,
-                save_path='./exp',
-                remove_hs=False,
-                smiles_col='SMILES',
-                target_cols=None,
-                target_col_prefix='TARGET',
-                target_anomaly_check=False,
-                smiles_check="filter",
-                target_normalize="auto",
-                max_norm=5.0,
-                use_cuda=True,
-                use_amp=True,
-                freeze_layers=None,               
-                freeze_layers_reversed=False,     
-                load_model_dir=None,              # load model for transfer learning
-                model_name='unimolv1',
-                model_size='84m',
-                **params,
-                ):
+
+    def __init__(
+        self,
+        task='classification',
+        data_type='molecule',
+        epochs=10,
+        learning_rate=1e-4,
+        batch_size=16,
+        early_stopping=5,
+        metrics="none",
+        split='random',  # random, scaffold, group, stratified
+        split_group_col='scaffold',  # only active with group split
+        kfold=5,
+        save_path='./exp',
+        remove_hs=False,
+        smiles_col='SMILES',
+        target_cols=None,
+        target_col_prefix='TARGET',
+        target_anomaly_check=False,
+        smiles_check="filter",
+        target_normalize="auto",
+        max_norm=5.0,
+        use_cuda=True,
+        use_amp=True,
+        use_ddp=False,
+        use_gpu="all",
+        freeze_layers=None,
+        freeze_layers_reversed=False,
+        load_model_dir=None,  # load model for transfer learning
+        model_name='unimolv1',
+        model_size='84m',
+        **params,
+    ):
         """
         Initialize a :class:`MolTrain` class.
 
@@ -101,6 +107,8 @@ class MolTrain(object):
         :param max_norm: float, default=5.0, max norm of gradient clipping.
         :param use_cuda: bool, default=True, whether to use GPU.
         :param use_amp: bool, default=True, whether to use automatic mixed precision.
+        :param use_ddp: bool, default=True, whether to use distributed data parallel.
+        :param use_gpu: str, default='all', which GPU to use. 'all' means use all GPUs. '0,1,2' means use GPU 0, 1, 2.
         :param freeze_layers: str or list, frozen layers by startwith name list. ['encoder', 'gbf'] will freeze all the layers whose name start with 'encoder' or 'gbf'.
         :param freeze_layers_reversed: bool, default=False, inverse selection of frozen layers
         :param params: dict, default=None, other parameters.
@@ -130,12 +138,16 @@ class MolTrain(object):
         config.smiles_col = smiles_col
         config.target_cols = target_cols
         config.target_col_prefix = target_col_prefix
-        config.anomaly_clean = target_anomaly_check or target_anomaly_check in ['filter']
+        config.anomaly_clean = target_anomaly_check or target_anomaly_check in [
+            'filter'
+        ]
         config.smi_strict = smiles_check in ['filter']
         config.target_normalize = target_normalize
         config.max_norm = max_norm
         config.use_cuda = use_cuda
         config.use_amp = use_amp
+        config.use_ddp = use_ddp
+        config.use_gpu = use_gpu
         config.freeze_layers = freeze_layers
         config.freeze_layers_reversed = freeze_layers_reversed
         config.load_model_dir = load_model_dir
@@ -143,7 +155,6 @@ class MolTrain(object):
         config.model_size = model_size
         self.save_path = save_path
         self.config = config
-
 
     def fit(self, data):
         """
@@ -163,7 +174,9 @@ class MolTrain(object):
             clf = MolTrain()
             clf.fit(custom_data)
         """
-        self.datahub = DataHub(data = data, is_train=True, save_path=self.save_path, **self.config)
+        self.datahub = DataHub(
+            data=data, is_train=True, save_path=self.save_path, **self.config
+        )
         self.data = self.datahub.data
         self.update_and_save_config()
         self.trainer = Trainer(save_path=self.save_path, **self.config)
@@ -180,7 +193,7 @@ class MolTrain(object):
         if self.config["task"] in ['classification', 'multilabel_classification']:
             threshold = metrics.calculate_classification_threshold(y_true, y_pred)
             joblib.dump(threshold, os.path.join(self.save_path, 'threshold.dat'))
-        
+
         self.cv_pred = y_pred
         return
 
@@ -193,14 +206,20 @@ class MolTrain(object):
         if self.config['task'] == 'multiclass':
             self.config['multiclass_cnt'] = self.data['multiclass_cnt']
 
-        self.config['split_method'] = f"{self.config['kfold']}fold_{self.config['split']}"
+        self.config['split_method'] = (
+            f"{self.config['kfold']}fold_{self.config['split']}"
+        )
         if self.save_path is not None:
             if not os.path.exists(self.save_path):
                 logger.info('Create output directory: {}'.format(self.save_path))
                 os.makedirs(self.save_path)
             else:
-                logger.info('Output directory already exists: {}'.format(self.save_path))
-                logger.info('Warning: Overwrite output directory: {}'.format(self.save_path))
+                logger.info(
+                    'Output directory already exists: {}'.format(self.save_path)
+                )
+                logger.info(
+                    'Warning: Overwrite output directory: {}'.format(self.save_path)
+                )
             out_path = os.path.join(self.save_path, 'config.yaml')
-            self.yamlhandler.write_yaml(data = self.config, out_file_path = out_path)
+            self.yamlhandler.write_yaml(data=self.config, out_file_path=out_path)
         return

@@ -2,15 +2,18 @@
 # This source code is licensed under the MIT license found in the
 # LICENSE file in the root directory of this source tree.
 
+import math
 from typing import Optional, Tuple
 
-import math
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.checkpoint import checkpoint
 
-def softmax_dropout(input, dropout_prob, is_training=True, mask=None, bias=None, inplace=True):
+
+def softmax_dropout(
+    input, dropout_prob, is_training=True, mask=None, bias=None, inplace=True
+):
     """softmax dropout, and mask, bias are optional.
     Args:
         input (torch.Tensor): input tensor
@@ -32,10 +35,12 @@ def softmax_dropout(input, dropout_prob, is_training=True, mask=None, bias=None,
         input += bias
     return F.dropout(F.softmax(input, dim=-1), p=dropout_prob, training=is_training)
 
+
 def permute_final_dims(tensor: torch.Tensor, inds):
     zero_index = -1 * len(inds)
     first_inds = list(range(len(tensor.shape[:zero_index])))
     return tensor.permute(first_inds + [zero_index + i for i in inds])
+
 
 class Dropout(nn.Module):
     def __init__(self, p):
@@ -47,6 +52,7 @@ class Dropout(nn.Module):
             return F.dropout(x, p=self.p, training=True, inplace=inplace)
         else:
             return x
+
 
 class Linear(nn.Linear):
     def __init__(
@@ -118,6 +124,7 @@ class Embedding(nn.Embedding):
 
     def _normal_init(self, std=0.02):
         nn.init.normal_(self.weight, mean=0.0, std=std)
+
 
 class Transition(nn.Module):
     def __init__(self, d_in, n, dropout=0.0):
@@ -259,6 +266,7 @@ class OuterProduct(nn.Module):
         z *= op_norm
         return z
 
+
 class AtomFeature(nn.Module):
     """
     Compute atom features for each atom in the molecule.
@@ -380,7 +388,7 @@ class GaussianKernel(nn.Module):
         start = start
         stop = stop
         mean = torch.linspace(start, stop, K)
-        self.std = (std_width * (mean[1] - mean[0]))
+        self.std = std_width * (mean[1] - mean[0])
         self.register_buffer("mean", mean)
         self.mul = Embedding(num_pair, 1, padding_idx=0)
         self.bias = Embedding(num_pair, 1, padding_idx=0)
@@ -543,9 +551,10 @@ class TriangleMultiplication(nn.Module):
         x = self.layer_norm_out(x)
         x = self.linear_z(x)
         return g * x
-    
+
+
 def get_activation_fn(activation):
-    """ Returns the activation function corresponding to `activation` """
+    """Returns the activation function corresponding to `activation`"""
 
     if activation == "relu":
         return F.relu
@@ -680,17 +689,15 @@ class TransformerEncoderLayerV2(nn.Module):
         pair = pair + self.dropout_module(self.pair_ffn(self.pair_layer_norm_ffn(pair)))
 
         return x, pair
-    
+
 
 class TransformerEncoderWithPairV2(nn.Module):
     def __init__(
         self,
         num_encoder_layers: int = 6,
         embedding_dim: int = 768,
-
         pair_dim: int = 64,
         pair_hidden_dim: int = 32,
-
         ffn_embedding_dim: int = 3072,
         num_attention_heads: int = 8,
         dropout: float = 0.1,
@@ -726,9 +733,9 @@ class TransformerEncoderWithPairV2(nn.Module):
                     attention_dropout=attention_dropout,
                     activation_dropout=activation_dropout,
                     activation_fn=activation_fn,
-                    droppath_prob=droppath_probs[i]
-                    if droppath_probs is not None
-                    else 0,
+                    droppath_prob=(
+                        droppath_probs[i] if droppath_probs is not None else 0
+                    ),
                     pair_dropout=pair_dropout,
                 )
                 for i in range(num_encoder_layers)

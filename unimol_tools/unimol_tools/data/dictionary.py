@@ -9,6 +9,7 @@ import numpy as np
 
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
+
 class Dictionary:
     """A mapping from symbols to consecutive integers"""
 
@@ -55,7 +56,7 @@ class Dictionary:
         if sym in self.indices:
             return self.indices[sym]
         return self.indices[self.unk_word]
-    
+
     def special_index(self):
         return [self.index(x) for x in self.specials]
 
@@ -138,7 +139,9 @@ class Dictionary:
                 word = line
                 if word in self and not overwrite:
                     logger.info(
-                        "Duplicate word found when loading Dictionary: '{}', index is {}.".format(word, self.indices[word])
+                        "Duplicate word found when loading Dictionary: '{}', index is {}.".format(
+                            word, self.indices[word]
+                        )
                     )
                 else:
                     self.add_symbol(word, n=count, overwrite=overwrite)

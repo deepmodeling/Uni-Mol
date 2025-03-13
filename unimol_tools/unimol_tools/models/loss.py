@@ -3,11 +3,13 @@
 # LICENSE file in the root directory of this source tree.
 
 import torch
-from torch import nn
 import torch.nn.functional as F
+from torch import nn
+
 
 class GHM_Loss(nn.Module):
     """A :class:`GHM_Loss` class."""
+
     def __init__(self, bins=10, alpha=0.5):
         """
         Initializes the GHM_Loss module with the specified number of bins and alpha value.
@@ -37,7 +39,7 @@ class GHM_Loss(nn.Module):
         :param target: (torch.Tensor) Ground truth labels.
         :param weight: (torch.Tensor) Weights for the loss.
         :raise NotImplementedError: Indicates that the method should be implemented in subclasses.
-        """        
+        """
         raise NotImplementedError
 
     def _custom_loss_grad(self, x, target):
@@ -66,12 +68,14 @@ class GHM_Loss(nn.Module):
         for i in range(self._bins):
             bin_count[i] = (bin_idx == i).sum().item()
 
-        N = (x.size(0) * x.size(1))
+        N = x.size(0) * x.size(1)
 
         if self._last_bin_count is None:
             self._last_bin_count = bin_count
         else:
-            bin_count = self._alpha * self._last_bin_count + (1 - self._alpha) * bin_count
+            bin_count = (
+                self._alpha * self._last_bin_count + (1 - self._alpha) * bin_count
+            )
             self._last_bin_count = bin_count
 
         nonempty_bins = (bin_count > 0).sum().item()
@@ -87,12 +91,13 @@ class GHM_Loss(nn.Module):
 
 class GHMC_Loss(GHM_Loss):
     '''
-          Inherits from GHM_Loss. GHM_Loss for classification.
+    Inherits from GHM_Loss. GHM_Loss for classification.
     '''
+
     def __init__(self, bins, alpha):
         """
         Initializes the GHMC_Loss with specified number of bins and alpha value.
-        
+
         :param bins: (int) Number of bins for gradient division.
         :param alpha: (float) Smoothing parameter for bin count updating.
         """
@@ -105,7 +110,7 @@ class GHMC_Loss(GHM_Loss):
         :param x: (torch.Tensor) Predicted values.
         :param target: (torch.Tensor) Ground truth labels.
         :param weight: (torch.Tensor) Weights for the loss.
-        
+
         :return: Binary cross-entropy loss with logits.
         """
         return F.binary_cross_entropy_with_logits(x, target, weight=weight)
@@ -116,7 +121,7 @@ class GHMC_Loss(GHM_Loss):
 
         :param x: (torch.Tensor) Predicted values.
         :param target: (torch.Tensor) Ground truth labels.
-        
+
         :return: Gradient of the loss.
         """
         return torch.sigmoid(x).detach() - target
@@ -124,7 +129,7 @@ class GHMC_Loss(GHM_Loss):
 
 class GHMR_Loss(GHM_Loss):
     '''
-        Inherits from GHM_Loss. GHM_Loss for regression
+    Inherits from GHM_Loss. GHM_Loss for regression
     '''
 
     def __init__(self, bins, alpha, mu):
@@ -166,14 +171,15 @@ class GHMR_Loss(GHM_Loss):
         d = x - target
         mu = self._mu
         return d / torch.sqrt(d * d + mu * mu)
-    
+
+
 def MAEwithNan(y_pred, y_true):
     """
     Calculates the Mean Absolute Error (MAE) loss, ignoring NaN values in the target.
 
     :param y_pred: (torch.Tensor) Predicted values.
     :param y_true: (torch.Tensor) Ground truth values, may contain NaNs.
-    
+
     :return: (torch.Tensor) MAE loss computed only on non-NaN elements.
     """
     mask = ~torch.isnan(y_true)
@@ -182,6 +188,7 @@ def MAEwithNan(y_pred, y_true):
     mae_loss = nn.L1Loss()
     loss = mae_loss(y_pred, y_true)
     return loss
+
 
 def FocalLoss(y_pred, y_true, alpha=0.25, gamma=2):
     """
@@ -201,11 +208,12 @@ def FocalLoss(y_pred, y_true, alpha=0.25, gamma=2):
     y_true = y_true.float()
     y_true = y_true.unsqueeze(1)
     y_pred = y_pred.unsqueeze(1)
-    y_true = torch.cat((1-y_true, y_true), dim=1)
-    y_pred = torch.cat((1-y_pred, y_pred), dim=1)
+    y_true = torch.cat((1 - y_true, y_true), dim=1)
+    y_pred = torch.cat((1 - y_pred, y_pred), dim=1)
     y_pred = y_pred.clamp(1e-5, 1.0)
     loss = -alpha * y_true * torch.pow((1 - y_pred), gamma) * torch.log(y_pred)
     return torch.mean(torch.sum(loss, dim=1))
+
 
 def FocalLossWithLogits(y_pred, y_true, alpha=0.25, gamma=2.0):
     """
@@ -224,6 +232,7 @@ def FocalLossWithLogits(y_pred, y_true, alpha=0.25, gamma=2.0):
     y_true = y_true[mask]
     loss = FocalLoss(y_pred, y_true)
     return loss
+
 
 def myCrossEntropyLoss(y_pred, y_true):
     """

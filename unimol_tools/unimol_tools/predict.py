@@ -4,21 +4,23 @@
 
 from __future__ import absolute_import, division, print_function
 
-import numpy as np
-import joblib
 import os
+import json
+
+import joblib
+import numpy as np
 
 from .data import DataHub
 from .models import NNModel
 from .tasks import Trainer
-from .utils import YamlHandler
-from .utils import logger
+from .utils import YamlHandler, logger
 
 
 class MolPredict(object):
     """A :class:`MolPredict` class is responsible for interface of predicting process of molecular data."""
+
     def __init__(self, load_model=None):
-        """ 
+        """
         Initialize a :class:`MolPredict` class.
 
         :param load_model: str, default=None, path of model to load.
@@ -61,8 +63,13 @@ class MolPredict(object):
         if not metrics or metrics != 'none':
             self.config.metrics = metrics
         ## load test data
-        self.datahub = DataHub(data = data, is_train = False, save_path=self.load_model, **self.config)
-        self.trainer = Trainer(save_path=self.load_model, **self.config)
+        self.datahub = DataHub(
+            data=data, is_train=False, save_path=self.load_model, **self.config
+        )
+        self.config.use_ddp = False
+        self.trainer = Trainer(
+            save_path=self.load_model, **self.config
+        )
         self.model = NNModel(self.datahub.data, self.trainer, **self.config)
         self.model.evaluate(self.trainer, self.load_model)
 
@@ -78,7 +85,9 @@ class MolPredict(object):
             df[prob_cols] = y_pred
             df[predict_cols] = np.argmax(y_pred, axis=1).reshape(-1, 1)
         elif self.task in ['classification', 'multilabel_classification']:
-            threshold = joblib.load(open(os.path.join(self.load_model, 'threshold.dat'), "rb"))
+            threshold = joblib.load(
+                open(os.path.join(self.load_model, 'threshold.dat'), "rb")
+            )
             prob_cols = ['prob_' + col for col in self.target_cols]
             df[prob_cols] = y_pred
             df[predict_cols] = (y_pred > threshold).astype(int)
@@ -88,19 +97,25 @@ class MolPredict(object):
         if self.save_path:
             os.makedirs(self.save_path, exist_ok=True)
         if not (df[self.target_cols] == -1.0).all().all():
-            metrics = self.trainer.metrics.cal_metric(df[self.target_cols].values, df[prob_cols].values)
+            metrics = self.trainer.metrics.cal_metric(
+                df[self.target_cols].values, df[prob_cols].values
+            )
             logger.info("final predict metrics score: \n{}".format(metrics))
             if self.save_path:
                 joblib.dump(metrics, os.path.join(self.save_path, 'test_metric.result'))
+                with open(os.path.join(self.save_path, 'test_metric.json'), 'w') as f:
+                    json.dump(metrics, f)
         else:
             df.drop(self.target_cols, axis=1, inplace=True)
         if self.save_path:
-            prefix = data.split('/')[-1].split('.')[0] if isinstance(data, str) else 'test'
+            prefix = (
+                data.split('/')[-1].split('.')[0] if isinstance(data, str) else 'test'
+            )
             self.save_predict(df, self.save_path, prefix)
             logger.info("pipeline finish!")
 
         return y_pred
-    
+
     def save_predict(self, data, dir, prefix):
         """
         Save predict result to csv file.

@@ -5,12 +5,15 @@
 from typing import Optional
 
 import torch
-from torch import Tensor, nn
 import torch.nn.functional as F
+from torch import Tensor, nn
 
-def softmax_dropout(input, dropout_prob, is_training=True, mask=None, bias=None, inplace=True):
+
+def softmax_dropout(
+    input, dropout_prob, is_training=True, mask=None, bias=None, inplace=True
+):
     """softmax dropout, and mask, bias are optional.
-    
+
     Args:
         input (torch.Tensor): input tensor
         dropout_prob (float): dropout probability
@@ -31,8 +34,9 @@ def softmax_dropout(input, dropout_prob, is_training=True, mask=None, bias=None,
         input += bias
     return F.dropout(F.softmax(input, dim=-1), p=dropout_prob, training=is_training)
 
+
 def get_activation_fn(activation):
-    """ Returns the activation function corresponding to `activation` """
+    """Returns the activation function corresponding to `activation`"""
 
     if activation == "relu":
         return F.relu
@@ -44,6 +48,7 @@ def get_activation_fn(activation):
         return lambda x: x
     else:
         raise RuntimeError("--activation-fn {} not supported".format(activation))
+
 
 class SelfMultiheadAttention(nn.Module):
     def __init__(
@@ -130,12 +135,18 @@ class SelfMultiheadAttention(nn.Module):
 
         if not return_attn:
             attn = softmax_dropout(
-                attn_weights, self.dropout, self.training, bias=attn_bias,
+                attn_weights,
+                self.dropout,
+                self.training,
+                bias=attn_bias,
             )
         else:
             attn_weights += attn_bias
             attn = softmax_dropout(
-                attn_weights, self.dropout, self.training, inplace=False,
+                attn_weights,
+                self.dropout,
+                self.training,
+                inplace=False,
             )
 
         o = torch.bmm(attn, v)
@@ -153,6 +164,7 @@ class SelfMultiheadAttention(nn.Module):
         else:
             return o, attn_weights, attn
 
+
 class TransformerEncoderLayer(nn.Module):
     """
     Implements a Transformer Encoder Layer used in BERT/XLM style pre-trained
@@ -168,7 +180,7 @@ class TransformerEncoderLayer(nn.Module):
         attention_dropout: float = 0.1,
         activation_dropout: float = 0.0,
         activation_fn: str = "gelu",
-        post_ln = False,
+        post_ln=False,
     ) -> None:
         super().__init__()
 
@@ -193,13 +205,12 @@ class TransformerEncoderLayer(nn.Module):
         self.final_layer_norm = nn.LayerNorm(self.embed_dim)
         self.post_ln = post_ln
 
-
     def forward(
         self,
         x: torch.Tensor,
         attn_bias: Optional[torch.Tensor] = None,
         padding_mask: Optional[torch.Tensor] = None,
-        return_attn: bool=False,
+        return_attn: bool = False,
     ) -> torch.Tensor:
         """
         LayerNorm is applied either before or after the self-attention/ffn
@@ -238,6 +249,7 @@ class TransformerEncoderLayer(nn.Module):
         else:
             return x, attn_weights, attn_probs
 
+
 class TransformerEncoderWithPair(nn.Module):
     """
     A custom Transformer Encoder module that extends PyTorch's nn.Module. This encoder is designed for tasks that require understanding pair relationships in sequences. It includes standard transformer encoder layers along with additional normalization and dropout features.
@@ -255,7 +267,7 @@ class TransformerEncoderWithPair(nn.Module):
     Methods:
         forward: Performs the forward pass of the module.
     """
-    
+
     def __init__(
         self,
         encoder_layers: int = 6,
@@ -273,7 +285,7 @@ class TransformerEncoderWithPair(nn.Module):
     ) -> None:
         """
         Initializes and configures the layers and other components of the transformer encoder.
-        
+
         :param encoder_layers: (int) Number of encoder layers in the transformer.
         :param embed_dim: (int) Dimensionality of the input embeddings.
         :param ffn_embed_dim: (int) Dimensionality of the feedforward network model.

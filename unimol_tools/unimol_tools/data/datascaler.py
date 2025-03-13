@@ -5,42 +5,27 @@
 from __future__ import absolute_import, division, print_function
 
 import os
-import numpy as np
+
 import joblib
-from sklearn.preprocessing import (
-    StandardScaler, 
-    MinMaxScaler, 
-    MaxAbsScaler, 
-    RobustScaler, 
-    Normalizer, 
-    QuantileTransformer, 
-    PowerTransformer, 
-    FunctionTransformer,
-)
-from scipy.stats import skew, kurtosis
+import numpy as np
+from scipy.stats import kurtosis, skew
+from sklearn.preprocessing import (FunctionTransformer, MaxAbsScaler,
+                                   MinMaxScaler, Normalizer, PowerTransformer,
+                                   QuantileTransformer, RobustScaler,
+                                   StandardScaler)
+
 from ..utils import logger
-
-
-SCALER_MODE = {
-    'minmax': MinMaxScaler,
-    'standard': StandardScaler,
-    'robust': RobustScaler,
-    'maxabs': MaxAbsScaler,
-    'quantile': QuantileTransformer,
-    'power_trans': PowerTransformer,
-    'normalizer': Normalizer,
-    'log1p': FunctionTransformer,
-}
 
 class TargetScaler(object):
     '''
     A class to scale the target.
     '''
+
     def __init__(self, ss_method, task, load_dir=None):
         """
         Initializes the TargetScaler object for scaling target values.
 
-        :param ss_method: (str) The scaling method to be used. 
+        :param ss_method: (str) The scaling method to be used.
         :param task: (str) The type of machine learning task (e.g., 'classification', 'regression').
         :param load_dir: (str, optional) Directory from which to load an existing scaler.
         """
@@ -50,7 +35,7 @@ class TargetScaler(object):
             self.scaler = joblib.load(os.path.join(load_dir, 'target_scaler.ss'))
         else:
             self.scaler = None
-    
+
     def transform(self, target):
         """
         Transforms the target values using the appropriate scaling method.
@@ -62,7 +47,7 @@ class TargetScaler(object):
         if self.task in ['classification', 'multiclass', 'multilabel_classification']:
             return target
         elif self.ss_method == 'none':
-            return target 
+            return target
         elif self.task == 'regression':
             return self.scaler.transform(target)
         elif self.task == 'multilabel_regression':
@@ -70,11 +55,17 @@ class TargetScaler(object):
             target = np.ma.masked_invalid(target)  # mask NaN value
             new_target = np.zeros_like(target)
             for i in range(target.shape[1]):
-                new_target[:, i] = self.scaler[i].transform(target[:, i:i+1]).reshape(-1,)
+                new_target[:, i] = (
+                    self.scaler[i]
+                    .transform(target[:, i : i + 1])
+                    .reshape(
+                        -1,
+                    )
+                )
             return new_target
         else:
             return target
-        
+
     def fit(self, target, dump_dir):
         """
         Fits the scaler to the target values and optionally saves the scaler to disk.
@@ -83,27 +74,27 @@ class TargetScaler(object):
         :param dump_dir: (str) Directory where the fitted scaler will be saved.
         """
         if self.task in ['classification', 'multiclass', 'multilabel_classification']:
-            return 
+            return
         elif self.ss_method == 'none':
-            return 
+            return
         elif self.ss_method == 'auto':
             if self.task == 'regression':
                 if self.is_skewed(target):
-                    self.scaler = SCALER_MODE['robust']()
+                    self.scaler = FunctionTransformer(func=np.log1p, inverse_func=np.expm1)
                     logger.info('Auto select robust transformer.')
                 else:
-                    self.scaler = SCALER_MODE['standard']()
+                    self.scaler = StandardScaler()
                 self.scaler.fit(target)
             elif self.task == 'multilabel_regression':
                 self.scaler = []
                 target = np.ma.masked_invalid(target)  # mask NaN value
                 for i in range(target.shape[1]):
                     if self.is_skewed(target[:, i]):
-                        self.scaler.append(SCALER_MODE['robust']())
+                        self.scaler.append(FunctionTransformer(func=np.log1p, inverse_func=np.expm1))
                         logger.info('Auto select robust transformer.')
                     else:
-                        self.scaler.append(SCALER_MODE['standard']())
-                    self.scaler[-1].fit(target[:, i:i+1])
+                        self.scaler.append(StandardScaler())
+                    self.scaler[-1].fit(target[:, i : i + 1])
         else:
             if self.task == 'regression':
                 self.scaler = self.scaler_choose(self.ss_method, target)
@@ -111,15 +102,17 @@ class TargetScaler(object):
             elif self.task == 'multilabel_regression':
                 self.scaler = []
                 for i in range(target.shape[1]):
-                    self.scaler.append(self.scaler_choose(self.ss_method, target[:, i:i+1]))
-                    self.scaler[-1].fit(target[:, i:i+1])
+                    self.scaler.append(
+                        self.scaler_choose(self.ss_method, target[:, i : i + 1])
+                    )
+                    self.scaler[-1].fit(target[:, i : i + 1])
         try:
             os.remove(os.path.join(dump_dir, 'target_scaler.ss'))
         except:
             pass
         os.makedirs(dump_dir, exist_ok=True)
         joblib.dump(self.scaler, os.path.join(dump_dir, 'target_scaler.ss'))
-    
+
     def scaler_choose(self, method, target):
         """
         Selects the appropriate scaler based on the scaling method and fit it to the target.
@@ -143,16 +136,32 @@ class TargetScaler(object):
                 - 'normalizer': Normalizer,
 
                 - 'log1p': FunctionTransformer,
-            
+
         :param target: (array-like) The target values to fit the scaler.
         :return: The fitted scaler object.
         """
-        if method=='power_trans':
-            scaler = SCALER_MODE[method](method='box-cox') if min(target) > 0 else SCALER_MODE[method](method='yeo-johnson')
-        elif method=='log1p':
-            scaler = SCALER_MODE[method](np.log1p)              
+        if method == 'minmax':
+            scaler = MinMaxScaler()
+        elif method == 'standard':
+            scaler = StandardScaler()
+        elif method == 'robust':
+            scaler = RobustScaler()
+        elif method == 'maxabs':
+            scaler = MaxAbsScaler()
+        elif method == 'quantile':
+            scaler = QuantileTransformer()
+        elif method == 'power_trans':
+            scaler = (
+                PowerTransformer(method='box-cox')
+                if min(target) > 0
+                else PowerTransformer(method='yeo-johnson')
+            )
+        elif method == 'normalizer':
+            scaler = Normalizer()
+        elif method == 'log1p':
+            scaler = FunctionTransformer(func=np.log1p, inverse_func=np.expm1)
         else:
-            scaler = SCALER_MODE[method]()
+            raise ValueError('Unknown scaler method: {}'.format(method))
         return scaler
 
     def inverse_transform(self, target):
@@ -173,11 +182,17 @@ class TargetScaler(object):
             assert isinstance(self.scaler, list) and len(self.scaler) == target.shape[1]
             new_target = np.zeros_like(target)
             for i in range(target.shape[1]):
-                new_target[:, i] = self.scaler[i].inverse_transform(target[:, i:i+1]).reshape(-1,)
+                new_target[:, i] = (
+                    self.scaler[i]
+                    .inverse_transform(target[:, i : i + 1])
+                    .reshape(
+                        -1,
+                    )
+                )
             return new_target
         else:
             raise ValueError('Unknown scaler method: {}'.format(self.ss_method))
-            
+
     def is_skewed(self, target):
         """
         Determines whether the target values are skewed based on skewness and kurtosis metrics.
