@@ -63,26 +63,122 @@ print(np.array(unimol_repr['atomic_reprs']).shape)
 ## Continue training (Re-train)
 
 ```python
-clf = MolTrain(task='regression',
-                data_type='molecule',
-                epochs=10,
-                batch_size=16,
-                save_path='./model_dir',
-                remove_hs=False,
-                target_cols='TARGET',
-                )
+clf = MolTrain(
+    task='regression',
+    data_type='molecule',
+    epochs=10,
+    batch_size=16,
+    save_path='./model_dir',
+    remove_hs=False,
+    target_cols='TARGET',
+    )
 pred = clf.fit(data = train_data)
 # After train a model, set load_model_dir='./model_dir' to continue training
 
-clf2 = MolTrain(task='regression',
-                data_type='molecule',
-                epochs=10,
-                batch_size=16,
-                save_path='./retrain_model_dir',
-                remove_hs=False,
-                target_cols='TARGET',
-                load_model_dir='./model_dir',
-                )
+clf2 = MolTrain(
+    task='regression',
+    data_type='molecule',
+    epochs=10,
+    batch_size=16,
+    save_path='./retrain_model_dir',
+    remove_hs=False,
+    target_cols='TARGET',
+    load_model_dir='./model_dir',
+    )
 
 pred2 = clf.fit(data = retrain_data)                
+```
+
+## Distributed Data Parallel (DDP) Training
+
+Uni-Mol Tools now supports Distributed Data Parallel (DDP) training using PyTorch. DDP allows you to train models across multiple GPUs or nodes, significantly speeding up the training process.
+
+### Parameters
+- `use_ddp`: bool, default=True, whether to enable Distributed Data Parallel (DDP).
+- `use_gpu`: str, default='all', specifies which GPUs to use. `'all'` means all available GPUs, while `'0,1,2'` means using GPUs 0, 1, and 2.
+
+### Example Usage
+To enable DDP, ensure your environment supports distributed training (e.g., PyTorch with distributed support). Set `use_ddp=True` and specify the GPUs using the `use_gpu` parameter when initializing the `MolTrain` class.
+
+#### Example for Training
+
+```python
+from unimol_tools import MolTrain
+
+# Initialize the training class with DDP enabled
+if __name__ == '__main__':
+    clf = MolTrain(
+        task='regression',
+        data_type='molecule',
+        epochs=10,
+        batch_size=16,
+        save_path='./model_dir',
+        remove_hs=False,
+        target_cols='TARGET',
+        use_ddp=True,
+        use_gpu="all"
+        )
+    pred = clf.fit(data = train_data)
+```
+
+#### Example for Molecular Representation
+
+```python
+from unimol_tools import UniMolRepr
+
+# Initialize the UniMolRepr class with DDP enabled
+if __name__ == '__main__':
+    repr_model = UniMolRepr(
+        data_type='molecule',
+        batch_size=32,
+        remove_hs=False,
+        model_name='unimolv2',
+        model_size='84m',
+        use_ddp=True,  # Enable Distributed Data Parallel
+        use_gpu='0,1'  # Use GPU 0 and 1
+    )
+
+    unimol_repr = repr_model.get_repr(smiles_list, return_atomic_reprs=True)
+
+    # CLS token representation
+    print(unimol_repr['cls_repr'])
+    # Atomic-level representation
+    print(unimol_repr['atomic_reprs'])
+```
+
+- **Important:** When the number of SMILES strings is small, it is not recommended to use DDP for the `get_repr` method. Communication overhead between processes may outweigh the benefits of parallel computation, leading to slower performance. In such cases, consider disabling DDP by setting `use_ddp=False`.
+
+### Why use `if __name__ == '__main__':`
+
+In Python, when using multiprocessing (e.g., PyTorch's `DistributedDataParallel` or other libraries requiring multiple processes), it is recommended to use the `if __name__ == '__main__':` idiom. This is because, in a multiprocessing environment, child processes may re-import the main module. Without this idiom, the code in the main module could be executed multiple times, leading to unexpected behavior or errors.
+
+#### Common Error
+
+If you do not use `if __name__ == '__main__':`, you might encounter the following error:
+
+```Python
+RuntimeError: 
+        An attempt has been made to start a new process before the
+        current process has finished its bootstrapping phase.
+
+        This probably means that you are not using fork to start your
+        child processes and you have forgotten to use the proper idiom
+        in the main module:
+
+            if __name__ == '__main__':
+                freeze_support()
+                ...
+
+        The "freeze_support()" line can be omitted if the program
+        is not going to be frozen to produce an executable.
+```
+
+To avoid this error, ensure that all code requiring multiprocessing is enclosed within the if `__name__ == '__main__'`: block.
+
+### Notes
+- For multi-node training, the `MASTER_ADDR` and `MASTER_PORT` environment variables can be configured as below.
+
+```bash
+export MASTER_ADDR='localhost'
+export MASTER_PORT='19198'
 ```

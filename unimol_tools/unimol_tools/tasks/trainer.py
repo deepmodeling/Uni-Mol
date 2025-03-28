@@ -86,8 +86,8 @@ class Trainer(object):
 
             if world_size > 1 and self.ddp and gpu_count > 1:
                 gpu = str(gpu).replace(" ", "")
-                os.environ['MASTER_ADDR'] = 'localhost'
-                os.environ['MASTER_PORT'] = '19198'
+                os.environ['MASTER_ADDR'] = os.getenv('MASTER_ADDR', 'localhost')
+                os.environ['MASTER_PORT'] = os.getenv('MASTER_PORT', '19198')      
                 os.environ['CUDA_VISIBLE_DEVICES'] = gpu
                 os.environ['WORLD_SIZE'] = str(world_size)
                 logger.info(f"Using DistributedDataParallel for multi-GPU. GPUs: {gpu}")
