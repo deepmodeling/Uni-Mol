@@ -52,7 +52,7 @@ class UniMolRepr(object):
         :param batch_size: int, default=32, batch size for training.
         :param remove_hs: bool, default=False, whether to remove hydrogens in molecular.
         :param model_name: str, default='unimolv1', currently support unimolv1, unimolv2.
-        :param model_size: str, default='84m', model size of unimolv2.
+        :param model_size: str, default='84m', model size of unimolv2. Avaliable: 84m, 164m, 310m, 570m, 1.1B.
         :param use_cuda: bool, default=True, whether to use gpu.
         :param use_ddp: bool, default=False, whether to use distributed data parallel.
         :param use_gpu: str, default='all', which gpu to use.
