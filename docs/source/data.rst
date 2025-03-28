@@ -34,3 +34,11 @@ Classes and functions from `unimol_tools.data.conformer.py <https://github.com/d
 
 .. automodule:: unimol_tools.data.conformer
    :members:
+
+Split
+-------
+
+`unimol_tools.data.split.py <https://github.com/deepmodeling/Uni-Mol/tree/main/unimol_tools/unimol_tools/data/split.py>`_ manages the split methods in the dataset.
+
+.. automodule:: unimol_tools.data.split
+   :members:

@@ -86,19 +86,19 @@ class Trainer(object):
 
             if world_size > 1 and self.ddp and gpu_count > 1:
                 gpu = str(gpu).replace(" ", "")
-                os.environ['MASTER_ADDR'] = 'localhost'
-                os.environ['MASTER_PORT'] = '19198'
+                os.environ['MASTER_ADDR'] = os.getenv('MASTER_ADDR', 'localhost')
+                os.environ['MASTER_PORT'] = os.getenv('MASTER_PORT', '19198')      
                 os.environ['CUDA_VISIBLE_DEVICES'] = gpu
                 os.environ['WORLD_SIZE'] = str(world_size)
-                logger.info(f"Using DistributedDataParallel for multi-GPU training. GPUs: {gpu}")
+                logger.info(f"Using DistributedDataParallel for multi-GPU. GPUs: {gpu}")
             else:
                 self.device = torch.device("cuda:0")
                 self.ddp = False
-                logger.info("Using single GPU for training.")
+                logger.info("Using single GPU.")
         else:
             self.device = torch.device("cpu")
             self.ddp = False
-            logger.info("Using CPU for training.")
+            logger.info("Using CPU.")
         return
 
     def init_ddp(self, local_rank):
@@ -666,6 +666,144 @@ class Trainer(object):
                  specified parameters. This can include class-level representations, atomic coordinates,
                  atomic representations, and atomic symbols.
         """
+        if torch.cuda.device_count() and self.ddp:
+            with mp.Manager() as manager:
+                shared_queue = manager.Queue()
+                mp.spawn(
+                    self.inference_with_ddp,
+                    args=(
+                        shared_queue,
+                        model,
+                        dataset,
+                        return_repr,
+                        return_atomic_reprs,
+                        feature_name,
+                    ),
+                    nprocs=torch.cuda.device_count(),
+                )
+                try:
+                    repr_dict = shared_queue.get(timeout=1)
+                except:
+                    print("No return value received from main function.")
+                return repr_dict
+        else:
+            return self.inference_without_ddp(
+                model, dataset, return_repr, return_atomic_reprs, feature_name
+            )    
+
+
+    def inference_with_ddp(
+        self,
+        local_rank,
+        shared_queue,
+        model,
+        dataset,
+        return_repr=False,
+        return_atomic_reprs=False,
+        feature_name=None,
+    ):
+        """
+        Runs inference on the given dataset using the provided model with DistributedDataParallel (DDP).
+
+        :param local_rank: The local rank of the current process.
+        :param shared_queue: A shared queue to store the inference results.
+        :param model: The neural network model to be used for inference.
+        :param dataset: The dataset on which inference is to be performed.
+        :param return_repr: (bool, optional) If True, returns class-level representations. Defaults to False.
+        :param return_atomic_reprs: (bool, optional) If True, returns atomic-level representations. Defaults to False.
+        :param feature_name: (str, optional) Name of the feature used for data loading. Defaults to None.
+
+        :return: A dictionary containing different types of representations based on the model's output and the
+                 specified parameters. This can include class-level representations, atomic coordinates,
+                 atomic representations, and atomic symbols.
+        """
+        self.init_ddp(local_rank)
+        model = model.to(local_rank)
+        model = DistributedDataParallel(model, device_ids=[local_rank])
+        dataloader = NNDataLoader(
+            feature_name=feature_name,
+            dataset=dataset,
+            batch_size=self.batch_size,
+            shuffle=False,
+            collate_fn=model.module.batch_collate_fn,
+            distributed=True,
+        )
+        model = model.eval()
+        repr_dict = {
+            "cls_repr": [],
+            "atomic_coords": [],
+            "atomic_reprs": [],
+            "atomic_symbol": [],
+        }
+        for batch in tqdm(dataloader):
+            net_input, _ = self.decorate_batch(batch, feature_name)
+            with torch.no_grad():
+                outputs = model(
+                    **net_input,
+                    return_repr=return_repr,
+                    return_atomic_reprs=return_atomic_reprs,
+                )
+
+                assert isinstance(outputs, dict)
+                repr_dict["cls_repr"].extend(
+                    item.cpu().numpy() for item in outputs["cls_repr"]
+                )
+                if return_atomic_reprs:
+                    repr_dict["atomic_symbol"].extend(outputs["atomic_symbol"])
+                    repr_dict['atomic_coords'].extend(
+                        item.cpu().numpy() for item in outputs['atomic_coords']
+                    )
+                    repr_dict['atomic_reprs'].extend(
+                        item.cpu().numpy() for item in outputs['atomic_reprs']
+                    )
+        gathered_list = [{} for _ in range(dist.get_world_size())]
+        dist.gather_object(repr_dict, gathered_list if local_rank == 0 else None, dst=0)
+        dist.destroy_process_group()
+        if local_rank == 0:
+            merged_repr_dict = {"cls_repr": []}
+            if return_atomic_reprs:
+                merged_repr_dict.update({
+                    "atomic_symbol": [],
+                    "atomic_coords": [],
+                    "atomic_reprs": []
+                })
+            
+            for rd in gathered_list:
+                merged_repr_dict["cls_repr"].extend(rd["cls_repr"])
+                if return_atomic_reprs:
+                    merged_repr_dict["atomic_symbol"].extend(rd.get("atomic_symbol", []))
+                    merged_repr_dict["atomic_coords"].extend(rd.get("atomic_coords", []))
+                    merged_repr_dict["atomic_reprs"].extend(rd.get("atomic_reprs", []))
+            
+            merged_repr_dict["cls_repr"] = merged_repr_dict["cls_repr"][:len(dataset)]
+            if return_atomic_reprs:
+                for key in ["atomic_symbol", "atomic_coords", "atomic_reprs"]:
+                    merged_repr_dict[key] = merged_repr_dict[key][:len(dataset)]
+            
+            shared_queue.put(merged_repr_dict)
+        return repr_dict
+
+    def inference_without_ddp(
+        self,
+        model,
+        dataset,
+        return_repr=False,
+        return_atomic_reprs=False,
+        feature_name=None,
+    ):
+        """
+        Runs inference on the given dataset using the provided model without DistributedDataParallel (DDP).
+
+        :param model: The neural network model to be used for inference.
+        :param dataset: The dataset on which inference is to be performed.
+        :param return_repr: (bool, optional) If True, returns class-level representations. Defaults to False.
+        :param return_atomic_reprs: (bool, optional) If True, returns atomic-level representations. Defaults to False.
+        :param feature_name: (str, optional) Name of the feature used for data loading. Defaults to None.
+
+        :return: A dictionary containing different types of representations based on the model's output and the
+                 specified parameters. This can include class-level representations, atomic coordinates,
+                 atomic representations, and atomic symbols.
+        """
         model = model.to(self.device)
         dataloader = NNDataLoader(
             feature_name=feature_name,
@@ -673,7 +811,7 @@ class Trainer(object):
             batch_size=self.batch_size,
             shuffle=False,
             collate_fn=model.batch_collate_fn,
-            distributed=self.ddp,
+            distributed=False,
         )
         model = model.eval()
         repr_dict = {

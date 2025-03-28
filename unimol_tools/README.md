@@ -55,6 +55,8 @@ export UNIMOL_WEIGHT_DIR=/path/to/your/weights/dir/
 ```
 
 ## News
+- 2025-03-28: Unimol_tools now support Distributed Data Parallel (DDP)!
+- 2024-11-22: Unimol V2 has been added to Unimol_tools!
 - 2024-07-23: User experience improvements: Add `UNIMOL_WEIGHT_DIR`.
 - 2024-06-25: unimol_tools has been publish to pypi! Huggingface has been used to manage the pretrain models.
 - 2024-06-20: unimol_tools v0.1.0 released, we remove the dependency of Uni-Core. And we will publish to pypi soon.
