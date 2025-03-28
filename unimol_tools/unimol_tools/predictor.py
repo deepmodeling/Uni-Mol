@@ -36,11 +36,14 @@ class UniMolRepr(object):
 
     def __init__(
         self,
-        data_type='molecule',
+        data_type='molecule',  
+        batch_size=32, 
         remove_hs=False,
         model_name='unimolv1',
         model_size='84m',
         use_cuda=True,
+        use_ddp=False,
+        use_gpu='all',
     ):
         """
         Initialize a :class:`UniMolRepr` class.
@@ -51,7 +54,6 @@ class UniMolRepr(object):
         :param model_name: str, default='unimolv1', currently support unimolv1, unimolv2.
         :param model_size: str, default='84m', model size of unimolv2.
         """
-        self.use_cuda = use_cuda
         self.device = torch.device(
             "cuda:0" if torch.cuda.is_available() and use_cuda else "cpu"
         )
@@ -68,9 +70,13 @@ class UniMolRepr(object):
         self.model.eval()
         self.params = {
             'data_type': data_type,
+            'batch_size': batch_size,
             'remove_hs': remove_hs,
             'model_name': model_name,
             'model_size': model_size,
+            'use_cuda': use_cuda,
+            'use_ddp': use_ddp,
+            'use_gpu': use_gpu,
         }
 
     def get_repr(self, data=None, return_atomic_reprs=False):
@@ -111,7 +117,7 @@ class UniMolRepr(object):
             **self.params,
         )
         dataset = MolDataset(datahub.data['unimol_input'])
-        self.trainer = Trainer(task='repr', use_cuda=self.use_cuda, **self.params)
+        self.trainer = Trainer(task='repr', **self.params)
         repr_output = self.trainer.inference(
             self.model,
             return_repr=True,
