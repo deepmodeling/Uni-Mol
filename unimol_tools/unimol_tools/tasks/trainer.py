@@ -205,7 +205,7 @@ class Trainer(object):
                     # print(f"Main function returned: {y_preds}")
                 except:
                     print("No return value received from main function.")
-                return y_preds
+            return y_preds
         else:
             return self.fit_predict_wo_ddp(
                 model,
@@ -341,7 +341,7 @@ class Trainer(object):
         """
         self.init_ddp(local_rank)
         model = model.to(local_rank)
-        model = DistributedDataParallel(model, device_ids=[local_rank])
+        model = DistributedDataParallel(model, device_ids=[local_rank], find_unused_parameters=True)
         train_dataloader = NNDataLoader(
             feature_name=feature_name,
             dataset=train_dataset,
@@ -719,7 +719,7 @@ class Trainer(object):
         """
         self.init_ddp(local_rank)
         model = model.to(local_rank)
-        model = DistributedDataParallel(model, device_ids=[local_rank])
+        model = DistributedDataParallel(model, device_ids=[local_rank], find_unused_parameters=True)
         dataloader = NNDataLoader(
             feature_name=feature_name,
             dataset=dataset,
