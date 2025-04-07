@@ -870,6 +870,7 @@ class EarlyStopper:
         self.metrics_str = metrics_str
         self.wait = 0
         self.min_loss = float("inf")
+        self.max_loss = float("-inf")
         self.is_early_stop = False
 
     def early_stop_choice(self, model, epoch, loss, metric_score=None):
@@ -890,16 +891,22 @@ class EarlyStopper:
         ]:
             return self._judge_early_stop_loss(loss, model, epoch)
         else:
-            return self.metrics._early_stop_choice(
+            is_early_stop, min_score, wait, max_score = self.metrics._early_stop_choice(
                 self.wait,
                 self.min_loss,
                 metric_score,
+                self.max_loss,
                 model,
                 self.dump_dir,
                 self.fold,
                 self.patience,
                 epoch,
             )
+            self.min_loss = min_score
+            self.max_loss = max_score
+            self.wait = wait
+            self.is_early_stop = is_early_stop
+            return self.is_early_stop
 
     def _judge_early_stop_loss(self, loss, model, epoch):
         """
