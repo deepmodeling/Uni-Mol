@@ -96,6 +96,7 @@ class Trainer(object):
                 self.ddp = False
                 logger.info("Using single GPU.")
         else:
+            self.scaler = None
             self.device = torch.device("cpu")
             self.ddp = False
             logger.info("Using CPU.")
