@@ -4,7 +4,9 @@
 
 from __future__ import absolute_import, division, print_function
 
+import os
 import numpy as np
+from rdkit.Chem import PandasTools
 
 from ..utils import logger
 from .conformer import ConformerGen, UniMolV2Feature
@@ -29,13 +31,14 @@ class DataHub(object):
         :param save_path: (str) Path to save any necessary files, like scalers.
         :param params: Additional parameters for data preprocessing and model configuration.
         """
-        self.data = data
+        self.raw_data = data
         self.is_train = is_train
         self.save_path = save_path
         self.task = params.get('task', None)
         self.target_cols = params.get('target_cols', None)
         self.multiclass_cnt = params.get('multiclass_cnt', None)
         self.ss_method = params.get('target_normalize', 'none')
+        self.save_sdf = params.get('save_sdf', True)
         self._init_data(**params)
         self._init_split(**params)
 
@@ -50,7 +53,7 @@ class DataHub(object):
         :param params: Additional parameters for data processing.
         :raises ValueError: If the task type is unknown.
         """
-        self.data = MolDataReader().read_data(self.data, self.is_train, **params)
+        self.data = MolDataReader().read_data(self.raw_data, self.is_train, **params)
         self.data['target_scaler'] = TargetScaler(
             self.ss_method, self.task, self.save_path
         )
@@ -93,23 +96,35 @@ class DataHub(object):
             raise ValueError('Unknown task: {}'.format(self.task))
 
         if params.get('model_name', None) == 'unimolv1':
-            if 'atoms' in self.data and 'coordinates' in self.data:
+            if 'mols' in self.data:
+                no_h_list = ConformerGen(**params).transform_mols(self.data['mols'])
+                mols = None
+            elif 'atoms' in self.data and 'coordinates' in self.data:
                 no_h_list = ConformerGen(**params).transform_raw(
                     self.data['atoms'], self.data['coordinates']
                 )
+                mols = None
             else:
                 smiles_list = self.data["smiles"]
-                no_h_list = ConformerGen(**params).transform(smiles_list)
+                no_h_list, mols = ConformerGen(**params).transform(smiles_list)
         elif params.get('model_name', None) == 'unimolv2':
-            if 'atoms' in self.data and 'coordinates' in self.data:
+            if 'mols' in self.data:
+                no_h_list = UniMolV2Feature(**params).transform_mols(self.data['mols'])
+                mols = None
+            elif 'atoms' in self.data and 'coordinates' in self.data:
                 no_h_list = UniMolV2Feature(**params).transform_raw(
                     self.data['atoms'], self.data['coordinates']
                 )
+                mols = None
             else:
                 smiles_list = self.data["smiles"]
-                no_h_list = UniMolV2Feature(**params).transform(smiles_list)
+                no_h_list, mols = UniMolV2Feature(**params).transform(smiles_list)
 
         self.data['unimol_input'] = no_h_list
+
+        if self.save_sdf and mols is not None:
+            self.save_mol2sdf(self.data['raw_data'], mols, params)
+
 
     def _init_split(self, **params):
 
@@ -135,3 +150,37 @@ class DataHub(object):
             nfolds[te_idx] = enu
         self.data['split_nfolds'] = split_nfolds
         return split_nfolds
+
+    def save_mol2sdf(self, data, mols, params):
+        """
+        Save the conformers to a SDF file.
+
+        :param data: DataFrame containing the raw data.
+        :param mols: List of RDKit molecule objects.
+        """
+        if isinstance(self.raw_data, str):
+            base_name = os.path.splitext(os.path.basename(self.raw_data))[0]
+        elif isinstance(self.raw_data, list) or isinstance(self.raw_data, np.ndarray):
+            # If the raw_data is a list of smiles, we can use a default name.
+            base_name = 'unimol_conformers'
+        else:
+            logger.warning('Warning: raw_data is not a path or list, cannot save sdf.')
+            return
+        if params.get('sdf_save_path') is None:
+            if self.save_path is not None:
+                params['sdf_save_path'] = self.save_path
+            else:
+                return
+        save_path = os.path.join(params.get('sdf_save_path'), f"{base_name}.sdf")
+        if os.path.exists(save_path):
+            logger.warning(f"File {save_path} already exists, skipping save sdf.")
+            return
+        sdf_result = data.copy()
+        sdf_result['ROMol'] = mols
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
+        try:
+            PandasTools.WriteSDF(sdf_result, save_path, properties=list(sdf_result.columns), idName='RowID')
+            logger.info(f"Saved sdf file to {save_path}")
+        except Exception as e:
+            logger.warning(f"Failed to write sdf file: {e}")
+        pass

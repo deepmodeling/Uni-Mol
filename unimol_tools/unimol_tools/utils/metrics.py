@@ -24,6 +24,9 @@ def cal_nan_metric(y_true, y_pred, nan_value=None, metric_func=None):
     if isinstance(y_pred, pd.DataFrame):
         y_pred = y_pred.to_numpy()
 
+    if not np.issubdtype(y_true.dtype, np.floating):
+        y_true = y_true.astype(np.float64)
+
     mask = ~np.isnan(y_true)
     if nan_value is not None:
         mask = mask & (y_true != nan_value)

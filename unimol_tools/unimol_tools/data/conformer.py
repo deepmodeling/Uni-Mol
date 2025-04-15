@@ -116,16 +116,17 @@ class ConformerGen(object):
         :raises ValueError: If the conformer generation method is unrecognized.
         """
         if self.method == 'rdkit_random':
-            atoms, coordinates = inner_smi2coords(
+            atoms, coordinates, mol = inner_smi2coords(
                 smiles, seed=self.seed, mode=self.mode, remove_hs=self.remove_hs
             )
-            return coords2unimol(
+            feat = coords2unimol(
                 atoms,
                 coordinates,
                 self.dictionary,
                 self.max_atoms,
                 remove_hs=self.remove_hs,
             )
+            return feat, mol
         else:
             raise ValueError(
                 'Unknown conformer generation method: {}'.format(self.method)
@@ -146,16 +147,36 @@ class ConformerGen(object):
             )
         return inputs
 
+    def transform_mols(self, mols_list):
+        inputs = []
+        for mol in mols_list:
+            atoms = np.array([atom.GetSymbol() for atom in mol.GetAtoms()])
+            coordinates = mol.GetConformer().GetPositions().astype(np.float32)
+            inputs.append(
+                coords2unimol(
+                    atoms,
+                    coordinates,
+                    self.dictionary,
+                    self.max_atoms,
+                    remove_hs=self.remove_hs,
+                )
+            )
+        return inputs
+
     def transform(self, smiles_list):
         logger.info('Start generating conformers...')
         if self.multi_process:
             pool = Pool(processes=min(8, os.cpu_count()))
-            inputs = [
+            results = [
                 item for item in tqdm(pool.imap(self.single_process, smiles_list))
             ]
             pool.close()
         else:
-            inputs = [self.single_process(smiles) for smiles in tqdm(smiles_list)]
+            results = [self.single_process(smiles) for smiles in tqdm(smiles_list)]
+                
+        inputs, mols = zip(*results)
+        inputs = list(inputs)
+        mols = list(mols)
 
         failed_conf = [(item['src_coord'] == 0.0).all() for item in inputs]
         logger.info(
@@ -192,7 +213,7 @@ class ConformerGen(object):
                     [smiles_list[index] for index in failed_conf_3d_indices]
                 )
             )
-        return inputs
+        return inputs, mols
 
 
 def inner_smi2coords(smi, seed=42, mode='fast', remove_hs=True, return_mol=False):
@@ -253,9 +274,9 @@ def inner_smi2coords(smi, seed=42, mode='fast', remove_hs=True, return_mol=False
         assert len(atoms_no_h) == len(
             coordinates_no_h
         ), "coordinates shape is not align with {}".format(smi)
-        return atoms_no_h, coordinates_no_h
+        return atoms_no_h, coordinates_no_h, mol
     else:
-        return atoms, coordinates
+        return atoms, coordinates, mol
 
 
 def inner_coords(atoms, coordinates, remove_hs=True):
@@ -391,7 +412,8 @@ class UniMolV2Feature(object):
                 remove_hs=self.remove_hs,
                 return_mol=True,
             )
-            return mol2unimolv2(mol, self.max_atoms, remove_hs=self.remove_hs)
+            feat = mol2unimolv2(mol, self.max_atoms, remove_hs=self.remove_hs)
+            return feat, mol
         else:
             raise ValueError(
                 'Unknown conformer generation method: {}'.format(self.method)
@@ -405,16 +427,26 @@ class UniMolV2Feature(object):
             inputs.append(mol2unimolv2(mol, self.max_atoms, remove_hs=self.remove_hs))
         return inputs
 
+    def transform_mols(self, mols_list):
+        inputs = []
+        for mol in mols_list:
+            inputs.append(mol2unimolv2(mol, self.max_atoms, remove_hs=self.remove_hs))
+        return inputs
+
     def transform(self, smiles_list):
         logger.info('Start generating conformers...')
         if self.multi_process:
             pool = Pool(processes=min(8, os.cpu_count()))
-            inputs = [
+            results = [
                 item for item in tqdm(pool.imap(self.single_process, smiles_list))
             ]
             pool.close()
         else:
-            inputs = [self.single_process(smiles) for smiles in tqdm(smiles_list)]
+            results = [self.single_process(smiles) for smiles in tqdm(smiles_list)]
+        
+        inputs, mols = zip(*results)
+        inputs = list(inputs)
+        mols = list(mols)
 
         failed_conf = [(item['src_coord'] == 0.0).all() for item in inputs]
         logger.info(
@@ -452,7 +484,7 @@ class UniMolV2Feature(object):
                 )
             )
 
-        return inputs
+        return inputs, mols
 
 
 def create_mol_from_atoms_and_coords(atoms, coordinates):

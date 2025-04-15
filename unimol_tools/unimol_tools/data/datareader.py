@@ -10,6 +10,7 @@ import pathlib
 import numpy as np
 import pandas as pd
 from rdkit import Chem
+from rdkit.Chem import PandasTools
 from rdkit.Chem.Scaffolds import MurckoScaffold
 
 from ..utils import logger
@@ -49,7 +50,13 @@ class MolDataReader(object):
         if isinstance(data, str):
             # load from file
             self.data_path = data
-            data = pd.read_csv(self.data_path)
+            if data.endswith('.sdf'):
+                # load sdf file
+                data = PandasTools.LoadSDF(data)
+            elif data.endswith('.csv'):
+                data = pd.read_csv(self.data_path)
+            else:
+                raise ValueError('Unknown file type: {}'.format(data))
         elif isinstance(data, dict):
             # load from dict
             if 'target' in data:
@@ -136,6 +143,9 @@ class MolDataReader(object):
         if 'atoms' in data.columns and 'coordinates' in data.columns:
             dd['atoms'] = data['atoms'].tolist()
             dd['coordinates'] = data['coordinates'].tolist()
+
+        if 'ROMol' in data.columns:
+            dd['mols'] = data['ROMol'].tolist()
 
         return dd
 
