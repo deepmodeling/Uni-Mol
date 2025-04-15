@@ -173,7 +173,7 @@ class ConformerGen(object):
             pool.close()
         else:
             results = [self.single_process(smiles) for smiles in tqdm(smiles_list)]
-                
+
         inputs, mols = zip(*results)
         inputs = list(inputs)
         mols = list(mols)
@@ -443,7 +443,7 @@ class UniMolV2Feature(object):
             pool.close()
         else:
             results = [self.single_process(smiles) for smiles in tqdm(smiles_list)]
-        
+
         inputs, mols = zip(*results)
         inputs = list(inputs)
         mols = list(mols)

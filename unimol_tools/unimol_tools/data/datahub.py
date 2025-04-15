@@ -125,7 +125,6 @@ class DataHub(object):
         if self.save_sdf and mols is not None:
             self.save_mol2sdf(self.data['raw_data'], mols, params)
 
-
     def _init_split(self, **params):
 
         self.split_method = params.get('split_method', '5fold_random')
@@ -179,7 +178,12 @@ class DataHub(object):
         sdf_result['ROMol'] = mols
         os.makedirs(os.path.dirname(save_path), exist_ok=True)
         try:
-            PandasTools.WriteSDF(sdf_result, save_path, properties=list(sdf_result.columns), idName='RowID')
+            PandasTools.WriteSDF(
+                sdf_result,
+                save_path,
+                properties=list(sdf_result.columns),
+                idName='RowID',
+            )
             logger.info(f"Saved sdf file to {save_path}")
         except Exception as e:
             logger.warning(f"Failed to write sdf file: {e}")

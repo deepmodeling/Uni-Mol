@@ -15,8 +15,13 @@ from addict import Dict
 from ..config import MODEL_CONFIG_V2
 from ..utils import logger, pad_1d_tokens, pad_2d, pad_coords
 from ..weights import WEIGHT_DIR, weight_download_v2
-from .transformersv2 import (AtomFeature, EdgeFeature, MovementPredictionHead,
-                             SE3InvariantKernel, TransformerEncoderWithPairV2)
+from .transformersv2 import (
+    AtomFeature,
+    EdgeFeature,
+    MovementPredictionHead,
+    SE3InvariantKernel,
+    TransformerEncoderWithPairV2,
+)
 
 BACKBONE = {
     'transformer': TransformerEncoderWithPairV2,

@@ -68,9 +68,7 @@ class MolPredict(object):
             data=data, is_train=False, save_path=self.load_model, **self.config
         )
         self.config.use_ddp = False
-        self.trainer = Trainer(
-            save_path=self.load_model, **self.config
-        )
+        self.trainer = Trainer(save_path=self.load_model, **self.config)
         self.model = NNModel(self.datahub.data, self.trainer, **self.config)
         self.model.evaluate(self.trainer, self.load_model)
 

@@ -24,6 +24,7 @@ from tqdm import tqdm
 # from transformers.optimization import get_linear_schedule_with_warmup
 from ..utils import Metrics, logger
 
+
 class Trainer(object):
     """A :class:`Trainer` class is responsible for initializing the model, and managing its training, validation, and testing phases."""
 
@@ -87,7 +88,7 @@ class Trainer(object):
             if world_size > 1 and self.ddp and gpu_count > 1:
                 gpu = str(gpu).replace(" ", "")
                 os.environ['MASTER_ADDR'] = os.getenv('MASTER_ADDR', 'localhost')
-                os.environ['MASTER_PORT'] = os.getenv('MASTER_PORT', '19198')      
+                os.environ['MASTER_PORT'] = os.getenv('MASTER_PORT', '19198')
                 os.environ['CUDA_VISIBLE_DEVICES'] = gpu
                 os.environ['WORLD_SIZE'] = str(world_size)
                 logger.info(f"Using DistributedDataParallel for multi-GPU. GPUs: {gpu}")
@@ -341,7 +342,9 @@ class Trainer(object):
         """
         self.init_ddp(local_rank)
         model = model.to(local_rank)
-        model = DistributedDataParallel(model, device_ids=[local_rank], find_unused_parameters=True)
+        model = DistributedDataParallel(
+            model, device_ids=[local_rank], find_unused_parameters=True
+        )
         train_dataloader = NNDataLoader(
             feature_name=feature_name,
             dataset=train_dataset,
@@ -513,9 +516,11 @@ class Trainer(object):
         ]
         dist.all_gather(gathered_y_preds, y_preds_tensor)
         gathered_y_preds = torch.stack(gathered_y_preds, dim=1).view(-1).unsqueeze(-1)
-        
+
         if len(gathered_y_preds) != len_valid_dataset:
-            gathered_y_preds = gathered_y_preds[:len_valid_dataset] # remove padding when using DDP
+            gathered_y_preds = gathered_y_preds[
+                :len_valid_dataset
+            ]  # remove padding when using DDP
         return gathered_y_preds.cpu().numpy()
 
     def predict(
@@ -689,8 +694,7 @@ class Trainer(object):
         else:
             return self.inference_without_ddp(
                 model, dataset, return_repr, return_atomic_reprs, feature_name
-            )    
-
+            )
 
     def inference_with_ddp(
         self,
@@ -719,7 +723,9 @@ class Trainer(object):
         """
         self.init_ddp(local_rank)
         model = model.to(local_rank)
-        model = DistributedDataParallel(model, device_ids=[local_rank], find_unused_parameters=True)
+        model = DistributedDataParallel(
+            model, device_ids=[local_rank], find_unused_parameters=True
+        )
         dataloader = NNDataLoader(
             feature_name=feature_name,
             dataset=dataset,
@@ -762,24 +768,22 @@ class Trainer(object):
         if local_rank == 0:
             merged_repr_dict = {"cls_repr": []}
             if return_atomic_reprs:
-                merged_repr_dict.update({
-                    "atomic_symbol": [],
-                    "atomic_coords": [],
-                    "atomic_reprs": []
-                })
-            
+                merged_repr_dict.update(
+                    {"atomic_symbol": [], "atomic_coords": [], "atomic_reprs": []}
+                )
+
             for rd in gathered_list:
                 merged_repr_dict["cls_repr"].extend(rd["cls_repr"])
                 if return_atomic_reprs:
                     merged_repr_dict["atomic_symbol"].extend(rd.get("atomic_symbol", []))
                     merged_repr_dict["atomic_coords"].extend(rd.get("atomic_coords", []))
                     merged_repr_dict["atomic_reprs"].extend(rd.get("atomic_reprs", []))
-            
-            merged_repr_dict["cls_repr"] = merged_repr_dict["cls_repr"][:len(dataset)]
+
+            merged_repr_dict["cls_repr"] = merged_repr_dict["cls_repr"][: len(dataset)]
             if return_atomic_reprs:
                 for key in ["atomic_symbol", "atomic_coords", "atomic_reprs"]:
-                    merged_repr_dict[key] = merged_repr_dict[key][:len(dataset)]
-            
+                    merged_repr_dict[key] = merged_repr_dict[key][: len(dataset)]
+
             shared_queue.put(merged_repr_dict)
         return repr_dict
 
@@ -967,7 +971,7 @@ def NNDataLoader(
     else:
         sampler = None
         g = None
-    
+
     if valid_mode:
         g = None
 

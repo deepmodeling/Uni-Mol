@@ -37,8 +37,8 @@ class UniMolRepr(object):
 
     def __init__(
         self,
-        data_type='molecule',  
-        batch_size=32, 
+        data_type='molecule',
+        batch_size=32,
         remove_hs=False,
         model_name='unimolv1',
         model_size='84m',
