@@ -105,6 +105,7 @@ class UniMolRepr(object):
 
         if isinstance(data, str):
             if data.endswith('.sdf'):
+                # Datahub will process sdf file.
                 pass
             elif data.endswith('.csv'):
                 # read csv file.
