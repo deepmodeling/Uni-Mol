@@ -38,7 +38,7 @@ class DataHub(object):
         self.target_cols = params.get('target_cols', None)
         self.multiclass_cnt = params.get('multiclass_cnt', None)
         self.ss_method = params.get('target_normalize', 'none')
-        self.save_sdf = params.get('save_sdf', True)
+        self.save_sdf = params.get('save_sdf', 'if_not_exists')
         self._init_data(**params)
         self._init_split(**params)
 
@@ -122,7 +122,7 @@ class DataHub(object):
 
         self.data['unimol_input'] = no_h_list
 
-        if self.save_sdf and mols is not None:
+        if mols is not None:
             self.save_mol2sdf(self.data['raw_data'], mols, params)
 
     def _init_split(self, **params):
@@ -171,8 +171,19 @@ class DataHub(object):
             else:
                 return
         save_path = os.path.join(params.get('sdf_save_path'), f"{base_name}.sdf")
-        if os.path.exists(save_path):
+        # if os.path.exists(save_path):
+        #     logger.warning(f"File {save_path} already exists, skipping save sdf.")
+        #     return
+        if self.save_sdf == 'if_not_exists' and os.path.exists(save_path):
             logger.warning(f"File {save_path} already exists, skipping save sdf.")
+            return
+        elif self.save_sdf == 'always' or not os.path.exists(save_path):
+            logger.info(f"Saving sdf file to {save_path}")
+        elif self.save_sdf == 'never':
+            logger.warning(f"Do not save sdf file because save_sdf is set to never.")
+            return
+        else:
+            logger.warning(f"Unknown save_sdf option: {self.save_sdf}, optional [if_not_exists, always, never]")
             return
         sdf_result = data.copy()
         sdf_result['ROMol'] = mols
@@ -184,7 +195,7 @@ class DataHub(object):
                 properties=list(sdf_result.columns),
                 idName='RowID',
             )
-            logger.info(f"Saved sdf file to {save_path}")
+            logger.info(f"Successfully saved sdf file to {save_path}")
         except Exception as e:
             logger.warning(f"Failed to write sdf file: {e}")
         pass
