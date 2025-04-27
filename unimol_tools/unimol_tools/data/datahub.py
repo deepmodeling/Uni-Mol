@@ -171,9 +171,6 @@ class DataHub(object):
             else:
                 return
         save_path = os.path.join(params.get('sdf_save_path'), f"{base_name}.sdf")
-        # if os.path.exists(save_path):
-        #     logger.warning(f"File {save_path} already exists, skipping save sdf.")
-        #     return
         if self.save_sdf == 'if_not_exists' and os.path.exists(save_path):
             logger.warning(f"File {save_path} already exists, skipping save sdf.")
             return
