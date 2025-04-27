@@ -171,14 +171,14 @@ class DataHub(object):
             else:
                 return
         save_path = os.path.join(params.get('sdf_save_path'), f"{base_name}.sdf")
-        if self.save_sdf == 'if_not_exists' and os.path.exists(save_path):
+        if self.save_sdf == 'never':
+            logger.warning(f"Do not save sdf file because save_sdf is set to never.")
+            return
+        elif self.save_sdf == 'if_not_exists' and os.path.exists(save_path):
             logger.warning(f"File {save_path} already exists, skipping save sdf.")
             return
         elif self.save_sdf == 'always' or not os.path.exists(save_path):
             logger.info(f"Saving sdf file to {save_path}")
-        elif self.save_sdf == 'never':
-            logger.warning(f"Do not save sdf file because save_sdf is set to never.")
-            return
         else:
             logger.warning(f"Unknown save_sdf option: {self.save_sdf}, optional [if_not_exists, always, never]")
             return
