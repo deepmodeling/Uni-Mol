@@ -53,6 +53,7 @@ class MolTrain(object):
         load_model_dir=None,  # load model for transfer learning
         model_name='unimolv1',
         model_size='84m',
+        conf_cache_level=1,
         **params,
     ):
         """
@@ -115,6 +116,10 @@ class MolTrain(object):
         :param load_model_dir: str, default=None, path to load model for transfer learning.
         :param model_name: str, default='unimolv1', currently support unimolv1, unimolv2.
         :param model_size: str, default='84m', model size. work when model_name is unimolv2. Avaliable: 84m, 164m, 310m, 570m, 1.1B.
+        :param conf_cache_level: int, optional [0, 1, 2], default=1, configuration cache level to save the conformers to sdf file.
+            - 0: no caching.
+            - 1: cache if not exists.
+            - 2: always cache.
 
         """
         if load_model_dir is not None:
@@ -153,6 +158,7 @@ class MolTrain(object):
         config.load_model_dir = load_model_dir
         config.model_name = model_name
         config.model_size = model_size
+        config.conf_cache_level = conf_cache_level
         self.save_path = save_path
         self.config = config
 

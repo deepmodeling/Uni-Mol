@@ -14,8 +14,7 @@ from torch.nn import functional as F
 from torch.utils.data import Dataset
 
 from ..utils import logger
-from .loss import (FocalLossWithLogits, GHMC_Loss, MAEwithNan,
-                   myCrossEntropyLoss)
+from .loss import FocalLossWithLogits, GHMC_Loss, MAEwithNan, myCrossEntropyLoss
 from .unimol import UniMolModel
 from .unimolv2 import UniMolV2Model
 

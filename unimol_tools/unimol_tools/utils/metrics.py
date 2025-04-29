@@ -5,11 +5,20 @@ import numpy as np
 import pandas as pd
 import torch
 from scipy.stats import pearsonr, spearmanr
-from sklearn.metrics import (accuracy_score, average_precision_score,
-                             cohen_kappa_score, f1_score, log_loss,
-                             matthews_corrcoef, mean_absolute_error,
-                             mean_squared_error, precision_score, r2_score,
-                             recall_score, roc_auc_score)
+from sklearn.metrics import (
+    accuracy_score,
+    average_precision_score,
+    cohen_kappa_score,
+    f1_score,
+    log_loss,
+    matthews_corrcoef,
+    mean_absolute_error,
+    mean_squared_error,
+    precision_score,
+    r2_score,
+    recall_score,
+    roc_auc_score,
+)
 
 from .base_logger import logger
 
@@ -23,6 +32,9 @@ def cal_nan_metric(y_true, y_pred, nan_value=None, metric_func=None):
 
     if isinstance(y_pred, pd.DataFrame):
         y_pred = y_pred.to_numpy()
+
+    if not np.issubdtype(y_true.dtype, np.floating):
+        y_true = y_true.astype(np.float64)
 
     mask = ~np.isnan(y_true)
     if nan_value is not None:

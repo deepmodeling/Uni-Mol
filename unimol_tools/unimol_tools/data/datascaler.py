@@ -9,12 +9,19 @@ import os
 import joblib
 import numpy as np
 from scipy.stats import kurtosis, skew
-from sklearn.preprocessing import (FunctionTransformer, MaxAbsScaler,
-                                   MinMaxScaler, Normalizer, PowerTransformer,
-                                   QuantileTransformer, RobustScaler,
-                                   StandardScaler)
+from sklearn.preprocessing import (
+    FunctionTransformer,
+    MaxAbsScaler,
+    MinMaxScaler,
+    Normalizer,
+    PowerTransformer,
+    QuantileTransformer,
+    RobustScaler,
+    StandardScaler,
+)
 
 from ..utils import logger
+
 
 class TargetScaler(object):
     '''
@@ -80,7 +87,9 @@ class TargetScaler(object):
         elif self.ss_method == 'auto':
             if self.task == 'regression':
                 if self.is_skewed(target):
-                    self.scaler = FunctionTransformer(func=np.log1p, inverse_func=np.expm1)
+                    self.scaler = FunctionTransformer(
+                        func=np.log1p, inverse_func=np.expm1
+                    )
                     logger.info('Auto select robust transformer.')
                 else:
                     self.scaler = StandardScaler()
@@ -90,7 +99,9 @@ class TargetScaler(object):
                 target = np.ma.masked_invalid(target)  # mask NaN value
                 for i in range(target.shape[1]):
                     if self.is_skewed(target[:, i]):
-                        self.scaler.append(FunctionTransformer(func=np.log1p, inverse_func=np.expm1))
+                        self.scaler.append(
+                            FunctionTransformer(func=np.log1p, inverse_func=np.expm1)
+                        )
                         logger.info('Auto select robust transformer.')
                     else:
                         self.scaler.append(StandardScaler())

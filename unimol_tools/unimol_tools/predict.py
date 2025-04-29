@@ -60,6 +60,7 @@ class MolPredict(object):
         :return y_pred: numpy.ndarray, predict result.
         """
         self.save_path = save_path
+        self.config['sdf_save_path'] = save_path
         if not metrics or metrics != 'none':
             self.config.metrics = metrics
         ## load test data
@@ -67,9 +68,7 @@ class MolPredict(object):
             data=data, is_train=False, save_path=self.load_model, **self.config
         )
         self.config.use_ddp = False
-        self.trainer = Trainer(
-            save_path=self.load_model, **self.config
-        )
+        self.trainer = Trainer(save_path=self.load_model, **self.config)
         self.model = NNModel(self.datahub.data, self.trainer, **self.config)
         self.model.evaluate(self.trainer, self.load_model)
 

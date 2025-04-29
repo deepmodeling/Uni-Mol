@@ -5,6 +5,7 @@
 from __future__ import absolute_import, division, print_function
 
 import numpy as np
+import pandas as pd
 import torch
 from torch.utils.data import Dataset
 
@@ -36,14 +37,16 @@ class UniMolRepr(object):
 
     def __init__(
         self,
-        data_type='molecule',  
-        batch_size=32, 
+        data_type='molecule',
+        batch_size=32,
         remove_hs=False,
         model_name='unimolv1',
         model_size='84m',
         use_cuda=True,
         use_ddp=False,
         use_gpu='all',
+        save_path=None,
+        **kwargs,
     ):
         """
         Initialize a :class:`UniMolRepr` class.
@@ -80,6 +83,7 @@ class UniMolRepr(object):
             'use_cuda': use_cuda,
             'use_ddp': use_ddp,
             'use_gpu': use_gpu,
+            'save_path': save_path,
         }
 
     def get_repr(self, data=None, return_atomic_reprs=False):
@@ -100,9 +104,18 @@ class UniMolRepr(object):
         """
 
         if isinstance(data, str):
-            # single smiles string.
-            data = [data]
-            data = np.array(data)
+            if data.endswith('.sdf'):
+                # Datahub will process sdf file.
+                pass
+            elif data.endswith('.csv'):
+                # read csv file.
+                data = pd.read_csv(data)
+                assert 'SMILES' in data.columns
+                data = data['SMILES'].values
+            else:
+                # single smiles string.
+                data = [data]
+                data = np.array(data)
         elif isinstance(data, dict):
             # custom conformers, should take atoms and coordinates as input.
             assert 'atoms' in data and 'coordinates' in data
