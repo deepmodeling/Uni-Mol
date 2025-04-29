@@ -38,7 +38,7 @@ class DataHub(object):
         self.target_cols = params.get('target_cols', None)
         self.multiclass_cnt = params.get('multiclass_cnt', None)
         self.ss_method = params.get('target_normalize', 'none')
-        self.save_sdf = params.get('save_sdf', 'if_not_exists')
+        self.conf_cache_level = params.get('conf_cache_level', 1)
         self._init_data(**params)
         self._init_split(**params)
 
@@ -171,16 +171,16 @@ class DataHub(object):
             else:
                 return
         save_path = os.path.join(params.get('sdf_save_path'), f"{base_name}.sdf")
-        if self.save_sdf == 'never':
-            logger.warning(f"Do not save sdf file because save_sdf is set to never.")
+        if self.conf_cache_level == 0:
+            logger.warning(f"conf_cache_level is 0, do not saving conformers.")
             return
-        elif self.save_sdf == 'if_not_exists' and os.path.exists(save_path):
-            logger.warning(f"File {save_path} already exists, skipping save sdf.")
+        elif self.conf_cache_level == 1 and os.path.exists(save_path):
+            logger.warning(f"conf_cache_level is 1, but {save_path} exists, do not saving conformers.")
             return
-        elif self.save_sdf == 'always' or not os.path.exists(save_path):
-            logger.info(f"Saving sdf file to {save_path}")
+        elif self.conf_cache_level == 2 or not os.path.exists(save_path):
+            logger.info(f"conf_cache_level is {self.conf_cache_level}, saving conformers to {save_path}.")
         else:
-            logger.warning(f"Unknown save_sdf option: {self.save_sdf}, optional [if_not_exists, always, never]")
+            logger.warning(f"Unknown conf_cache_level: {self.conf_cache_level}, do not saving conformers.")
             return
         sdf_result = data.copy()
         sdf_result['ROMol'] = mols
