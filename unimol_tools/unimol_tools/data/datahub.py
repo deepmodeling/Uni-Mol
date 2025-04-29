@@ -172,10 +172,10 @@ class DataHub(object):
                 return
         save_path = os.path.join(params.get('sdf_save_path'), f"{base_name}.sdf")
         if self.conf_cache_level == 0:
-            logger.warning(f"conf_cache_level is 0, do not saving conformers.")
+            logger.warning(f"conf_cache_level is 0, do not save conformers.")
             return
         elif self.conf_cache_level == 1 and os.path.exists(save_path):
-            logger.warning(f"conf_cache_level is 1, but {save_path} exists, do not saving conformers.")
+            logger.warning(f"conf_cache_level is 1, but {save_path} exists, so do not save conformers.")
             return
         elif self.conf_cache_level == 2 or not os.path.exists(save_path):
             logger.info(f"conf_cache_level is {self.conf_cache_level}, saving conformers to {save_path}.")
