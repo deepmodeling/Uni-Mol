@@ -516,7 +516,7 @@ class Trainer(object):
             torch.zeros_like(y_preds_tensor) for _ in range(dist.get_world_size())
         ]
         dist.all_gather(gathered_y_preds, y_preds_tensor)
-        gathered_y_preds = torch.stack(gathered_y_preds, dim=1).view(-1).unsqueeze(-1)
+        gathered_y_preds = torch.cat(gathered_y_preds, dim=0)
 
         if len(gathered_y_preds) != len_valid_dataset:
             gathered_y_preds = gathered_y_preds[
