@@ -451,8 +451,8 @@ class Trainer(object):
             total=len(train_dataloader),
             dynamic_ncols=True,
             leave=False,
-            position=0,
-            desc='Train',
+            position=0 if not self.ddp else dist.get_rank(),
+            desc='Train' if not self.ddp else f'Train Rank:{dist.get_rank()}',
             ncols=5,
         )
         for i, batch in enumerate(train_dataloader):
@@ -516,7 +516,7 @@ class Trainer(object):
             torch.zeros_like(y_preds_tensor) for _ in range(dist.get_world_size())
         ]
         dist.all_gather(gathered_y_preds, y_preds_tensor)
-        gathered_y_preds = torch.cat(gathered_y_preds, dim=0)
+        gathered_y_preds = torch.stack(gathered_y_preds, dim=1).view(-1, y_preds_tensor.size(1))
 
         if len(gathered_y_preds) != len_valid_dataset:
             gathered_y_preds = gathered_y_preds[
