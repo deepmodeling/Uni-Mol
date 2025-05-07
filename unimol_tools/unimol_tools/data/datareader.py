@@ -92,7 +92,7 @@ class MolDataReader(object):
                     item for item in data.columns if item.startswith(target_col_prefix)
                 ]
             elif isinstance(target_cols, str):
-                target_cols = target_cols.split(',')
+                target_cols = [target_col.strip() for target_col in target_cols.split(',')]
             elif isinstance(target_cols, list):
                 pass
             else:
