@@ -1,3 +1,8 @@
+> [!IMPORTANT]  
+> To enable more efficient maintenance and facilitate future development, we have migrated unimol-tools from Uni-Mol repository to https://github.com/deepmodeling/unimol_tools. In principle, the unimol_tools folder in the Uni-Mol repository will no longer be updated or maintained for current stable version. and issues tracking and feature updates will take place in [unimol-tools](https://github.com/deepmodeling/unimol_tools) repo.
+
+> Please submit unimol-tools related issues, pull requests, or suggestions in the new repository.
+
 # Uni-Mol tools for various prediction and downstreams.
 
 Documentation of Uni-Mol tools is available at https://unimol.readthedocs.io/en/latest/
